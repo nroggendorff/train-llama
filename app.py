@@ -10,7 +10,7 @@ from datasets import load_dataset
 from tokenizers import ByteLevelBPETokenizer
 import trl
 
-dataset = load_dataset("nroggendorff/openhermes", split="train").select(range(int(8e+5)))
+dataset = load_dataset("nroggendorff/openhermes", split="train").select(range(int(1e+5)))
 
 def get_training_corpus():
     for i in range(0, len(dataset), 1000):
@@ -100,7 +100,7 @@ args = TrainingArguments(
     output_dir="mayo",
     num_train_epochs=2,
     per_device_train_batch_size=64,
-    gradient_accumulation_steps=8,
+    #gradient_accumulation_steps=8,
     learning_rate=1e-5,
     save_steps=100000,
     fp16=True,

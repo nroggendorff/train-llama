@@ -9,7 +9,7 @@ import requests as rq
 import gc
 from tokenizers import ByteLevelBPETokenizer
 
-dataset = load_dataset("nroggendorff/openhermes", split="train").select(range(int(5e+4)))
+dataset = load_dataset("nroggendorff/openhermes", split="train")#.select(range(int(5e+4)))
 
 def get_training_corpus():
     for i in range(0, len(dataset), 1000):
@@ -104,8 +104,7 @@ args = TrainingArguments(
     save_steps=100000,
     fp16=True,
     optim="sgd",
-    optim_target_modules=["attn", "mlp"],
-    max_grad_norm=0.3
+    optim_target_modules=["attn", "mlp"]
 )
 
 trainer = trl.SFTTrainer(

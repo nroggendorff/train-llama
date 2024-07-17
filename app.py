@@ -9,7 +9,7 @@ import requests as rq
 import gc
 from tokenizers import ByteLevelBPETokenizer
 
-dataset = load_dataset("nroggendorff/openhermes", split="train")#.select(range(int(5e+4)))
+dataset = load_dataset("nroggendorff/openhermes", split="train").select(range(int(5e+4)))
 
 def get_training_corpus():
     for i in range(0, len(dataset), 1000):
@@ -122,10 +122,7 @@ torch.cuda.set_device(0)
 gc.collect()
 torch.cuda.empty_cache()
 
-try:
-    trainer.train()
-except Exception as e:
-    rq.post("https://discord.com/api/webhooks/1245084721923358730/pVHUf2PR4Wst52KVNxVSeAHnSIKxx-PLdd90OHASegb30cNoGZe9N476LzCDVLQXDbT0", json={"content": str(e)})
+trainer.train()
     
 #trainer.push_to_hub()
 trained_model = trainer.model

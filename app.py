@@ -98,7 +98,7 @@ print(dataset['text'][2])
 args = TrainingArguments(
     output_dir="mayo",
     num_train_epochs=2,
-    gradient_accumulation_steps=1,
+    gradient_accumulation_steps=8,
     per_device_train_batch_size=32,
     learning_rate=1e-5,
     save_steps=100000,

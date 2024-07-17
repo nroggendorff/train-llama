@@ -1,15 +1,16 @@
-from transformers import TrainingArguments, AutoConfig, AutoTokenizer, AutoModelForCausalLM
-import numpy as np
-from transformers import LlamaConfig, LlamaForCausalLM
-import trl
-import torch
-from datasets import load_dataset
-from transformers import PreTrainedTokenizerFast
-import requests as rq
 import gc
-from tokenizers import ByteLevelBPETokenizer
 
-dataset = load_dataset("nroggendorff/openhermes", split="train").select(range(int(4e+5)))
+import numpy as np
+import requests as rq
+import torch
+
+from transformers import AutoTokenizer, LlamaConfig, LlamaForCausalLM, PreTrainedTokenizerFast, TrainingArguments
+from datasets import load_dataset
+
+from tokenizers import ByteLevelBPETokenizer
+import trl
+
+dataset = load_dataset("nroggendorff/openhermes", split="train")#.select(range(int(4e+5)))
 
 def get_training_corpus():
     for i in range(0, len(dataset), 1000):
@@ -98,7 +99,7 @@ print(dataset['text'][2])
 args = TrainingArguments(
     output_dir="mayo",
     num_train_epochs=2,
-    gradient_accumulation_steps=8,
+    gradient_accumulation_steps=16,
     per_device_train_batch_size=32,
     learning_rate=1e-5,
     save_steps=100000,

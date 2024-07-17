@@ -6,7 +6,7 @@ COPY requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-RUN chmod 777 /.cache
+RUN mkdir /.cache && chmod 777 /.cache
 
 COPY app.py .
 

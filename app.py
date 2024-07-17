@@ -9,7 +9,7 @@ import requests as rq
 import gc
 from tokenizers import ByteLevelBPETokenizer
 
-dataset = load_dataset("nroggendorff/openhermes", split="train").select(range(int(1e+5)))
+dataset = load_dataset("nroggendorff/openhermes", split="train").select(range(int(2e+5)))
 
 def get_training_corpus():
     for i in range(0, len(dataset), 1000):
@@ -97,8 +97,8 @@ print(dataset['text'][2])
 
 args = TrainingArguments(
     output_dir="mayo",
-    num_train_epochs=4,
-    gradient_accumulation_steps=4,
+    num_train_epochs=2,
+    gradient_accumulation_steps=1,
     per_device_train_batch_size=32,
     learning_rate=1e-5,
     save_steps=100000,

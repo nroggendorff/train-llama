@@ -1,3 +1,5 @@
+print('Importing goodies..')
+
 import gc
 
 import numpy as np
@@ -10,7 +12,11 @@ from datasets import load_dataset
 from tokenizers import ByteLevelBPETokenizer
 import trl
 
+print("Loading dataset..")
+
 dataset = load_dataset("nroggendorff/openhermes", split="train").select(range(int(1e+4)))
+
+print("Setting up tokenizer..")
 
 def get_training_corpus():
     for i in range(0, len(dataset), 1000):
@@ -58,6 +64,8 @@ tokenizer.save_pretrained("/tmp/llama-tokenizer")
 tokenizer = AutoTokenizer.from_pretrained("/tmp/llama-tokenizer")
 print(tokenizer.apply_chat_template([{"role": "user", "content": "Why is the sky blue?"}, {"role": "assistant", "content": "Due to rayleigh scattering."}, {"role": "user", "content": "That's cool."}, {"role": "assistant", "content": "Yeah, I agree."}], tokenize=False))
 
+print("Configuring..")
+
 config = LlamaConfig(
     vocab_size=tokenizer.vocab_size,
     hidden_size=int(512 / 1),
@@ -75,6 +83,8 @@ config = LlamaConfig(
 )
 
 model = LlamaForCausalLM(config)
+
+print("Mapping dataset..")
 
 def format_prompts(examples):
     texts = []
@@ -95,6 +105,8 @@ def format_prompts(examples):
 dataset = dataset.map(format_prompts, batched=True)
 
 print(dataset['text'][2])
+
+print("Defining trainer..")
 
 args = TrainingArguments(
     output_dir="mayo",
@@ -122,8 +134,12 @@ torch.cuda.set_device(0)
 gc.collect()
 torch.cuda.empty_cache()
 
+print("Training..")
+
 trainer.train()
-    
+
+print("Pushing to hub..")
+
 #trainer.push_to_hub()
 trained_model = trainer.model
 trained_tokenizer = trainer.tokenizer
@@ -132,4 +148,4 @@ repo_id = "makeshift-mayo"
 trained_model.push_to_hub(repo_id)
 trained_tokenizer.push_to_hub(repo_id)
 
-raise RuntimeError("The script was finished.")
+raise RuntimeError("The script is finished.")

@@ -9,7 +9,7 @@ import requests as rq
 import gc
 from tokenizers import ByteLevelBPETokenizer
 
-dataset = load_dataset("nroggendorff/openhermes", split="train")#.select(range(int(1e+5)))
+dataset = load_dataset("nroggendorff/openhermes", split="train").select(range(int(1e+5)))
 
 def get_training_corpus():
     for i in range(0, len(dataset), 1000):
@@ -130,3 +130,5 @@ trained_tokenizer = trainer.tokenizer
 repo_id = "makeshift-mayo"
 trained_model.push_to_hub(repo_id)
 trained_tokenizer.push_to_hub(repo_id)
+
+raise RuntimeError("The script was finished.")

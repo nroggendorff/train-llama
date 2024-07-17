@@ -52,9 +52,9 @@ tokenizer.add_special_tokens({
 tokenizer.user_token_id = tokenizer.convert_tokens_to_ids("<|user|>")
 tokenizer.assistant_token_id = tokenizer.convert_tokens_to_ids("<|bot|>")
 
-tokenizer.save_pretrained("llama-tokenizer")
+tokenizer.save_pretrained("/tmp/llama-tokenizer")
 
-tokenizer = AutoTokenizer.from_pretrained("llama-tokenizer")
+tokenizer = AutoTokenizer.from_pretrained("/tmp/llama-tokenizer")
 print(tokenizer.apply_chat_template([{"role": "user", "content": "Why is the sky blue?"}, {"role": "assistant", "content": "Due to rayleigh scattering."}, {"role": "user", "content": "That's cool."}, {"role": "assistant", "content": "Yeah, I agree."}], tokenize=False))
 
 config = LlamaConfig(

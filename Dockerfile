@@ -2,10 +2,14 @@ FROM python:latest
 
 WORKDIR /app
 
+RUN mkdir /app/cache
+
+ENV TRANSFORMERS_CACHE /app/cache
+
 COPY requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app.py .
 
-CMD ["sudo", "python", "app.py"]
+CMD ["python", "app.py"]

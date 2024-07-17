@@ -26,9 +26,9 @@ tokenizer.train_from_iterator(
     special_tokens=["<s>", "<pad>", "</s>", "<unk>", "<mask>", "<|user|>", "<|bot|>", "<|end|>"]
 )
 
-tokenizer.save("custom_tokenizer.json")
+tokenizer.save("/tmp/custom_tokenizer.json")
 
-tokenizer = PreTrainedTokenizerFast(tokenizer_file="custom_tokenizer.json")
+tokenizer = PreTrainedTokenizerFast(tokenizer_file="/tmp/custom_tokenizer.json")
 
 tokenizer.bos_token = "<s>"
 tokenizer.eos_token = "</s>"

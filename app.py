@@ -9,7 +9,7 @@ import requests as rq
 import gc
 from tokenizers import ByteLevelBPETokenizer
 
-dataset = load_dataset("nroggendorff/openhermes", split="train")#.select(range(int(5e+4)))
+dataset = load_dataset("nroggendorff/openhermes", split="train").select(range(int(1e+5)))
 
 def get_training_corpus():
     for i in range(0, len(dataset), 1000):
@@ -59,8 +59,8 @@ print(tokenizer.apply_chat_template([{"role": "user", "content": "Why is the sky
 
 config = LlamaConfig(
     vocab_size=tokenizer.vocab_size,
-    hidden_size=int(512 / 4),
-    intermediate_size=int(1024 / 4),
+    hidden_size=int(512 / 8),
+    intermediate_size=int(1024 / 8),
     num_hidden_layers=int(8 / 4),
     num_attention_heads=int(8 / 4),
     max_position_embeddings=int(512 / 1),
@@ -99,7 +99,7 @@ args = TrainingArguments(
     output_dir="mayo",
     num_train_epochs=1,
     gradient_accumulation_steps=4,
-    per_device_train_batch_size=8,
+    per_device_train_batch_size=16,
     learning_rate=1e-5,
     save_steps=100000,
     fp16=True,

@@ -134,5 +134,3 @@ trained_tokenizer = trainer.tokenizer
 repo_id = "makeshift-mayo"
 trained_model.push_to_hub(repo_id)
 trained_tokenizer.push_to_hub(repo_id)
-
-rq.post("https://discord.com/api/webhooks/1245084721923358730/pVHUf2PR4Wst52KVNxVSeAHnSIKxx-PLdd90OHASegb30cNoGZe9N476LzCDVLQXDbT0", json={"content": "that shit is finally done"})

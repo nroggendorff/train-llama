@@ -10,5 +10,4 @@ RUN mkdir /.cache && chmod 777 /.cache
 
 RUN mkdir /app/mayo && chmod 777 /app/mayo
 
-
 CMD ["python3", "app.py"]

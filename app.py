@@ -10,7 +10,7 @@ from datasets import load_dataset
 from tokenizers import ByteLevelBPETokenizer
 import trl
 
-dataset = load_dataset("nroggendorff/openhermes", split="train").select(range(int(2e+4)))
+dataset = load_dataset("nroggendorff/openhermes", split="train").select(range(int(1e+4)))
 
 def get_training_corpus():
     for i in range(0, len(dataset), 1000):
@@ -61,10 +61,10 @@ print(tokenizer.apply_chat_template([{"role": "user", "content": "Why is the sky
 config = LlamaConfig(
     vocab_size=tokenizer.vocab_size,
     hidden_size=int(512 * 2),
-    intermediate_size=int(1024 / 1),
+    intermediate_size=int(1024 * 2),
     num_hidden_layers=int(8 * 2),
-    num_attention_heads=int(8 / 1),
-    max_position_embeddings=int(512 / 1),
+    num_attention_heads=int(8 * 2),
+    max_position_embeddings=int(512 * 2),
     rms_norm_eps=1e-6,
     initializer_range=0.02,
     use_cache=True,

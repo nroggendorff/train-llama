@@ -1,5 +1,5 @@
 ---
-title: Build
+title: Train Llama
 emoji: 🐢
 colorFrom: pink
 colorTo: green

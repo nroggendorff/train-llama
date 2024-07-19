@@ -5,7 +5,7 @@ colorFrom: pink
 colorTo: green
 sdk: docker
 pinned: false
-startup_duration_timeout: 24h
+startup_duration_timeout: 6h
 license: mit
 ---
 

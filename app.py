@@ -60,11 +60,11 @@ print(tokenizer.apply_chat_template([{"role": "user", "content": "Why is the sky
 
 config = LlamaConfig(
     vocab_size=tokenizer.vocab_size,
-    hidden_size=512 * 2,
-    intermediate_size=1024 * 2,
-    num_hidden_layers=8 * 2,
-    num_attention_heads=8 * 2,
-    max_position_embeddings=512 * 2,
+    hidden_size=512 * 4,
+    intermediate_size=1024 * 4,
+    num_hidden_layers=8 * 4,
+    num_attention_heads=8 * 4,
+    max_position_embeddings=512 * 4,
     rms_norm_eps=1e-6,
     initializer_range=0.02,
     use_cache=True,

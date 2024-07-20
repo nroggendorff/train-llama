@@ -60,11 +60,11 @@ print(tokenizer.apply_chat_template([{"role": "user", "content": "Why is the sky
 
 config = LlamaConfig(
     vocab_size=tokenizer.vocab_size,
-    hidden_size=512 * 2,
-    intermediate_size=1024 * 2,
-    num_hidden_layers=8 * 2,
-    num_attention_heads=8 * 2,
-    max_position_embeddings=512 * 2,
+    hidden_size=512,
+    intermediate_size=1024,
+    num_hidden_layers=8,
+    num_attention_heads=8,
+    max_position_embeddings=512,
     rms_norm_eps=1e-6,
     initializer_range=0.02,
     use_cache=True,
@@ -98,8 +98,8 @@ print(dataset['text'][2])
 
 args = TrainingArguments(
     output_dir="mayo",
-    num_train_epochs=2,
-    per_device_train_batch_size=16,
+    num_train_epochs=4,
+    per_device_train_batch_size=64,
     gradient_accumulation_steps=4,
     learning_rate=1e-5,
     save_steps=100000,

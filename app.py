@@ -102,7 +102,6 @@ args = TrainingArguments(
     per_device_train_batch_size=64,
     gradient_accumulation_steps=4,
     learning_rate=1e-5,
-    save_steps=100000,
     fp16=True,
     optim="sgd",
     optim_target_modules=["attn", "mlp"]

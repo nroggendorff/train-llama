@@ -10,7 +10,7 @@ from datasets import load_dataset
 from tokenizers import ByteLevelBPETokenizer
 import trl
 
-dataset = load_dataset("nroggendorff/openhermes", split="train").select(range(int(3e+5)))
+dataset = load_dataset("nroggendorff/openhermes", split="train").select(range(int(2e+5)))
 
 def get_training_corpus():
     for i in range(0, len(dataset), 1000):

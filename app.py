@@ -10,7 +10,7 @@ from datasets import load_dataset
 from tokenizers import ByteLevelBPETokenizer
 import trl
 
-dataset = load_dataset("nroggendorff/elephant", split="train").select(range(int(3e+6)))
+dataset = load_dataset("nroggendorff/elephant", split="train")#.select(range(int(3e+6)))
 
 def get_training_corpus():
     for i in range(0, len(dataset), 1000):
@@ -100,7 +100,7 @@ print(dataset['text'][2])
 args = TrainingArguments(
     output_dir="mayo",
     num_train_epochs=1,
-    per_device_train_batch_size=256,
+    per_device_train_batch_size=512,
     learning_rate=1e-4,
     fp16=True,
     optim="sgd"

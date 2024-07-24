@@ -13,6 +13,8 @@ EPOCHS = 3
 LEARNING_RATE = 1e-4
 FP16 = True
 FACTOR = 8
+VOCAB_SIZE = 3200
+DATASET = "nroggendorff/elephant"
 
 def load_data():
     dataset = load_dataset("nroggendorff/elephant", split="train")
@@ -22,7 +24,7 @@ def create_tokenizer():
     tokenizer = ByteLevelBPETokenizer()
     tokenizer.train_from_iterator(
         training_corpus,
-        vocab_size=3200,
+        vocab_size=VOCAB_SIZE,
         min_frequency=2,
         special_tokens=["<s>", "<pad>", "</s>", "<unk>", "<mask>", "<|user|>", "<|bot|>", "<|end|>"]
     )

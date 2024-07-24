@@ -20,7 +20,7 @@ def load_data():
     dataset = load_dataset("nroggendorff/elephant", split="train")
     return dataset
 
-def create_tokenizer():
+def create_tokenizer(training_corpus):
     tokenizer = ByteLevelBPETokenizer()
     tokenizer.train_from_iterator(
         training_corpus,

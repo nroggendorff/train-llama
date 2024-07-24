@@ -3,7 +3,7 @@ import os
 import torch
 import trl
 
-from transformers import AutoTokenizer, LlamaConfig, LlamaForCausalLM, TrainingArguments
+from transformers import AutoTokenizer, LlamaConfig, LlamaForCausalLM, TrainingArguments, PreTrainedTokenizerFast
 from datasets import load_dataset
 from tokenizers import ByteLevelBPETokenizer
 
@@ -28,7 +28,8 @@ def create_tokenizer(training_corpus):
         min_frequency=2,
         special_tokens=["<s>", "<pad>", "</s>", "<unk>", "<mask>", "<|user|>", "<|bot|>", "<|end|>"]
     )
-    return tokenizer
+    
+    return PreTrainedTokenizerFast(tokenizer_object=tokenizer)
 
 def get_training_corpus(dataset):
     for i in range(0, len(dataset), 1000):

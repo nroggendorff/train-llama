@@ -29,8 +29,9 @@ def create_tokenizer(training_corpus):
         min_frequency=2,
         special_tokens=["<s>", "<pad>", "</s>", "<unk>", "<mask>", "<|user|>", "<|bot|>", "<|end|>"]
     )
-    
-    return PreTrainedTokenizerFast(tokenizer_object=tokenizer)
+
+    fast_tokenizer = PreTrainedTokenizerFast(tokenizer_object=tokenizer)
+    return fast_tokenizer
 
 def get_training_corpus(dataset):
     for i in range(0, len(dataset), 1000):
@@ -48,9 +49,7 @@ def format_prompts(examples, tokenizer):
             conversation.append({"role": "assistant", "content": response})
         formatted_conversation = tokenizer.apply_chat_template(conversation, tokenize=False)
         texts.append(formatted_conversation)
-    output = {}
-    output['text'] = texts
-    return output
+    return {"text": texts}
 
 def create_model(tokenizer, factor):
     config = LlamaConfig(

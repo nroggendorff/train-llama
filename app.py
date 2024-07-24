@@ -99,7 +99,7 @@ print(dataset['text'][2])
 
 args = TrainingArguments(
     output_dir="mayo",
-    num_train_epochs=1,
+    num_train_epochs=3,
     per_device_train_batch_size=256,
     learning_rate=1e-4,
     fp16=True,

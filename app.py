@@ -73,23 +73,21 @@ def create_model(tokenizer, factor):
     return model
 
 def configure_tokenizer(tokenizer):
-    tokenizer.bos_token = "<s>"
-    tokenizer.eos_token = "</s>"
-    tokenizer.unk_token = "<unk>"
-    tokenizer.pad_token = "<pad>"
-    tokenizer.mask_token = "<mask>"
-    
-    tokenizer.additional_special_tokens = ["<|user|>", "<|bot|>", "<|end|>"]
+    special_tokens = {
+        "bos_token": "<s>",
+        "eos_token": "</s>",
+        "unk_token": "<unk>",
+        "pad_token": "<pad>",
+        "mask_token": "<mask>",
+        "additional_special_tokens": ["<|user|>", "<|bot|>", "<|end|>"]
+    }
+    tokenizer.add_special_tokens(special_tokens)
     
     tokenizer.user_token_id = tokenizer.convert_tokens_to_ids("<|user|>")
     tokenizer.assistant_token_id = tokenizer.convert_tokens_to_ids("<|bot|>")
     
-    chat_template = "{{bos_token}}{% for message in messages %}{% if (message['role'] == 'user') != (loop.index0 % 2 == 0) %}{{ raise_exception('Conversation roles must alternate user/assistant/user/assistant/...') }}{% endif %}{% if message['role'] == 'user' %}{{ '<|user|>\n' + message['content'] + '<|end|>\n' }}{% elif message['role'] == 'assistant' %}{{ '<|bot|>\n' + message['content'] + '<|end|>\n' }}{% else %}{{ raise_exception('Only user and assistant roles are supported!') }}{% endif %}{% endfor %}{{ eos_token }}"
+    chat_template = "{{ bos_token }}{% for message in messages %}{% if (message['role'] == 'user') != (loop.index0 % 2 == 0) %}{{ raise_exception('Conversation roles must alternate user/assistant/user/assistant/...') }}{% endif %}{% if message['role'] == 'user' %}{{ '<|user|>\n' + message['content'] + '<|end|>\n' }}{% elif message['role'] == 'assistant' %}{{ '<|bot|>\n' + message['content'] + '<|end|>\n' }}{% else %}{{ raise_exception('Only user and assistant roles are supported!') }}{% endif %}{% endfor %}{{ eos_token }}"
     tokenizer.chat_template = chat_template
-
-    tokenizer.add_special_tokens({
-        "additional_special_tokens": ["<|user|>", "<|bot|>", "<|end|>"]
-    })
 
 def train_model(model, tokenizer, dataset):
     args = TrainingArguments(

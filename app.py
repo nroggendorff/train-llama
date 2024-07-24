@@ -14,10 +14,11 @@ LEARNING_RATE = 1e-4
 FP16 = True
 FACTOR = 8
 VOCAB_SIZE = 3200
-DATASET = "nroggendorff/elephant"
+INPUT_DATASET = "nroggendorff/elephant"
+OUTPUT_REPO = "smallama"
 
 def load_data():
-    dataset = load_dataset("nroggendorff/elephant", split="train")
+    dataset = load_dataset(INPUT_DATASET, split="train")
     return dataset
 
 def create_tokenizer(training_corpus):
@@ -92,7 +93,7 @@ def configure_tokenizer(tokenizer):
 
 def train_model(model, tokenizer, dataset):
     args = TrainingArguments(
-        output_dir="mayo",
+        output_dir="model",
         num_train_epochs=EPOCHS,
         per_device_train_batch_size=BATCH_SIZE,
         learning_rate=LEARNING_RATE,
@@ -113,7 +114,7 @@ def train_model(model, tokenizer, dataset):
     trained_model = trainer.model
     trained_tokenizer = trainer.tokenizer
     
-    repo_id = "makeshift-mayo"
+    repo_id = OUTPUT_REPO
     trained_model.push_to_hub(repo_id)
     trained_tokenizer.push_to_hub(repo_id)
 

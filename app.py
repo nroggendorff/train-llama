@@ -58,7 +58,7 @@ tokenizer.save_pretrained("/tmp/llama-tokenizer")
 tokenizer = AutoTokenizer.from_pretrained("/tmp/llama-tokenizer")
 print(tokenizer.apply_chat_template([{"role": "user", "content": "Why is the sky blue?"}, {"role": "assistant", "content": "Due to rayleigh scattering."}, {"role": "user", "content": "That's cool."}, {"role": "assistant", "content": "Yeah, I agree."}], tokenize=False))
 
-factor = 16
+factor = 8
 config = LlamaConfig(
     vocab_size=tokenizer.vocab_size,
     hidden_size=512 // factor,

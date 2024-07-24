@@ -30,7 +30,7 @@ def create_tokenizer(training_corpus):
         special_tokens=["<s>", "<pad>", "</s>", "<unk>", "<mask>", "<|user|>", "<|bot|>", "<|end|>"]
     )
 
-    fast_tokenizer = PreTrainedTokenizerFast(tokenizer_object=tokenizer)
+    fast_tokenizer = PreTrainedTokenizerFast(tokenizer_object=tokenizer._tokenizer)
     return fast_tokenizer
 
 def get_training_corpus(dataset):

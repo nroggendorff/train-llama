@@ -30,7 +30,7 @@ def create_tokenizer(training_corpus):
     )
     return tokenizer
 
-def get_training_corpus():
+def get_training_corpus(dataset):
     for i in range(0, len(dataset), 1000):
         yield dataset[i : i + 1000]["text"]
 
@@ -118,7 +118,7 @@ def train_model(model, tokenizer, dataset):
 
 def main():
     dataset = load_data()
-    training_corpus = get_training_corpus()
+    training_corpus = get_training_corpus(dataset)
     tokenizer = create_tokenizer(training_corpus)
     configure_tokenizer(tokenizer)
     model = create_model(tokenizer, FACTOR)

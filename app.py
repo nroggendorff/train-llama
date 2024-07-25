@@ -12,7 +12,7 @@ BATCH_SIZE = 256
 EPOCHS = 3
 LEARNING_RATE = 1e-4
 FP16 = True
-FACTOR = 128
+FACTOR = 64
 VOCAB_SIZE = 3200
 INPUT_DATASET = "nroggendorff/elephant"
 OUTPUT_REPO = "smallama"
@@ -55,7 +55,7 @@ def create_model(tokenizer):
     config = LlamaConfig(
         vocab_size=tokenizer.vocab_size,
         hidden_size=FACTOR,
-        intermediate_size=FACTOR // 2,
+        intermediate_size=FACTOR * 2,
         num_hidden_layers=FACTOR // 64,
         num_attention_heads=FACTOR // 64,
         max_position_embeddings=MAX_SEQ_LENGTH,

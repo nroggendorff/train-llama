@@ -10,4 +10,4 @@ RUN mkdir /.cache && chmod 777 /.cache
 
 RUN mkdir /app/model && chmod 777 /app/model
 
-CMD ["python3", "app.py"]
+CMD ["python3", "train.py"]

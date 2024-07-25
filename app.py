@@ -12,7 +12,7 @@ BATCH_SIZE = 256
 EPOCHS = 3
 LEARNING_RATE = 1e-4
 FP16 = True
-FACTOR = 8
+FACTOR = 128
 VOCAB_SIZE = 3200
 INPUT_DATASET = "nroggendorff/elephant"
 OUTPUT_REPO = "smallama"
@@ -51,13 +51,13 @@ def format_prompts(examples, tokenizer):
         texts.append(formatted_conversation)
     return {"text": texts}
 
-def create_model(tokenizer, factor):
+def create_model(tokenizer):
     config = LlamaConfig(
         vocab_size=tokenizer.vocab_size,
-        hidden_size=512 // factor,
-        intermediate_size=1024 // factor,
-        num_hidden_layers=8 // factor,
-        num_attention_heads=8 // factor,
+        hidden_size=FACTOR,
+        intermediate_size=FACTOR // 2,
+        num_hidden_layers=FACTOR // 64,
+        num_attention_heads=FACTOR // 64,
         max_position_embeddings=MAX_SEQ_LENGTH,
         rms_norm_eps=1e-6,
         initializer_range=0.02,
@@ -120,7 +120,7 @@ def main():
     training_corpus = get_training_corpus(dataset)
     tokenizer = create_tokenizer(training_corpus)
     configure_tokenizer(tokenizer)
-    model = create_model(tokenizer, FACTOR)
+    model = create_model(tokenizer)
     train_model(model, tokenizer, dataset)
 
 if __name__ == "__main__":

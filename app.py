@@ -7,9 +7,6 @@ from transformers import AutoTokenizer, LlamaConfig, LlamaForCausalLM, TrainingA
 from datasets import load_dataset
 from tokenizers import ByteLevelBPETokenizer
 
-device = torch.device("cuda")
-print(f"Using {torch.cuda.device_count()} GPUs")
-
 MAX_SEQ_LENGTH = 512
 BATCH_SIZE = 512
 EPOCHS = 8

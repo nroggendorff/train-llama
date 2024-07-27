@@ -8,10 +8,10 @@ from datasets import load_dataset
 from tokenizers import ByteLevelBPETokenizer
 
 MAX_SEQ_LENGTH = 128
-BATCH_SIZE = 16
+BATCH_SIZE = 256
 EPOCHS = 1
 LEARNING_RATE = 1e-5
-FACTOR = 512
+FACTOR = 2
 VOCAB_SIZE = 3200
 INPUT_DATASET = "nroggendorff/elephant"
 OUTPUT_REPO = "smallama"

@@ -15,6 +15,7 @@ FACTOR = 128
 VOCAB_SIZE = 3200
 INPUT_DATASET = "nroggendorff/elephant"
 OUTPUT_REPO = "smallama"
+PUSH_TO_HUB = True
 
 def load_data():
     dataset = load_dataset(INPUT_DATASET, split="train")
@@ -55,8 +56,8 @@ def create_model(tokenizer):
         vocab_size=tokenizer.vocab_size,
         hidden_size=FACTOR,
         intermediate_size=FACTOR * 4,
-        num_hidden_layers=FACTOR // 32,
-        num_attention_heads=FACTOR // 64,
+        num_hidden_layers=max(1, FACTOR // 32),
+        num_attention_heads=max(1, FACTOR // 64),
         max_position_embeddings=MAX_SEQ_LENGTH,
         rms_norm_eps=1e-6,
         initializer_range=0.02,
@@ -87,7 +88,7 @@ def configure_tokenizer(tokenizer):
     chat_template = "{{ bos_token }}{% for message in messages %}{% if (message['role'] == 'user') != (loop.index0 % 2 == 0) %}{{ raise_exception('Conversation roles must alternate user/assistant/user/assistant/...') }}{% endif %}{% if message['role'] == 'user' %}{{ '<|user|>\n' + message['content'] + '<|end|>\n' }}{% elif message['role'] == 'assistant' %}{{ '<|bot|>\n' + message['content'] + '<|end|>\n' }}{% else %}{{ raise_exception('Only user and assistant roles are supported!') }}{% endif %}{% endfor %}{{ eos_token }}"
     tokenizer.chat_template = chat_template
 
-def train_model(model, tokenizer, dataset):
+def train_model(model, tokenizer, dataset, push):
     args = TrainingArguments(
         output_dir="model",
         num_train_epochs=EPOCHS,
@@ -109,18 +110,21 @@ def train_model(model, tokenizer, dataset):
     trained_model = trainer.model
     trained_tokenizer = trainer.tokenizer
     
-    repo_id = OUTPUT_REPO
-    trained_model.push_to_hub(repo_id)
-    trained_tokenizer.push_to_hub(repo_id)
+    if push:
+        repo_id = OUTPUT_REPO
+        trained_model.push_to_hub(repo_id)
+        trained_tokenizer.push_to_hub(repo_id)
+    else:
+        trained_tokenizer.save_pretrained("tokenizer")
 
-def main():
+def main(push_to_hub=True):
     dataset = load_data()
     training_corpus = get_training_corpus(dataset)
     tokenizer = create_tokenizer(training_corpus)
     configure_tokenizer(tokenizer)
     model = create_model(tokenizer)
-    train_model(model, tokenizer, dataset)
+    train_model(model, tokenizer, dataset, push_to_hub)
 
 if __name__ == "__main__":
-    main()
+    main(PUSH_TO_HUB)
     raise RuntimeError("The script is finished.")

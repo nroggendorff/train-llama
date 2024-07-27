@@ -8,12 +8,12 @@ from datasets import load_dataset
 from tokenizers import ByteLevelBPETokenizer
 
 MAX_SEQ_LENGTH = 512
-BATCH_SIZE = 1024
-EPOCHS = 50000
+BATCH_SIZE = 2048
+EPOCHS = 16
 LEARNING_RATE = 1e-5
 FACTOR = 2
 VOCAB_SIZE = 3200
-INPUT_DATASET = "nroggendorff/godson"
+INPUT_DATASET = "nroggendorff/oak"
 OUTPUT_REPO = "sson"
 PUSH_TO_HUB = True
 
@@ -27,7 +27,7 @@ def create_tokenizer(training_corpus):
         training_corpus,
         vocab_size=VOCAB_SIZE,
         min_frequency=2,
-        special_tokens=["<s>", "<pad>", "</s>", "<unk>", "<mask>"]#, "<|user|>", "<|bot|>", "<|end|>"]
+        special_tokens=["<s>", "<pad>", "</s>", "<unk>", "<mask>", "<|user|>", "<|bot|>", "<|end|>"]
     )
 
     fast_tokenizer = PreTrainedTokenizerFast(tokenizer_object=tokenizer._tokenizer)
@@ -78,15 +78,15 @@ def configure_tokenizer(tokenizer):
         "unk_token": "<unk>",
         "pad_token": "<pad>",
         "mask_token": "<mask>",
-        #"additional_special_tokens": ["<|user|>", "<|bot|>", "<|end|>"]
+        "additional_special_tokens": ["<|user|>", "<|bot|>", "<|end|>"]
     }
     tokenizer.add_special_tokens(special_tokens)
     
-    #tokenizer.user_token_id = tokenizer.convert_tokens_to_ids("<|user|>")
-    #tokenizer.assistant_token_id = tokenizer.convert_tokens_to_ids("<|bot|>")
+    tokenizer.user_token_id = tokenizer.convert_tokens_to_ids("<|user|>")
+    tokenizer.assistant_token_id = tokenizer.convert_tokens_to_ids("<|bot|>")
     
-    #chat_template = "{{ bos_token }}{% for message in messages %}{% if (message['role'] == 'user') != (loop.index0 % 2 == 0) %}{{ raise_exception('Conversation roles must alternate user/assistant/user/assistant/...') }}{% endif %}{% if message['role'] == 'user' %}{{ '<|user|>\n' + message['content'] + '<|end|>\n' }}{% elif message['role'] == 'assistant' %}{{ '<|bot|>\n' + message['content'] + '<|end|>\n' }}{% else %}{{ raise_exception('Only user and assistant roles are supported!') }}{% endif %}{% endfor %}{{ eos_token }}"
-    #tokenizer.chat_template = chat_template
+    chat_template = "{{ bos_token }}{% for message in messages %}{% if (message['role'] == 'user') != (loop.index0 % 2 == 0) %}{{ raise_exception('Conversation roles must alternate user/assistant/user/assistant/...') }}{% endif %}{% if message['role'] == 'user' %}{{ '<|user|>\n' + message['content'] + '<|end|>\n' }}{% elif message['role'] == 'assistant' %}{{ '<|bot|>\n' + message['content'] + '<|end|>\n' }}{% else %}{{ raise_exception('Only user and assistant roles are supported!') }}{% endif %}{% endfor %}{{ eos_token }}"
+    tokenizer.chat_template = chat_template
 
 def train_model(model, tokenizer, dataset, push):
     args = TrainingArguments(
@@ -96,7 +96,7 @@ def train_model(model, tokenizer, dataset, push):
         learning_rate=LEARNING_RATE,
         optim="sgd"
     )
-    #dataset = dataset.map(lambda examples: format_prompts(examples, tokenizer), batched=True)
+    dataset = dataset.map(lambda examples: format_prompts(examples, tokenizer), batched=True)
     trainer = trl.SFTTrainer(
         model=model,
         tokenizer=tokenizer,

@@ -10,8 +10,8 @@ from tokenizers import ByteLevelBPETokenizer
 MAX_SEQ_LENGTH = 128
 BATCH_SIZE = 16
 EPOCHS = 1
-LEARNING_RATE = 1e-4
-FACTOR = 2 ** 9 + 2 ** 7
+LEARNING_RATE = 1e-5
+FACTOR = 600
 VOCAB_SIZE = 3200
 INPUT_DATASET = "nroggendorff/elephant"
 OUTPUT_REPO = "smallama"
@@ -54,9 +54,9 @@ def create_model(tokenizer):
     config = LlamaConfig(
         vocab_size=tokenizer.vocab_size,
         hidden_size=FACTOR,
-        intermediate_size=FACTOR * 2,
-        num_hidden_layers=max(1, FACTOR // 64),
-        num_attention_heads=max(1, FACTOR // 64),
+        intermediate_size=FACTOR * 4,
+        num_hidden_layers=FACTOR // 32,
+        num_attention_heads=FACTOR // 64,
         max_position_embeddings=MAX_SEQ_LENGTH,
         rms_norm_eps=1e-6,
         initializer_range=0.02,

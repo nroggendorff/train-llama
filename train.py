@@ -8,11 +8,10 @@ from datasets import load_dataset
 from tokenizers import ByteLevelBPETokenizer
 
 MAX_SEQ_LENGTH = 128
-BATCH_SIZE = 1024
-EPOCHS = 16
+BATCH_SIZE = 16
+EPOCHS = 8
 LEARNING_RATE = 1e-4
-FP16 = True
-FACTOR = 1
+FACTOR = 1024
 VOCAB_SIZE = 3200
 INPUT_DATASET = "nroggendorff/elephant"
 OUTPUT_REPO = "smallama"
@@ -94,7 +93,6 @@ def train_model(model, tokenizer, dataset):
         num_train_epochs=EPOCHS,
         per_device_train_batch_size=BATCH_SIZE,
         learning_rate=LEARNING_RATE,
-        fp16=FP16,
         optim="sgd"
     )
     dataset = dataset.map(lambda examples: format_prompts(examples, tokenizer), batched=True)

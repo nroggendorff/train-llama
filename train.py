@@ -8,13 +8,13 @@ from datasets import load_dataset
 from tokenizers import ByteLevelBPETokenizer
 
 MAX_SEQ_LENGTH = 512
-BATCH_SIZE = 2048
-EPOCHS = 16
+BATCH_SIZE = 1024
+EPOCHS = 20
 LEARNING_RATE = 1e-5
 FACTOR = 2
 VOCAB_SIZE = 3200
 INPUT_DATASET = "nroggendorff/oak"
-OUTPUT_REPO = "sson"
+OUTPUT_REPO = "smallama"
 PUSH_TO_HUB = True
 
 def load_data():

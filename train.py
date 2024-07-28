@@ -18,7 +18,8 @@ OUTPUT_REPO = "smallama"
 FP16 = True
 WARMUP_STEPS = 500
 DECAY = 0.01
-GRADIENT_ACCUMILATION_STEPS = 4
+GRADIENT_ACCUMULATION_STEPS = 4
+CLIPPING = 1.0
 PUSH_TO_HUB = True
 
 def load_data():
@@ -101,9 +102,9 @@ def train_model(model, tokenizer, dataset, push):
         optim="adamw_torch",
         warmup_steps=WARMUP_STEPS,
         weight_decay=DECAY,
-        gradient_accumulation_steps=GRADIENT_ACCUMILATION_STEPS,
+        gradient_accumulation_steps=GRADIENT_ACCUMULATION_STEPS,
         fp16=FP16,
-        evaluation_strategy="steps"
+        max_grad_norm=CLIPPING
     )
 
     optimizer = AdamW(model.parameters(), lr=args.learning_rate)

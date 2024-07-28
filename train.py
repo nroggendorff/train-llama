@@ -18,7 +18,7 @@ OUTPUT_REPO = "smallama"
 PUSH_TO_HUB = True
 
 def load_data():
-    dataset = load_dataset(INPUT_DATASET, split="train")
+    dataset = load_dataset(INPUT_DATASET, split="train").select(range(int(2e+4))))
     return dataset
 
 def create_tokenizer(training_corpus):

@@ -8,7 +8,7 @@ from datasets import load_dataset
 from tokenizers import ByteLevelBPETokenizer
 
 MAX_SEQ_LENGTH = 128
-BATCH_SIZE = 256
+BATCH_SIZE = 64
 EPOCHS = 20
 LEARNING_RATE = 1e-5
 FACTOR = 128

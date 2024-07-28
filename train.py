@@ -3,18 +3,22 @@ import os
 import torch
 import trl
 
-from transformers import AutoTokenizer, LlamaConfig, LlamaForCausalLM, TrainingArguments, PreTrainedTokenizerFast
+from transformers import AutoTokenizer, LlamaConfig, LlamaForCausalLM, TrainingArguments, PreTrainedTokenizerFast, AdamW, get_linear_schedule_with_warmup
 from datasets import load_dataset
 from tokenizers import ByteLevelBPETokenizer
 
 MAX_SEQ_LENGTH = 128
-BATCH_SIZE = 1024
+BATCH_SIZE = 512
 EPOCHS = 10
-LEARNING_RATE = 1e-5
+LEARNING_RATE = 2e-5
 FACTOR = 4
 VOCAB_SIZE = 32000
 INPUT_DATASET = "nroggendorff/oak"
 OUTPUT_REPO = "smallama"
+FP16 = True
+WARMUP_STEPS = 500
+DECAY = 0.01
+GRADIENT_ACCUMILATION_STEPS = 4
 PUSH_TO_HUB = True
 
 def load_data():
@@ -94,8 +98,21 @@ def train_model(model, tokenizer, dataset, push):
         num_train_epochs=EPOCHS,
         per_device_train_batch_size=BATCH_SIZE,
         learning_rate=LEARNING_RATE,
-        optim="sgd"
+        optim="adamw_torch",
+        warmup_steps=WARMUP_STEPS,
+        weight_decay=DECAY,
+        gradient_accumulation_steps=GRADIENT_ACCUMILATION_STEPS,
+        fp16=True,
+        evaluation_strategy="steps"
     )
+
+    optimizer = AdamW(model.parameters(), lr=args.learning_rate)
+    scheduler = get_linear_schedule_with_warmup(
+        optimizer, 
+        num_warmup_steps=args.warmup_steps, 
+        num_training_steps=len(dataset) * args.num_train_epochs // args.gradient_accumulation_steps
+    )
+    
     dataset = dataset.map(lambda examples: format_prompts(examples, tokenizer), batched=True)
     trainer = trl.SFTTrainer(
         model=model,

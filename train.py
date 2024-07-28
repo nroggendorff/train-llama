@@ -121,7 +121,8 @@ def train_model(model, tokenizer, dataset, push):
         args=args,
         train_dataset=dataset,
         dataset_text_field='text',
-        max_seq_length=MAX_SEQ_LENGTH
+        max_seq_length=MAX_SEQ_LENGTH,
+        optimizers=(optimizer, scheduler)
     )
     trainer.train()
     

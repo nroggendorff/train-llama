@@ -102,7 +102,7 @@ def train_model(model, tokenizer, dataset, push):
         warmup_steps=WARMUP_STEPS,
         weight_decay=DECAY,
         gradient_accumulation_steps=GRADIENT_ACCUMILATION_STEPS,
-        fp16=True,
+        fp16=FP16,
         evaluation_strategy="steps"
     )
 

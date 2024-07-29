@@ -2,3 +2,4 @@ trl
 datasets
 transformers
 accelerate
+evaluate

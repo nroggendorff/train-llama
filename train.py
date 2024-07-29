@@ -8,10 +8,10 @@ from datasets import load_dataset
 from tokenizers import ByteLevelBPETokenizer
 
 MAX_SEQ_LENGTH = 512
-BATCH_SIZE = 16
+BATCH_SIZE = 64
 EPOCHS = 4
 LEARNING_RATE = 2e-4
-FACTOR = 128
+FACTOR = 4
 VOCAB_SIZE = 32000
 INPUT_DATASET = "nroggendorff/oak"
 OUTPUT_REPO = "smallama"
@@ -104,10 +104,7 @@ def train_model(model, tokenizer, dataset, push):
         weight_decay=DECAY,
         gradient_accumulation_steps=GRADIENT_ACCUMULATION_STEPS,
         fp16=FP16,
-        max_grad_norm=CLIPPING,
-        evaluation_strategy="steps",
-        eval_steps=10,
-        logging_steps=10
+        max_grad_norm=CLIPPING
     )
 
     optimizer = AdamW(model.parameters(), lr=args.learning_rate)

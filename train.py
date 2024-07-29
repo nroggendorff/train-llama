@@ -10,7 +10,7 @@ from tokenizers import ByteLevelBPETokenizer
 MAX_SEQ_LENGTH = 512
 BATCH_SIZE = 16
 EPOCHS = 4
-LEARNING_RATE = 2e-5
+LEARNING_RATE = 2e-4
 FACTOR = 128
 VOCAB_SIZE = 32000
 INPUT_DATASET = "nroggendorff/oak"
@@ -23,7 +23,7 @@ CLIPPING = 1.0
 PUSH_TO_HUB = True
 
 def load_data():
-    dataset = load_dataset(INPUT_DATASET, split="train").select(range(int(2e+4)))
+    dataset = load_dataset(INPUT_DATASET, split="train")
     return dataset
 
 def create_tokenizer(training_corpus):
@@ -104,7 +104,10 @@ def train_model(model, tokenizer, dataset, push):
         weight_decay=DECAY,
         gradient_accumulation_steps=GRADIENT_ACCUMULATION_STEPS,
         fp16=FP16,
-        max_grad_norm=CLIPPING
+        max_grad_norm=CLIPPING,
+        evaluation_strategy="steps",
+        eval_steps=10,
+        logging_steps=10
     )
 
     optimizer = AdamW(model.parameters(), lr=args.learning_rate)

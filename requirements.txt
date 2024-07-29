@@ -1,5 +1,2 @@
 trl
 datasets
-accelerate
-evaluate
-accelerate

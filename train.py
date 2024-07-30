@@ -6,6 +6,7 @@ import trl
 from transformers import AutoTokenizer, LlamaConfig, LlamaForCausalLM, TrainingArguments, PreTrainedTokenizerFast, AdamW, get_linear_schedule_with_warmup
 from datasets import load_dataset
 from tokenizers import ByteLevelBPETokenizer
+from accelerate import Accelerator
 
 MAX_SEQ_LENGTH = 512
 BATCH_SIZE = 32
@@ -21,6 +22,8 @@ DECAY = 0.01
 GRADIENT_ACCUMULATION_STEPS = 8
 CLIPPING = 1.0
 PUSH_TO_HUB = True
+
+accelerator = Accelerator()
 
 def load_data():
     dataset = load_dataset(INPUT_DATASET, split="train")#.select(range(int(2e+4)))
@@ -124,6 +127,11 @@ def train_model(model, tokenizer, dataset, push):
         max_seq_length=MAX_SEQ_LENGTH,
         optimizers=(optimizer, scheduler)
     )
+
+    model, optimizer = accelerator.prepare(model, optimizer)
+    trainer.model = model
+    trainer.optimizer = optimizer
+    trainer = accelerator.prepare(trainer)
     trainer.train()
     
     trained_model = trainer.model

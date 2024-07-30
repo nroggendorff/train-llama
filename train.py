@@ -23,8 +23,6 @@ GRADIENT_ACCUMULATION_STEPS = 8
 CLIPPING = 1.0
 PUSH_TO_HUB = True
 
-accelerator = Accelerator()
-
 def load_data():
     dataset = load_dataset(INPUT_DATASET, split="train")#.select(range(int(2e+4)))
     return dataset
@@ -96,7 +94,7 @@ def configure_tokenizer(tokenizer):
     chat_template = "{{ bos_token }}{% for message in messages %}{% if (message['role'] == 'user') != (loop.index0 % 2 == 0) %}{{ raise_exception('Conversation roles must alternate user/assistant/user/assistant/...') }}{% endif %}{% if message['role'] == 'user' %}{{ '<|user|>\n' + message['content'] + '<|end|>\n' }}{% elif message['role'] == 'assistant' %}{{ '<|bot|>\n' + message['content'] + '<|end|>\n' }}{% else %}{{ raise_exception('Only user and assistant roles are supported!') }}{% endif %}{% endfor %}{{ eos_token }}"
     tokenizer.chat_template = chat_template
 
-def train_model(model, tokenizer, dataset, push):
+def train_model(accelerator, model, tokenizer, dataset, push):
     args = TrainingArguments(
         output_dir="model",
         num_train_epochs=EPOCHS,
@@ -148,7 +146,8 @@ def main(push_to_hub=True):
     tokenizer = create_tokenizer(training_corpus)
     configure_tokenizer(tokenizer)
     model = create_model(tokenizer)
-    train_model(model, tokenizer, dataset, push_to_hub)
+    accelerator = Accelerator()
+    train_model(accelerator, model, tokenizer, dataset, push_to_hub)
 
 if __name__ == "__main__":
     main(PUSH_TO_HUB)

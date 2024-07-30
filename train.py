@@ -116,6 +116,8 @@ def train_model(model, tokenizer, dataset, push):
         num_warmup_steps=args.warmup_steps, 
         num_training_steps=len(dataset) * args.num_train_epochs // args.gradient_accumulation_steps
     )
+
+    model, optimizer = accelerator.prepare(model, optimizer)
     
     dataset = dataset.map(lambda examples: format_prompts(examples, tokenizer), batched=True)
     trainer = trl.SFTTrainer(
@@ -127,11 +129,7 @@ def train_model(model, tokenizer, dataset, push):
         max_seq_length=MAX_SEQ_LENGTH,
         optimizers=(optimizer, scheduler)
     )
-
-    model, optimizer = accelerator.prepare(model, optimizer)
-    trainer.model = model
-    trainer.optimizer = optimizer
-    trainer = accelerator.prepare(trainer)
+    
     trainer.train()
     
     trained_model = trainer.model

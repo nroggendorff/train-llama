@@ -8,15 +8,15 @@ from datasets import load_dataset
 from tokenizers import ByteLevelBPETokenizer
 
 MAX_SEQ_LENGTH = 512
-BATCH_SIZE = 64
-EPOCHS = 100
+BATCH_SIZE = 128
+EPOCHS = 1000
 LEARNING_RATE = 2e-4
-FACTOR = 128
+FACTOR = 2
 VOCAB_SIZE = 32000
 INPUT_DATASET = "nroggendorff/elephant"
 OUTPUT_REPO = "smallama"
 FP16 = True
-WARMUP_STEPS = 20
+WARMUP_STEPS = 200
 DECAY = 0.01
 GRADIENT_ACCUMULATION_STEPS = 16
 CLIPPING = 1.0
@@ -135,6 +135,7 @@ def train_model(model, tokenizer, dataset, push):
         trained_model.push_to_hub(repo_id)
         trained_tokenizer.push_to_hub(repo_id)
     else:
+        trained_model.save_pretrained("model")
         trained_tokenizer.save_pretrained("tokenizer")
 
 def main(push_to_hub=True):

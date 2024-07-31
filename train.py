@@ -9,7 +9,7 @@ from tokenizers import ByteLevelBPETokenizer
 
 MAX_SEQ_LENGTH = 512
 BATCH_SIZE = 128
-EPOCHS = 100
+EPOCHS = 1000
 LEARNING_RATE = 2e-4
 FACTOR = 2
 VOCAB_SIZE = 32000

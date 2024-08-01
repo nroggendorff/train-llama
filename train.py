@@ -8,10 +8,10 @@ from datasets import load_dataset
 from tokenizers import ByteLevelBPETokenizer
 
 MAX_SEQ_LENGTH = 512
-BATCH_SIZE = 96
+BATCH_SIZE = 128
 EPOCHS = 30
 LEARNING_RATE = 2e-2
-FACTOR = 128
+FACTOR = 64
 VOCAB_SIZE = 32000
 INPUT_DATASET = "nroggendorff/openhermes"
 OUTPUT_REPO = "smallama"

@@ -3,7 +3,7 @@ import os
 import torch
 import trl
 
-from transformers import AutoTokenizer, LlamaConfig, LlamaForCausalLM, TrainingArguments, PreTrainedTokenizerFast, AdamW, get_linear_schedule_with_warmup
+from transformers import AutoTokenizer, LlamaConfig, LlamaForCausalLM, TrainingArguments, PreTrainedTokenizerFast, AdamW, get_cosine_schedule_with_warmup
 from datasets import load_dataset
 from tokenizers import ByteLevelBPETokenizer
 
@@ -108,10 +108,10 @@ def train_model(model, tokenizer, dataset, push):
     )
 
     optimizer = AdamW(model.parameters(), lr=args.learning_rate)
-    scheduler = get_linear_schedule_with_warmup(
+    scheduler = get_cosine_schedule_with_warmup(
         optimizer, 
         num_warmup_steps=args.warmup_steps, 
-        num_training_steps=len(dataset) * args.num_train_epochs // args.gradient_accumulation_steps
+        num_training_steps=(len(dataset) // args.per_device_train_batch_size) * args.num_train_epochs
     )
     
     dataset = dataset.map(lambda examples: format_prompts(examples, tokenizer), batched=True)

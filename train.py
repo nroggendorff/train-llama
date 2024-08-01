@@ -133,8 +133,8 @@ def train_model(model, tokenizer, dataset, push):
     if push:
         repo_id = OUTPUT_REPO
         msg = str(train.training_loss)
-        trained_model.push_to_hub(repo_id, commit_message=msg, force=True)
-        trained_tokenizer.push_to_hub(repo_id, commit_message=msg, force=True)
+        trained_model.push_to_hub(repo_id, commit_message=msg)
+        trained_tokenizer.push_to_hub(repo_id, commit_message=msg)
     else:
         trained_model.save_pretrained("model")
         trained_tokenizer.save_pretrained("tokenizer")

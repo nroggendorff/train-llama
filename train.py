@@ -9,7 +9,7 @@ from tokenizers import ByteLevelBPETokenizer
 
 MAX_SEQ_LENGTH = 512
 BATCH_SIZE = 192
-EPOCHS = 3
+EPOCHS = 30
 LEARNING_RATE = 2e-2
 FACTOR = 64
 VOCAB_SIZE = 32000
@@ -125,15 +125,16 @@ def train_model(model, tokenizer, dataset, push):
         optimizers=(optimizer, scheduler)
     )
     
-    trainer.train()
+    train = trainer.train()
     
     trained_model = trainer.model
     trained_tokenizer = trainer.tokenizer
     
     if push:
         repo_id = OUTPUT_REPO
-        trained_model.push_to_hub(repo_id)
-        trained_tokenizer.push_to_hub(repo_id)
+        msg = str(train.training_loss)
+        trained_model.push_to_hub(repo_id, commit_message=msg)
+        trained_tokenizer.push_to_hub(repo_id, commit_message=msg)
     else:
         trained_model.save_pretrained("model")
         trained_tokenizer.save_pretrained("tokenizer")

@@ -9,7 +9,7 @@ from tokenizers import ByteLevelBPETokenizer
 
 MAX_SEQ_LENGTH = 512
 BATCH_SIZE = 64
-EPOCHS = 3
+EPOCHS = 30
 LEARNING_RATE = 2e-2
 FACTOR = 256
 VOCAB_SIZE = 32000
@@ -23,7 +23,7 @@ CLIPPING = 1.0
 PUSH_TO_HUB = True
 
 def load_data():
-    dataset = load_dataset(INPUT_DATASET, split="train")#.select(range(int(2e+4)))
+    dataset = load_dataset(INPUT_DATASET, split="train").select(range(int(2e+4)))
     return dataset
 
 def create_tokenizer(training_corpus):

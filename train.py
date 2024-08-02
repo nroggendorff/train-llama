@@ -13,7 +13,7 @@ EPOCHS = 2
 LEARNING_RATE = 2e-2
 FACTOR = 256
 VOCAB_SIZE = 32000
-INPUT_DATASET = "nroggendorff/elephant"
+INPUT_DATASET = "nroggendorff/openhermes"
 OUTPUT_REPO = "smallama"
 FP16 = True
 WARMUP_STEPS = 20
@@ -23,7 +23,7 @@ CLIPPING = 1.0
 PUSH_TO_HUB = True
 
 def load_data():
-    dataset = load_dataset(INPUT_DATASET, split="train")#.select(range(int(2e+5)))
+    dataset = load_dataset(INPUT_DATASET, split="train").select(range(int(5e+5)))
     return dataset
 
 def create_tokenizer(training_corpus):

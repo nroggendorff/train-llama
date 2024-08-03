@@ -4,7 +4,7 @@ import torch
 import trl
 
 from transformers import AutoTokenizer, LlamaConfig, LlamaForCausalLM, TrainingArguments, PreTrainedTokenizerFast, AdamW, get_cosine_schedule_with_warmup
-from datasets import load_dataset
+from datasets import load_dataset, DatasetDict, Dataset
 from tokenizers import ByteLevelBPETokenizer
 
 MAX_SEQ_LENGTH = 512

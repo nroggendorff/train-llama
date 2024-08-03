@@ -120,7 +120,7 @@ def train_model(model, tokenizer, dataset, push, isinst):
     )
 
     optimizer = AdamW(model.parameters(), lr=args.learning_rate)
-    scheduler = get_linear_schedule_with_warmup(
+    scheduler = get_cosine_schedule_with_warmup(
         optimizer,
         num_warmup_steps=args.warmup_steps, 
         num_training_steps=(len(dataset) // args.per_device_train_batch_size) * args.num_train_epochs

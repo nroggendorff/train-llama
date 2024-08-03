@@ -9,9 +9,9 @@ from tokenizers import ByteLevelBPETokenizer
 
 MAX_SEQ_LENGTH = 512
 BATCH_SIZE = 128
-EPOCHS = 10
+EPOCHS = 2
 LEARNING_RATE = 2e-2
-FACTOR = 256
+FACTOR = 4096
 VOCAB_SIZE = 32000
 INPUT_DATASET = "nroggendorff/openhermes"
 OUTPUT_REPO = "smallama"
@@ -23,7 +23,7 @@ CLIPPING = 1.0
 PUSH_TO_HUB = True
 
 def load_data():
-    dataset = load_dataset(INPUT_DATASET, split="train").select(range(int(5e+5)))
+    dataset = load_dataset(INPUT_DATASET, split="train").select(range(int(2e+4)))
     return dataset
 
 def create_tokenizer(training_corpus):

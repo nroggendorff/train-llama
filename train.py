@@ -23,8 +23,14 @@ CLIPPING = 1.0
 PUSH_TO_HUB = True
 
 def load_data():
-    dataset = load_dataset(INPUT_DATASET, split="train").select(range(int(2.5e+6)))
-    return dataset
+    pretrain = load_dataset(INPUT_DATASET, "cosmopedia-v2", split="train", streaming=True)
+    pretrain = Dataset.from_generator(lambda: pretrain.take(200000))
+    instruct = load_dataset(INSTRUCT_DATASET, split="train").select(range(200000))
+    dataset_dict = DatasetDict({
+        'pretrain': pretrain,
+        'instruct': instruct
+    })
+    return dataset_dict
 
 def create_tokenizer(training_corpus):
     tokenizer = ByteLevelBPETokenizer()
@@ -42,19 +48,23 @@ def get_training_corpus(dataset):
     for i in range(0, len(dataset), 1000):
         yield dataset[i : i + 1000]["text"]
 
-def format_prompts(examples, tokenizer):
+def format_prompts(examples, tokenizer, isinst):
     texts = []
     for text in examples['text']:
-        conversation = []
-        parts = text.split('<|end|>')
-        for i in range(0, len(parts) - 1, 2):
-            prompt = parts[i].replace("<|user|>", "")
-            response = parts[i + 1].replace("<|bot|>", "")
-            conversation.append({"role": "user", "content": prompt})
-            conversation.append({"role": "assistant", "content": response})
-        formatted_conversation = tokenizer.apply_chat_template(conversation, tokenize=False)
-        texts.append(formatted_conversation)
+        if isinst:
+            conversation = []
+            parts = text.split('<|end|>')
+            for i in range(0, len(parts) - 1, 2):
+                prompt = parts[i].replace("<|user|>", "")
+                response = parts[i + 1].replace("<|bot|>", "")
+                conversation.append({"role": "user", "content": prompt})
+                conversation.append({"role": "assistant", "content": response})
+            formatted_conversation = tokenizer.apply_chat_template(conversation, tokenize=False)
+            texts.append(formatted_conversation)
+        else:
+            texts.append(text)
     return {"text": texts}
+            
 
 def create_model(tokenizer):
     config = LlamaConfig(
@@ -90,10 +100,10 @@ def configure_tokenizer(tokenizer):
     tokenizer.user_token_id = tokenizer.convert_tokens_to_ids("<|user|>")
     tokenizer.assistant_token_id = tokenizer.convert_tokens_to_ids("<|bot|>")
     
-    chat_template = "{{ bos_token }}{% for message in messages %}{% if (message['role'] == 'user') != (loop.index0 % 2 == 0) %}{{ raise_exception('Conversation roles must alternate user/assistant/user/assistant/...') }}{% endif %}{% if message['role'] == 'user' %}{{ '<|user|>\n' + message['content'] + '<|end|>\n' }}{% elif message['role'] == 'assistant' %}{{ '<|bot|>\n' + message['content'] + '<|end|>\n' }}{% else %}{{ raise_exception('Only user and assistant roles are supported!') }}{% endif %}{% endfor %}{{ eos_token }}"
+    chat_template = "{{ bos_token }}{% for message in messages %}{% if (message['role'] == 'user') != (loop.index0 % 2 == 0) %}{{ raise_exception('Conversation roles must alternate user/assistant/user/assistant/...') }}{% endif %}{% if message['role'] == 'user' %}{{ '<|user|>\n' + message['content'] + '<|end|>\n' }}{% elif message['role'] == 'assistant' %}{{ '<|bot|>\n' + message['content'] + '<|end|>\n' + eos_token}}{% else %}{{ raise_exception('Only user and assistant roles are supported!') }}{% endif %}{% endfor %}"
     tokenizer.chat_template = chat_template
 
-def train_model(model, tokenizer, dataset, push):
+def train_model(model, tokenizer, dataset, push, isinst):
     args = TrainingArguments(
         output_dir="model",
         num_train_epochs=EPOCHS,
@@ -104,17 +114,17 @@ def train_model(model, tokenizer, dataset, push):
         weight_decay=DECAY,
         gradient_accumulation_steps=GRADIENT_ACCUMULATION_STEPS,
         fp16=FP16,
-        max_grad_norm=CLIPPING
+        max_grad_norm=CLIPPING,
+        logging_steps=100
     )
 
     optimizer = AdamW(model.parameters(), lr=args.learning_rate)
-    scheduler = get_cosine_schedule_with_warmup(
-        optimizer, 
+    scheduler = get_linear_schedule_with_warmup(
+        optimizer,
         num_warmup_steps=args.warmup_steps, 
         num_training_steps=(len(dataset) // args.per_device_train_batch_size) * args.num_train_epochs
     )
-    
-    dataset = dataset.map(lambda examples: format_prompts(examples, tokenizer), batched=True)
+    dataset = dataset.map(lambda examples: format_prompts(examples, tokenizer, isinst), batched=True, remove_columns=dataset.column_names)
     trainer = trl.SFTTrainer(
         model=model,
         tokenizer=tokenizer,
@@ -133,19 +143,22 @@ def train_model(model, tokenizer, dataset, push):
     if push:
         repo_id = OUTPUT_REPO
         msg = str(train.training_loss)
-        trained_model.push_to_hub(repo_id, commit_message=msg)
-        trained_tokenizer.push_to_hub(repo_id, commit_message=msg)
+        trained_model.push_to_hub(repo_id, commit_message=msg, force=True)
+        trained_tokenizer.push_to_hub(repo_id, commit_message=msg, force=True)
     else:
         trained_model.save_pretrained("model")
         trained_tokenizer.save_pretrained("tokenizer")
 
 def main(push_to_hub=True):
     dataset = load_data()
-    training_corpus = get_training_corpus(dataset)
+    pretrain = dataset['pretrain']
+    instruct = dataset['instruct']
+    training_corpus = get_training_corpus(pretrain)
     tokenizer = create_tokenizer(training_corpus)
     configure_tokenizer(tokenizer)
     model = create_model(tokenizer)
-    train_model(model, tokenizer, dataset, push_to_hub)
+    train_model(model, tokenizer, pretrain, False, False)
+    train_model(model, tokenizer, instruct, push_to_hub, True)
 
 if __name__ == "__main__":
     main(PUSH_TO_HUB)

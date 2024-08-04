@@ -7,10 +7,10 @@ from transformers import AutoTokenizer, LlamaConfig, LlamaForCausalLM, TrainingA
 from datasets import load_dataset, DatasetDict, Dataset
 from tokenizers import ByteLevelBPETokenizer
 
-MAX_SEQ_LENGTH = 512
+MAX_SEQ_LENGTH = 128
 BATCH_SIZE = 128
 EPOCHS = 2
-LEARNING_RATE = 2e-2
+LEARNING_RATE = 3e-3
 FACTOR = 256
 VOCAB_SIZE = 32000
 INPUT_DATASET = "HuggingFaceTB/smollm-corpus"

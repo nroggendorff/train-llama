@@ -10,7 +10,7 @@ from tokenizers import ByteLevelBPETokenizer
 MAX_SEQ_LENGTH = 2048
 BATCH_SIZE = 4
 EPOCHS = 2
-LEARNING_RATE = 2e-2
+LEARNING_RATE = 1e-4
 FACTOR = 1024
 VOCAB_SIZE = 3200
 INPUT_DATASET = "HuggingFaceTB/smollm-corpus"

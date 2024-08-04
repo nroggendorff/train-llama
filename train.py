@@ -25,9 +25,9 @@ PUSH_TO_HUB = True
 
 def load_data():
     pretrain = load_dataset(INPUT_DATASET, "cosmopedia-v2", split="train", streaming=True)
-    pretrain = Dataset.from_generator(lambda: pretrain.take(int(2e+5)))
+    pretrain = Dataset.from_generator(lambda: pretrain.take(int(2.5e+5)))
     instruct = load_dataset(INSTRUCT_DATASET, split="train", streaming=True)
-    instruct = Dataset.from_generator(lambda: instruct.take(int(8e+4)))
+    instruct = Dataset.from_generator(lambda: instruct.take(int(5e+5)))
     dataset_dict = DatasetDict({
         'pretrain': pretrain,
         'instruct': instruct

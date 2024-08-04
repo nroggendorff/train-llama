@@ -8,7 +8,7 @@ from datasets import load_dataset, DatasetDict, Dataset
 from tokenizers import ByteLevelBPETokenizer
 
 MAX_SEQ_LENGTH = 128
-BATCH_SIZE = 16
+BATCH_SIZE = 64
 EPOCHS = 2
 LEARNING_RATE = 1e-4
 FACTOR = 1024
@@ -25,9 +25,9 @@ PUSH_TO_HUB = True
 
 def load_data():
     pretrain = load_dataset(INPUT_DATASET, "cosmopedia-v2", split="train", streaming=True)
-    pretrain = Dataset.from_generator(lambda: pretrain.take(int(3e+3)))
+    pretrain = Dataset.from_generator(lambda: pretrain.take(int(3e+4)))
     instruct = load_dataset(INSTRUCT_DATASET, split="train", streaming=True)
-    instruct = Dataset.from_generator(lambda: instruct.take(int(5e+3)))
+    instruct = Dataset.from_generator(lambda: instruct.take(int(5e+4)))
     dataset_dict = DatasetDict({
         'pretrain': pretrain,
         'instruct': instruct

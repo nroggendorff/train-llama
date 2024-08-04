@@ -9,7 +9,7 @@ from tokenizers import ByteLevelBPETokenizer
 
 MAX_SEQ_LENGTH = 512
 BATCH_SIZE = 128
-EPOCHS = 10
+EPOCHS = 2
 LEARNING_RATE = 2e-2
 FACTOR = 256
 VOCAB_SIZE = 32000
@@ -17,7 +17,7 @@ INPUT_DATASET = "HuggingFaceTB/smollm-corpus"
 INSTRUCT_DATASET = "nroggendorff/openhermes"
 OUTPUT_REPO = "smallama"
 FP16 = True
-WARMUP_STEPS = 20
+WARMUP_STEPS = 0
 DECAY = 1e-2
 GRADIENT_ACCUMULATION_STEPS = 1
 CLIPPING = 1.0

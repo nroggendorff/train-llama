@@ -9,7 +9,7 @@ from tokenizers import ByteLevelBPETokenizer
 
 MAX_SEQ_LENGTH = 128
 BATCH_SIZE = 128
-EPOCHS = 10
+EPOCHS = 2
 LEARNING_RATE = 2.5e-5
 FACTOR = 256
 VOCAB_SIZE = 32000
@@ -18,7 +18,7 @@ INSTRUCT_DATASET = "nroggendorff/openhermes"
 OUTPUT_REPO = "smallama"
 FP16 = True
 WARMUP_STEPS = 0
-DECAY = 1e-2
+DECAY = 0
 GRADIENT_ACCUMULATION_STEPS = 1
 CLIPPING = 1.0
 PUSH_TO_HUB = True

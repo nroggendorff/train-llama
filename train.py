@@ -8,10 +8,10 @@ from datasets import load_dataset, DatasetDict, Dataset
 from tokenizers import ByteLevelBPETokenizer
 
 MAX_SEQ_LENGTH = 2048
-BATCH_SIZE = 4
+BATCH_SIZE = 1
 EPOCHS = 2
-LEARNING_RATE = 5e-5
-FACTOR = 1024
+LEARNING_RATE = 1e-4
+FACTOR = int(2 ** 10.5)
 VOCAB_SIZE = 32000
 INPUT_DATASET = "HuggingFaceTB/smollm-corpus"
 INSTRUCT_DATASET = "nroggendorff/openhermes"

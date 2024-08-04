@@ -10,7 +10,7 @@ from tokenizers import ByteLevelBPETokenizer
 MAX_SEQ_LENGTH = 2048
 BATCH_SIZE = 4
 EPOCHS = 2
-LEARNING_RATE = 5e-4
+LEARNING_RATE = 5e-5
 FACTOR = 1024
 VOCAB_SIZE = 32000
 INPUT_DATASET = "HuggingFaceTB/smollm-corpus"
@@ -18,14 +18,14 @@ INSTRUCT_DATASET = "nroggendorff/openhermes"
 OUTPUT_REPO = "smallama"
 FP16 = True
 WARMUP_STEPS = 200
-DECAY = 0
-GRADIENT_ACCUMULATION_STEPS = 1
+DECAY = 1e-4
+GRADIENT_ACCUMULATION_STEPS = 4
 CLIPPING = 1.0
 PUSH_TO_HUB = True
 
 def load_data():
     pretrain = load_dataset(INPUT_DATASET, "cosmopedia-v2", split="train", streaming=True)
-    pretrain = Dataset.from_generator(lambda: pretrain.take(int(2e+5)))
+    pretrain = Dataset.from_generator(lambda: pretrain.take(int(2e+4)))
     instruct = load_dataset(INSTRUCT_DATASET, split="train", streaming=True)
     instruct = Dataset.from_generator(lambda: instruct.take(int(8e+4)))
     dataset_dict = DatasetDict({

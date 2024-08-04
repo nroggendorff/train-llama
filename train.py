@@ -25,8 +25,8 @@ PUSH_TO_HUB = True
 
 def load_data():
     pretrain = load_dataset(INPUT_DATASET, "cosmopedia-v2", split="train", streaming=True)
-    pretrain = Dataset.from_generator(lambda: pretrain.take(int(2e+4)))
-    instruct = load_dataset(INSTRUCT_DATASET, split="train").select(range(int(8e+3)))
+    pretrain = Dataset.from_generator(lambda: pretrain.take(int(2e+5)))
+    instruct = load_dataset(INSTRUCT_DATASET, split="train").select(range(int(8e+4)))
     dataset_dict = DatasetDict({
         'pretrain': pretrain,
         'instruct': instruct
@@ -116,7 +116,7 @@ def train_model(model, tokenizer, dataset, push, isinst):
         gradient_accumulation_steps=GRADIENT_ACCUMULATION_STEPS,
         fp16=FP16,
         max_grad_norm=CLIPPING,
-        logging_steps=100
+        logging_steps=10
     )
 
     optimizer = AdamW(model.parameters(), lr=args.learning_rate)

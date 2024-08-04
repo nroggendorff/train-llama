@@ -7,14 +7,14 @@ from transformers import AutoTokenizer, LlamaConfig, LlamaForCausalLM, TrainingA
 from datasets import load_dataset, DatasetDict, Dataset
 from tokenizers import ByteLevelBPETokenizer
 
-MAX_SEQ_LENGTH = 128
+MAX_SEQ_LENGTH = 512
 BATCH_SIZE = 128
 EPOCHS = 3
 LEARNING_RATE = 2.5e-5
 FACTOR = 256
 VOCAB_SIZE = 32000
 INPUT_DATASET = "HuggingFaceTB/smollm-corpus"
-INSTRUCT_DATASET = "nroggendorff/elephant"
+INSTRUCT_DATASET = "nroggendorff/openhermes"
 OUTPUT_REPO = "smallama"
 FP16 = True
 WARMUP_STEPS = 0
@@ -25,9 +25,9 @@ PUSH_TO_HUB = True
 
 def load_data():
     pretrain = load_dataset(INPUT_DATASET, "cosmopedia-v2", split="train", streaming=True)
-    pretrain = Dataset.from_generator(lambda: pretrain.take(int(2.5e+6)))
+    pretrain = Dataset.from_generator(lambda: pretrain.take(int(2.5e+4)))
     instruct = load_dataset(INSTRUCT_DATASET, split="train", streaming=True)
-    instruct = Dataset.from_generator(lambda: instruct.take(int(3e+6)))
+    instruct = Dataset.from_generator(lambda: instruct.take(int(5e+4)))
     dataset_dict = DatasetDict({
         'pretrain': pretrain,
         'instruct': instruct

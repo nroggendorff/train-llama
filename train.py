@@ -7,8 +7,8 @@ from transformers import AutoTokenizer, LlamaConfig, LlamaForCausalLM, TrainingA
 from datasets import load_dataset, DatasetDict, Dataset
 from tokenizers import ByteLevelBPETokenizer
 
-MAX_SEQ_LENGTH = 2048
-BATCH_SIZE = 4
+MAX_SEQ_LENGTH = 128
+BATCH_SIZE = 128
 EPOCHS = 2
 LEARNING_RATE = 1e-4
 FACTOR = 1024

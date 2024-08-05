@@ -10,7 +10,7 @@ from tokenizers import ByteLevelBPETokenizer
 MAX_SEQ_LENGTH = 128
 BATCH_SIZE = 64
 EPOCHS = 2
-LEARNING_RATE = 2e-5
+LEARNING_RATE = 1e-4
 FACTOR = 1024
 VOCAB_SIZE = 3200
 INPUT_DATASET = "HuggingFaceTB/smollm-corpus"
@@ -20,7 +20,6 @@ FP16 = False
 WARMUP_STEPS = 0
 DECAY = 0
 GRADIENT_ACCUMULATION_STEPS = 1
-CLIPPING = 1.0
 PUSH_TO_HUB = True
 
 def load_data():
@@ -116,7 +115,6 @@ def train_model(model, tokenizer, dataset, push, isinst):
         weight_decay=DECAY,
         gradient_accumulation_steps=GRADIENT_ACCUMULATION_STEPS,
         fp16=FP16,
-        max_grad_norm=CLIPPING,
         logging_steps=10
     )
 

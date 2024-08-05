@@ -10,7 +10,7 @@ from tokenizers import ByteLevelBPETokenizer
 MAX_SEQ_LENGTH = 128
 BATCH_SIZE = 16
 EPOCHS = 2
-LEARNING_RATE = 2e-4
+LEARNING_RATE = 2e-5
 FACTOR = 1024
 VOCAB_SIZE = 32000
 INPUT_DATASET = "HuggingFaceTB/smollm-corpus"
@@ -46,8 +46,12 @@ def create_tokenizer(training_corpus):
     return fast_tokenizer
 
 def get_training_corpus(dataset):
-    for i in range(0, len(dataset), 1000):
-        yield dataset[i : i + 1000]["text"]
+    texts = []
+    for field in ['pretrain', 'instruct']:
+        texts.extend(dataset[field]['text'])
+
+    for i in range(0, len(texts), 1000):
+        yield texts[i : i + 1000]
 
 def format_prompts(examples, tokenizer, isinst):
     texts = []
@@ -153,7 +157,7 @@ def main(push_to_hub=True):
     dataset = load_data()
     pretrain = dataset['pretrain']
     instruct = dataset['instruct']
-    training_corpus = get_training_corpus(pretrain)
+    training_corpus = get_training_corpus(dataset)
     tokenizer = create_tokenizer(training_corpus)
     configure_tokenizer(tokenizer)
     model = create_model(tokenizer)

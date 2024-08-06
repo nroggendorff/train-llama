@@ -10,7 +10,7 @@ from tokenizers import ByteLevelBPETokenizer
 MAX_SEQ_LENGTH = 128
 BATCH_SIZE = 16
 EPOCHS = 2
-LEARNING_RATE = 2e-3
+LEARNING_RATE = 2e-5
 FACTOR = 1024
 VOCAB_SIZE = 32000
 INPUT_DATASET = "HuggingFaceTB/smollm-corpus"
@@ -19,7 +19,7 @@ OUTPUT_REPO = "smallama"
 FP16 = False
 WARMUP_STEPS = 20
 DECAY = 0
-GRADIENT_ACCUMULATION_STEPS = 64
+GRADIENT_ACCUMULATION_STEPS = 128
 PUSH_TO_HUB = True
 
 def load_data():

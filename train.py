@@ -17,9 +17,9 @@ INPUT_DATASET = "HuggingFaceTB/smollm-corpus"
 INSTRUCT_DATASET = "nroggendorff/elephant"
 OUTPUT_REPO = "smallama"
 FP16 = False
-WARMUP_STEPS = 20
+WARMUP_STEPS = 0
 DECAY = 0
-GRADIENT_ACCUMULATION_STEPS = 32
+GRADIENT_ACCUMULATION_STEPS = 128
 PUSH_TO_HUB = True
 
 def load_data():

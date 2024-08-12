@@ -7,19 +7,19 @@ from transformers import AutoTokenizer, LlamaConfig, LlamaForCausalLM, TrainingA
 from datasets import load_dataset, DatasetDict, Dataset
 from tokenizers import ByteLevelBPETokenizer
 
-MAX_SEQ_LENGTH = 128
+MAX_SEQ_LENGTH = 512
 BATCH_SIZE = 64
 EPOCHS = 2
-LEARNING_RATE = 2e-3
+LEARNING_RATE = 2e-2
 FACTOR = 1024
 VOCAB_SIZE = 32000
 INPUT_DATASET = "HuggingFaceTB/smollm-corpus"
 INSTRUCT_DATASET = "nroggendorff/elephant"
 OUTPUT_REPO = "smallama"
 FP16 = False
-WARMUP_STEPS = 0
+WARMUP_STEPS = 20
 DECAY = 0
-GRADIENT_ACCUMULATION_STEPS = 16
+GRADIENT_ACCUMULATION_STEPS = 1
 PUSH_TO_HUB = True
 
 def load_data():

@@ -8,9 +8,9 @@ from datasets import load_dataset, DatasetDict, Dataset
 from tokenizers import ByteLevelBPETokenizer
 
 MAX_SEQ_LENGTH = 128
-BATCH_SIZE = 64
-EPOCHS = 5
-LEARNING_RATE = 2e-5
+BATCH_SIZE = 96
+EPOCHS = 2
+LEARNING_RATE = 2e-4
 FACTOR = 1024
 VOCAB_SIZE = 32000
 INPUT_DATASET = "HuggingFaceTB/smollm-corpus"
@@ -67,7 +67,7 @@ def format_prompts(examples, tokenizer, isinst):
             formatted_conversation = tokenizer.apply_chat_template(conversation, tokenize=False)
             texts.append(formatted_conversation)
         else:
-            texts.append(text)
+            texts.append(tokenizer.bos_token + text + tokenizer.eos_token)
     return {"text": texts}
             
 

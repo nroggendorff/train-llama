@@ -7,9 +7,9 @@ from transformers import AutoTokenizer, LlamaConfig, LlamaForCausalLM, TrainingA
 from datasets import load_dataset, DatasetDict, Dataset
 from tokenizers import ByteLevelBPETokenizer
 
-MAX_SEQ_LENGTH = 512
-BATCH_SIZE = 4
-EPOCHS = 2
+MAX_SEQ_LENGTH = 128
+BATCH_SIZE = 64
+EPOCHS = 10
 LEARNING_RATE = 2e-4
 FACTOR = 1024
 VOCAB_SIZE = 32000
@@ -24,9 +24,9 @@ PUSH_TO_HUB = True
 
 def load_data():
     pretrain = load_dataset(INPUT_DATASET, "cosmopedia-v2", split="train", streaming=True)
-    pretrain = Dataset.from_generator(lambda: pretrain.take(int(3e+5)))
+    pretrain = Dataset.from_generator(lambda: pretrain.take(int(3e+4)))
     instruct = load_dataset(INSTRUCT_DATASET, split="train", streaming=True)
-    instruct = Dataset.from_generator(lambda: instruct.take(int(2e+3)))
+    instruct = Dataset.from_generator(lambda: instruct.take(int(5e+4)))
     dataset_dict = DatasetDict({
         'pretrain': pretrain,
         'instruct': instruct

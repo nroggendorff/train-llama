@@ -8,9 +8,9 @@ from datasets import load_dataset, DatasetDict, Dataset
 from tokenizers import ByteLevelBPETokenizer
 
 BATCH_SIZE = 4
-EPOCHS = 2
+EPOCHS = 96
 LEARNING_RATE = 2e-3
-FACTOR = 1408
+FACTOR = 512
 MAX_SEQ_LENGTH = 128
 VOCAB_SIZE = 32000
 INPUT_DATASET = "HuggingFaceTB/smollm-corpus"

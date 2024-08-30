@@ -7,7 +7,7 @@ from transformers import AutoTokenizer, LlamaConfig, LlamaForCausalLM, TrainingA
 from datasets import load_dataset, DatasetDict, Dataset
 from tokenizers import ByteLevelBPETokenizer
 
-BATCH_SIZE = 64
+BATCH_SIZE = 32
 EPOCHS = 20
 LEARNING_RATE = 2e-4
 FACTOR = 1408

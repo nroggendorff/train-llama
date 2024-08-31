@@ -162,7 +162,7 @@ def train_model(model, tokenizer, dataset, push, isinst):
         trained_model.save_pretrained("model")
         trained_tokenizer.save_pretrained("tokenizer")
 
-def main(push_to_hub=True, is_inst_finetune):
+def main(push_to_hub=True, is_inst_finetune=False):
     dataset = load_data()
     pretrain = dataset['pretrain']
     instruct = dataset['instruct']

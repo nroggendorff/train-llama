@@ -106,12 +106,13 @@ def configure_tokenizer(tokenizer):
         "additional_special_tokens": ["<|user|>", "<|bot|>", "<|end|>"]
     }
     tokenizer.add_special_tokens(special_tokens)
+
+    if INSTRUCT_FINETUNE_BOOL:
+        tokenizer.user_token_id = tokenizer.convert_tokens_to_ids("<|user|>")
+        tokenizer.assistant_token_id = tokenizer.convert_tokens_to_ids("<|bot|>")
     
-    tokenizer.user_token_id = tokenizer.convert_tokens_to_ids("<|user|>")
-    tokenizer.assistant_token_id = tokenizer.convert_tokens_to_ids("<|bot|>")
-    
-    chat_template = "{{ bos_token }}{% for message in messages %}{% if (message['role'] == 'user') != (loop.index0 % 2 == 0) %}{{ raise_exception('Conversation roles must alternate user/assistant/user/assistant/...') }}{% endif %}{% if message['role'] == 'user' %}{{ '<|user|>\n' + message['content'] + '<|end|>\n' }}{% elif message['role'] == 'assistant' %}{{ '<|bot|>\n' + message['content'] + '<|end|>\n' + eos_token}}{% else %}{{ raise_exception('Only user and assistant roles are supported!') }}{% endif %}{% endfor %}"
-    tokenizer.chat_template = chat_template
+        chat_template = "{{ bos_token }}{% for message in messages %}{% if (message['role'] == 'user') != (loop.index0 % 2 == 0) %}{{ raise_exception('Conversation roles must alternate user/assistant/user/assistant/...') }}{% endif %}{% if message['role'] == 'user' %}{{ '<|user|>\n' + message['content'] + '<|end|>\n' }}{% elif message['role'] == 'assistant' %}{{ '<|bot|>\n' + message['content'] + '<|end|>\n' + eos_token}}{% else %}{{ raise_exception('Only user and assistant roles are supported!') }}{% endif %}{% endfor %}"
+        tokenizer.chat_template = chat_template
 
 def train_model(model, tokenizer, dataset, push, isinst):
     args = TrainingArguments(
@@ -167,8 +168,8 @@ def main(push_to_hub=True, is_inst_finetune):
     instruct = dataset['instruct']
     training_corpus = get_training_corpus(dataset)
     tokenizer = create_tokenizer(training_corpus)
+    configure_tokenizer(tokenizer)
     if is_inst_finetune:
-        configure_tokenizer(tokenizer)
         model = load_model()
         train_model(model, tokenizer, instruct, push_to_hub, True)
     else:

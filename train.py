@@ -16,6 +16,7 @@ VOCAB_SIZE = 32000
 INPUT_DATASET = "HuggingFaceTB/smollm-corpus"
 INSTRUCT_DATASET = "nroggendorff/elephant"
 OUTPUT_REPO = "smallama"
+INSTRUCT_FINETUNE_BOOL = False
 FP16 = False
 WARMUP_STEPS = 0
 DECAY = 0
@@ -24,9 +25,9 @@ PUSH_TO_HUB = True
 
 def load_data():
     pretrain = load_dataset(INPUT_DATASET, "cosmopedia-v2", split="train", streaming=True)
-    pretrain = Dataset.from_generator(lambda: pretrain.take(int(3e+4)))
+    pretrain = Dataset.from_generator(lambda: pretrain.take(int(3e+5)))
     instruct = load_dataset(INSTRUCT_DATASET, split="train", streaming=True)
-    instruct = Dataset.from_generator(lambda: instruct.take(int(5e+4)))
+    instruct = Dataset.from_generator(lambda: instruct.take(int(5e+5)))
     dataset_dict = DatasetDict({
         'pretrain': pretrain,
         'instruct': instruct
@@ -91,6 +92,10 @@ def create_model(tokenizer):
     model = LlamaForCausalLM(config)
     return model
 
+def load_model():
+    model = LlamaForCausalLM.from_pretrained(OUTPUT_REPO)
+    return model
+
 def configure_tokenizer(tokenizer):
     special_tokens = {
         "bos_token": "<s>",
@@ -145,7 +150,10 @@ def train_model(model, tokenizer, dataset, push, isinst):
     trained_tokenizer = trainer.tokenizer
     
     if push:
-        repo_id = OUTPUT_REPO
+        if INSTRUCT_FINETUNE_BOOL:      
+            repo_id = OUTPUT_REPO + "-it"
+        else:
+            repo_id = OUTPUT_REPO
         msg = str(train.training_loss)
         trained_model.push_to_hub(repo_id, commit_message=msg, force=True)
         trained_tokenizer.push_to_hub(repo_id, commit_message=msg, force=True)
@@ -153,17 +161,20 @@ def train_model(model, tokenizer, dataset, push, isinst):
         trained_model.save_pretrained("model")
         trained_tokenizer.save_pretrained("tokenizer")
 
-def main(push_to_hub=True):
+def main(push_to_hub=True, is_inst_finetune):
     dataset = load_data()
     pretrain = dataset['pretrain']
     instruct = dataset['instruct']
     training_corpus = get_training_corpus(dataset)
     tokenizer = create_tokenizer(training_corpus)
-    configure_tokenizer(tokenizer)
-    model = create_model(tokenizer)
-    train_model(model, tokenizer, pretrain, False, False)
-    train_model(model, tokenizer, instruct, push_to_hub, True)
+    if is_inst_finetune:
+        configure_tokenizer(tokenizer)
+        model = load_model()
+        train_model(model, tokenizer, instruct, push_to_hub, True)
+    else:
+        model = create_model(tokenizer)
+        train_model(model, tokenizer, pretrain, push_to_hub, False)
 
 if __name__ == "__main__":
-    main(PUSH_TO_HUB)
+    main(PUSH_TO_HUB, INSTRUCT_FINETUNE_BOOL)
     raise RuntimeError("The script is finished.")

@@ -4,7 +4,7 @@ import torch
 import trl
 
 from transformers import AutoTokenizer, LlamaConfig, LlamaForCausalLM, TrainingArguments, PreTrainedTokenizerFast, AdamW, get_cosine_schedule_with_warmup
-from datasets import load_dataset, DatasetDict, Dataset
+from datasets import load_dataset, Dataset
 from tokenizers import ByteLevelBPETokenizer
 
 BATCH_SIZE = 4
@@ -24,15 +24,13 @@ GRADIENT_ACCUMULATION_STEPS = 1
 PUSH_TO_HUB = True
 
 def load_data():
-    pretrain = load_dataset(INPUT_DATASET, "cosmopedia-v2", split="train", streaming=True)
-    pretrain = Dataset.from_generator(lambda: pretrain.take(int(3e+4)))
-    instruct = load_dataset(INSTRUCT_DATASET, split="train", streaming=True)
-    instruct = Dataset.from_generator(lambda: instruct.take(int(5e+4)))
-    dataset_dict = DatasetDict({
-        'pretrain': pretrain,
-        'instruct': instruct
-    })
-    return dataset_dict
+    if not INSTRUCT_FINETUNE_BOOL:
+        dataset = load_dataset(INSTRUCT_DATASET, split="train", streaming=True)
+        dataset = Dataset.from_generator(lambda: dataset.take(int(5e+4)))
+    else:
+        dataset = load_dataset(INPUT_DATASET, "cosmopedia-v2", split="train", streaming=True)
+        dataset = Dataset.from_generator(lambda: dataset.take(int(6e+4)))
+    return dataset
 
 def create_tokenizer(training_corpus):
     tokenizer = ByteLevelBPETokenizer()

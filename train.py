@@ -44,6 +44,10 @@ def create_tokenizer(training_corpus):
     fast_tokenizer = PreTrainedTokenizerFast(tokenizer_object=tokenizer._tokenizer)
     return fast_tokenizer
 
+def load_tokenizer():
+    tok = AutoTokenizer.from_pretrained(OUTPUT_REPO)
+    return tok
+
 def get_training_corpus(dataset):
     texts = []
     #for field in ['pretrain', 'instruct']:
@@ -163,8 +167,11 @@ def train_model(model, tokenizer, dataset, push, isinst):
 
 def main(push_to_hub=True, is_inst_finetune=False):
     dataset = load_data()
-    training_corpus = get_training_corpus(dataset)
-    tokenizer = create_tokenizer(training_corpus)
+    if not is_inst_finetune:
+        training_corpus = get_training_corpus(dataset)
+        tokenizer = create_tokenizer(training_corpus)
+    else:
+        tokenizer = load_tokenizer()
     configure_tokenizer(tokenizer)
     if is_inst_finetune:
         model = load_model()

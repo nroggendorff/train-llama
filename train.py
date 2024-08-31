@@ -162,17 +162,15 @@ def train_model(model, tokenizer, dataset, push, isinst):
 
 def main(push_to_hub=True, is_inst_finetune=False):
     dataset = load_data()
-    pretrain = dataset['pretrain']
-    instruct = dataset['instruct']
     training_corpus = get_training_corpus(dataset)
     tokenizer = create_tokenizer(training_corpus)
     configure_tokenizer(tokenizer)
     if is_inst_finetune:
         model = load_model()
-        train_model(model, tokenizer, instruct, push_to_hub, True)
+        train_model(model, tokenizer, dataset, push_to_hub, True)
     else:
         model = create_model(tokenizer)
-        train_model(model, tokenizer, pretrain, push_to_hub, False)
+        train_model(model, tokenizer, dataset, push_to_hub, False)
 
 if __name__ == "__main__":
     main(PUSH_TO_HUB, INSTRUCT_FINETUNE_BOOL)

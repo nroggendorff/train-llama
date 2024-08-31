@@ -46,8 +46,9 @@ def create_tokenizer(training_corpus):
 
 def get_training_corpus(dataset):
     texts = []
-    for field in ['pretrain', 'instruct']:
-        texts.extend(dataset[field]['text'])
+    #for field in ['pretrain', 'instruct']:
+    #    texts.extend(dataset[field]['text'])
+    texts.extend(dataset['text'])
 
     for i in range(0, len(texts), 1000):
         yield texts[i : i + 1000]

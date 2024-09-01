@@ -105,9 +105,10 @@ def configure_tokenizer(tokenizer):
         "eos_token": "</s>",
         "unk_token": "<unk>",
         "pad_token": "<pad>",
-        "mask_token": "<mask>",
-        "additional_special_tokens": ["<|user|>", "<|bot|>", "<|end|>"]
+        "mask_token": "<mask>"
     }
+    if INSTRUCT_FINETUNE_BOOL:
+        special_tokens["additional_special_tokens"] = ["<|user|>", "<|bot|>", "<|end|>"]
     tokenizer.add_special_tokens(special_tokens)
 
     if INSTRUCT_FINETUNE_BOOL:

@@ -47,9 +47,17 @@ def create_tokenizer(training_corpus):
     fast_tokenizer = PreTrainedTokenizerFast(tokenizer_object=tokenizer._tokenizer)
     return fast_tokenizer
 
-def load_tokenizer():
-    tok = AutoTokenizer.from_pretrained(OUTPUT_REPO)
-    return tok
+def load_tokenizer(training_corpus):
+    tokenizer = AutoTokenizer.from_pretrained(OUTPUT_REPO)
+    special_tokens = ["<s>", "<pad>", "</s>", "<unk>", "<mask>"]
+    special_tokens.append("<|user|>", "<|bot|>", "<|end|>")
+    tokenizer.train_from_iterator(
+        training_corpus,
+        vocab_size=VOCAB_SIZE,
+        min_frequency=2,
+        special_tokens=special_tokens
+    )
+    return tokenizer
 
 def get_training_corpus(dataset):
     texts = []
@@ -175,7 +183,8 @@ def main(push_to_hub=True, is_inst_finetune=False):
         training_corpus = get_training_corpus(dataset)
         tokenizer = create_tokenizer(training_corpus)
     else:
-        tokenizer = load_tokenizer()
+        training_corpus = get_training_corpus(dataset)
+        tokenizer = load_tokenizer(training_corpus)
     configure_tokenizer(tokenizer)
     if is_inst_finetune:
         model = load_model()

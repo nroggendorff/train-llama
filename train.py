@@ -99,7 +99,7 @@ def create_model(tokenizer):
     return model
 
 def load_model():
-    model = AutoModelForCasualLM.from_pretrained(OUTPUT_REPO)
+    model = AutoModelForCausalLM.from_pretrained(OUTPUT_REPO)
     return model
 
 def configure_tokenizer(tokenizer):

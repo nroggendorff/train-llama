@@ -3,7 +3,7 @@ import os
 import torch
 import trl
 
-from transformers import AutoTokenizer, LlamaConfig, AutoModelForCasualLM, LlamaForCausalLM, TrainingArguments, PreTrainedTokenizerFast, AdamW, get_cosine_schedule_with_warmup
+from transformers import AutoTokenizer, LlamaConfig, AutoModelForCausalLM, LlamaForCausalLM, TrainingArguments, PreTrainedTokenizerFast, AdamW, get_cosine_schedule_with_warmup
 from datasets import load_dataset, Dataset
 from tokenizers import ByteLevelBPETokenizer
 

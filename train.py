@@ -10,13 +10,13 @@ from tokenizers import ByteLevelBPETokenizer
 BATCH_SIZE = 4
 EPOCHS = 2
 LEARNING_RATE = 2e-4
-FACTOR = 22 * 64
+FACTOR = 22 * 66
 MAX_SEQ_LENGTH = 128
 VOCAB_SIZE = 32000
 INPUT_DATASET = "HuggingFaceTB/smollm-corpus"
 INSTRUCT_DATASET = "nroggendorff/elephant"
 OUTPUT_REPO = "nroggendorff/smallama"
-INSTRUCT_FINETUNE_BOOL = True
+INSTRUCT_FINETUNE_BOOL = False
 FP16 = True
 WARMUP_STEPS = 0
 DECAY = 0

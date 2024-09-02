@@ -36,7 +36,7 @@ def create_tokenizer(training_corpus):
     tokenizer = ByteLevelBPETokenizer()
     special_tokens = ["<s>", "<pad>", "</s>", "<unk>", "<mask>"]
     if INSTRUCT_FINETUNE_BOOL:
-        special_tokens.append("<|user|>", "<|bot|>", "<|end|>")
+        special_tokens.append(["<|user|>", "<|bot|>", "<|end|>"])
     tokenizer.train_from_iterator(
         training_corpus,
         vocab_size=VOCAB_SIZE,
@@ -50,7 +50,7 @@ def create_tokenizer(training_corpus):
 def load_tokenizer(training_corpus):
     tokenizer = AutoTokenizer.from_pretrained(OUTPUT_REPO)
     special_tokens = ["<s>", "<pad>", "</s>", "<unk>", "<mask>"]
-    special_tokens.append("<|user|>", "<|bot|>", "<|end|>")
+    special_tokens.append(["<|user|>", "<|bot|>", "<|end|>"])
     tokenizer.train_from_iterator(
         training_corpus,
         vocab_size=VOCAB_SIZE,

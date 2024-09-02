@@ -3,11 +3,11 @@ import os
 import torch
 import trl
 
-from transformers import AutoTokenizer, LlamaConfig, LlamaForCausalLM, TrainingArguments, PreTrainedTokenizerFast, AdamW, get_cosine_schedule_with_warmup
+from transformers import AutoTokenizer, LlamaConfig, AutoModelForCasualLM, LlamaForCausalLM, TrainingArguments, PreTrainedTokenizerFast, AdamW, get_cosine_schedule_with_warmup
 from datasets import load_dataset, Dataset
 from tokenizers import ByteLevelBPETokenizer
 
-BATCH_SIZE = 1
+BATCH_SIZE = 4
 EPOCHS = 2
 LEARNING_RATE = 2e-3
 FACTOR = 22 * 66
@@ -99,7 +99,7 @@ def create_model(tokenizer):
     return model
 
 def load_model():
-    model = LlamaForCausalLM.from_pretrained(OUTPUT_REPO)
+    model = AutoModelForCasualLM.from_pretrained(OUTPUT_REPO)
     return model
 
 def configure_tokenizer(tokenizer):

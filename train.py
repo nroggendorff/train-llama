@@ -49,14 +49,6 @@ def create_tokenizer(training_corpus):
 
 def load_tokenizer(training_corpus):
     tokenizer = AutoTokenizer.from_pretrained(OUTPUT_REPO)
-    special_tokens = ["<s>", "<pad>", "</s>", "<unk>", "<mask>"]
-    special_tokens.append(["<|user|>", "<|bot|>", "<|end|>"])
-    tokenizer.train_from_iterator(
-        training_corpus,
-        vocab_size=VOCAB_SIZE,
-        min_frequency=2,
-        special_tokens=special_tokens
-    )
     return tokenizer
 
 def get_training_corpus(dataset):

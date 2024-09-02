@@ -47,7 +47,7 @@ def create_tokenizer(training_corpus):
     fast_tokenizer = PreTrainedTokenizerFast(tokenizer_object=tokenizer._tokenizer)
     return fast_tokenizer
 
-def load_tokenizer(training_corpus):
+def load_tokenizer():
     tokenizer = AutoTokenizer.from_pretrained(OUTPUT_REPO)
     return tokenizer
 
@@ -175,8 +175,7 @@ def main(push_to_hub=True, is_inst_finetune=False):
         training_corpus = get_training_corpus(dataset)
         tokenizer = create_tokenizer(training_corpus)
     else:
-        training_corpus = get_training_corpus(dataset)
-        tokenizer = load_tokenizer(training_corpus)
+        tokenizer = load_tokenizer()
     configure_tokenizer(tokenizer)
     if is_inst_finetune:
         model = load_model()

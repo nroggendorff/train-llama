@@ -76,7 +76,6 @@ def format_prompts(examples, tokenizer, isinst):
         else:
             texts.append(tokenizer.bos_token + text + tokenizer.eos_token)
     return {"text": texts}
-            
 
 def create_model(tokenizer):
     config = LlamaConfig(

@@ -7,17 +7,17 @@ from transformers import AutoTokenizer, LlamaConfig, AutoModelForCausalLM, Llama
 from datasets import load_dataset, Dataset
 from tokenizers import ByteLevelBPETokenizer
 
-BATCH_SIZE = 4
+BATCH_SIZE = 128
 EPOCHS = 2
 LEARNING_RATE = 2e-4
-FACTOR = 22 * 66
+FACTOR = 22 * 30
 MAX_SEQ_LENGTH = 128
 VOCAB_SIZE = 32000
 INPUT_DATASET = "HuggingFaceTB/smollm-corpus"
 INSTRUCT_DATASET = "nroggendorff/elephant"
 OUTPUT_REPO = "nroggendorff/smallama"
-INSTRUCT_FINETUNE_BOOL = True
-FP16 = True
+INSTRUCT_FINETUNE_BOOL = False
+FP16 = False
 WARMUP_STEPS = 0
 DECAY = 0
 GRADIENT_ACCUMULATION_STEPS = 1
@@ -26,10 +26,10 @@ PUSH_TO_HUB = True
 def load_data():
     if not INSTRUCT_FINETUNE_BOOL:
         dataset = load_dataset(INPUT_DATASET, "cosmopedia-v2", split="train", streaming=True)
-        dataset = Dataset.from_generator(lambda: dataset.take(int(6e+4)))
+        dataset = Dataset.from_generator(lambda: dataset.take(int(3e+5)))
     else:
         dataset = load_dataset(INSTRUCT_DATASET, split="train", streaming=True)
-        dataset = Dataset.from_generator(lambda: dataset.take(int(5e+4)))
+        dataset = Dataset.from_generator(lambda: dataset.take(int(5e+5)))
     return dataset
 
 def create_tokenizer(training_corpus):

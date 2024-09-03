@@ -131,6 +131,7 @@ def train_model(model, tokenizer, dataset, push, isinst):
         weight_decay=DECAY,
         gradient_accumulation_steps=GRADIENT_ACCUMULATION_STEPS,
         fp16=FP16,
+        save_steps=int(1e+10),
         logging_steps=10
     )
 

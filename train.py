@@ -7,7 +7,7 @@ from transformers import AutoTokenizer, LlamaConfig, AutoModelForCausalLM, Llama
 from datasets import load_dataset, Dataset
 from tokenizers import ByteLevelBPETokenizer
 
-BATCH_SIZE = 128
+BATCH_SIZE = 256
 EPOCHS = 2
 LEARNING_RATE = 2e-4
 FACTOR = 22 * 30
@@ -26,7 +26,7 @@ PUSH_TO_HUB = True
 def load_data():
     if not INSTRUCT_FINETUNE_BOOL:
         dataset = load_dataset(INPUT_DATASET, "cosmopedia-v2", split="train", streaming=True)
-        dataset = Dataset.from_generator(lambda: dataset.take(int(3e+5)))
+        dataset = Dataset.from_generator(lambda: dataset.take(int(9e+5)))
     else:
         dataset = load_dataset(INSTRUCT_DATASET, split="train", streaming=True)
         dataset = Dataset.from_generator(lambda: dataset.take(int(5e+5)))

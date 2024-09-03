@@ -16,7 +16,7 @@ VOCAB_SIZE = 32000
 INPUT_DATASET = "HuggingFaceTB/smollm-corpus"
 INSTRUCT_DATASET = "nroggendorff/elephant"
 OUTPUT_REPO = "nroggendorff/smallama"
-INSTRUCT_FINETUNE_BOOL = False
+INSTRUCT_FINETUNE_BOOL = True
 FP16 = True
 WARMUP_STEPS = 0
 DECAY = 0
@@ -179,6 +179,7 @@ def main(push_to_hub=True, is_inst_finetune=False):
     configure_tokenizer(tokenizer)
     if is_inst_finetune:
         model = load_model()
+        model.resize_token_embeddings(len(tokenizer))
         train_model(model, tokenizer, dataset, push_to_hub, True)
     else:
         model = create_model(tokenizer)

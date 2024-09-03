@@ -26,7 +26,7 @@ PUSH_TO_HUB = True
 def load_data():
     if not INSTRUCT_FINETUNE_BOOL:
         dataset = load_dataset(INPUT_DATASET, "cosmopedia-v2", split="train", streaming=True)
-        dataset = Dataset.from_generator(lambda: dataset.take(int(3e+4)))
+        dataset = Dataset.from_generator(lambda: dataset.take(int(6e+4)))
     else:
         dataset = load_dataset(INSTRUCT_DATASET, split="train", streaming=True)
         dataset = Dataset.from_generator(lambda: dataset.take(int(5e+4)))

@@ -5,7 +5,7 @@ sdk: gradio
 sdk_version: 4.42.0
 app_file: app.py
 pinned: false
-startup_duration_timeout: 24h
+startup_duration_timeout: 6h, 30m
 license: mit
 ---
 

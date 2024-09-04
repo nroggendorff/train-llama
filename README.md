@@ -3,7 +3,7 @@ title: Train Llama
 emoji: 🐢
 sdk: gradio
 sdk_version: 4.42.0
-app_file: app.py
+app_file: train.py
 pinned: false
 startup_duration_timeout: 350m
 license: mit

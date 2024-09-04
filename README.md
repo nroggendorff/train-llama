@@ -1,11 +1,11 @@
 ---
 title: Train Llama
 emoji: 🐢
-colorFrom: pink
-colorTo: green
-sdk: docker
+sdk: gradio
+sdk_version: 4.42.0
+app_file: app.py
 pinned: false
-startup_duration_timeout: 350m
+startup_duration_timeout: 24h
 license: mit
 ---
 

@@ -16,7 +16,7 @@ VOCAB_SIZE = 32000
 INPUT_DATASET = "HuggingFaceTB/smollm-corpus"
 INSTRUCT_DATASET = "nroggendorff/elephant"
 OUTPUT_REPO = "nroggendorff/smallama"
-INSTRUCT_FINETUNE_BOOL = True
+INSTRUCT_FINETUNE_BOOL = False
 FP16 = True
 WARMUP_STEPS = 0
 DECAY = 0
@@ -26,7 +26,7 @@ PUSH_TO_HUB = True
 def load_data():
     if not INSTRUCT_FINETUNE_BOOL:
         dataset = load_dataset(INPUT_DATASET, "cosmopedia-v2", split="train", streaming=True)
-        dataset = Dataset.from_generator(lambda: dataset.take(int(3e+6)))
+        dataset = Dataset.from_generator(lambda: dataset.take(int(5e+6)))
     else:
         dataset = load_dataset(INSTRUCT_DATASET, split="train", streaming=True)
         dataset = Dataset.from_generator(lambda: dataset.take(int(5e+6)))

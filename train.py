@@ -17,7 +17,7 @@ INPUT_DATASET = "HuggingFaceTB/smollm-corpus"
 INSTRUCT_DATASET = "nroggendorff/elephant"
 OUTPUT_REPO = "nroggendorff/smallama"
 INSTRUCT_FINETUNE_BOOL = False
-INIT = 1#/13
+INIT = 0#/13
 SHARD_SIZE = int(3e+6)
 FP16 = True
 WARMUP_STEPS = 0
@@ -29,7 +29,7 @@ def load_data():
     if not INSTRUCT_FINETUNE_BOOL:
         dataset = load_dataset(INPUT_DATASET, "cosmopedia-v2", split="train")#, streaming=True)
         # dataset = Dataset.from_generator(lambda: dataset.take(int(5e+6)))
-        dataset = dataset.shard(num_shards=len(dataset) // SHARD_SIZE, index=INIT)
+        # dataset = dataset.shard(num_shards=len(dataset) // SHARD_SIZE, index=INIT)
     else:
         dataset = load_dataset(INSTRUCT_DATASET, split="train")#, streaming=True)
         # dataset = Dataset.from_generator(lambda: dataset.take(int(5e+6)))
@@ -138,13 +138,17 @@ def train_model(model, tokenizer, dataset, push, isinst):
         logging_steps=10
     )
 
+    dataset = dataset.shard(num_shards=len(dataset) // SHARD_SIZE, index=INIT)
+
     optimizer = AdamW(model.parameters(), lr=args.learning_rate)
     scheduler = get_cosine_schedule_with_warmup(
         optimizer,
         num_warmup_steps=args.warmup_steps, 
         num_training_steps=(len(dataset) // args.per_device_train_batch_size) * args.num_train_epochs
     )
+    
     dataset = dataset.map(lambda examples: format_prompts(examples, tokenizer, isinst), batched=True, remove_columns=dataset.column_names)
+   
     trainer = trl.SFTTrainer(
         model=model,
         tokenizer=tokenizer,

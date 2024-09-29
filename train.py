@@ -176,7 +176,10 @@ def main(push_to_hub=True, is_inst_finetune=False):
     dataset = load_data()
     if not is_inst_finetune:
         training_corpus = get_training_corpus(dataset)
-        tokenizer = create_tokenizer(training_corpus)
+        if INIT == 0:
+            tokenizer = create_tokenizer(training_corpus)
+        else:
+            tokenizer = load_tokenizer()
     else:
         tokenizer = load_tokenizer()
     configure_tokenizer(tokenizer)

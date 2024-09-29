@@ -17,12 +17,12 @@ INPUT_DATASET = "HuggingFaceTB/smollm-corpus"
 INSTRUCT_DATASET = "nroggendorff/elephant"
 OUTPUT_REPO = "nroggendorff/smallama"
 INSTRUCT_FINETUNE_BOOL = False
-INIT = 1 # /7
-SHARD_SIZE = int(5e+6)
+INIT = 0#/13
+SHARD_SIZE = int(3e+6)
 FP16 = True
 WARMUP_STEPS = 0
 DECAY = 0
-GRADIENT_ACCUMULATION_STEPS = 1
+GRADIENT_ACCUMULATION_STEPS = 4
 PUSH_TO_HUB = True
 
 def load_data():

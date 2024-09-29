@@ -16,7 +16,9 @@ VOCAB_SIZE = 32000
 INPUT_DATASET = "HuggingFaceTB/smollm-corpus"
 INSTRUCT_DATASET = "nroggendorff/elephant"
 OUTPUT_REPO = "nroggendorff/smallama"
-INSTRUCT_FINETUNE_BOOL = True
+INSTRUCT_FINETUNE_BOOL = False
+INIT = 1 # /7
+SHARD_SIZE = int(5e+6)
 FP16 = True
 WARMUP_STEPS = 0
 DECAY = 0
@@ -25,11 +27,12 @@ PUSH_TO_HUB = True
 
 def load_data():
     if not INSTRUCT_FINETUNE_BOOL:
-        dataset = load_dataset(INPUT_DATASET, "cosmopedia-v2", split="train", streaming=True)
-        dataset = Dataset.from_generator(lambda: dataset.take(int(5e+6)))
+        dataset = load_dataset(INPUT_DATASET, "cosmopedia-v2", split="train")#, streaming=True)
+        # dataset = Dataset.from_generator(lambda: dataset.take(int(5e+6)))
+        dataset = dataset.shard(num_shards=len(dataset) // SHARD_SIZE, index=INIT)
     else:
-        dataset = load_dataset(INSTRUCT_DATASET, split="train", streaming=True)
-        dataset = Dataset.from_generator(lambda: dataset.take(int(5e+6)))
+        dataset = load_dataset(INSTRUCT_DATASET, split="train")#, streaming=True)
+        # dataset = Dataset.from_generator(lambda: dataset.take(int(5e+6)))
     return dataset
 
 def create_tokenizer(training_corpus):
@@ -182,7 +185,10 @@ def main(push_to_hub=True, is_inst_finetune=False):
         model.resize_token_embeddings(len(tokenizer))
         train_model(model, tokenizer, dataset, push_to_hub, True)
     else:
-        model = create_model(tokenizer)
+        if INIT == 0:
+            model = create_model(tokenizer)
+        else:
+            model = load_model()
         train_model(model, tokenizer, dataset, push_to_hub, False)
 
 if __name__ == "__main__":

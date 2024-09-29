@@ -22,12 +22,12 @@ SHARD_SIZE = int(3e+6)
 FP16 = True
 WARMUP_STEPS = 0
 DECAY = 0
-GRADIENT_ACCUMULATION_STEPS = 4
+GRADIENT_ACCUMULATION_STEPS = 1
 PUSH_TO_HUB = True
 
 def load_data():
     if not INSTRUCT_FINETUNE_BOOL:
-        dataset = load_dataset(INPUT_DATASET, "cosmopedia-v2", split="train", streaming=True)
+        dataset = load_dataset(INPUT_DATASET, "cosmopedia-v2", split="train")#, streaming=True)
         # dataset = Dataset.from_generator(lambda: dataset.take(int(5e+6)))
         # dataset = dataset.shard(num_shards=len(dataset) // SHARD_SIZE, index=INIT)
     else:

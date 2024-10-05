@@ -7,12 +7,12 @@ from transformers import AutoTokenizer, LlamaConfig, AutoModelForCausalLM, Llama
 from datasets import load_dataset, Dataset
 from tokenizers import ByteLevelBPETokenizer
 
-BATCH_SIZE = 16
-EPOCHS = 1
-LEARNING_RATE = 2e-4
+BATCH_SIZE = 32
+EPOCHS = 2
+LEARNING_RATE = 3e-5
 FACTOR = 22 * 20
 MAX_SEQ_LENGTH = 512
-VOCAB_SIZE = 32000
+VOCAB_SIZE = 52000
 INPUT_DATASET = "HuggingFaceTB/smollm-corpus"
 INSTRUCT_DATASET = "nroggendorff/elephant"
 OUTPUT_REPO = "nroggendorff/smallama"
@@ -21,7 +21,7 @@ INIT = 0#/2
 SHARD_SIZE = int(5e+6)
 FP16 = True
 WARMUP_STEPS = 0
-DECAY = 0
+DECAY = 1e-3
 GRADIENT_ACCUMULATION_STEPS = 1
 PUSH_TO_HUB = True
 

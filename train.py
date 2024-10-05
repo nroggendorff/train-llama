@@ -7,18 +7,18 @@ from transformers import AutoTokenizer, LlamaConfig, AutoModelForCausalLM, Llama
 from datasets import load_dataset, Dataset
 from tokenizers import ByteLevelBPETokenizer
 
-BATCH_SIZE = 128
+BATCH_SIZE = 16
 EPOCHS = 1
 LEARNING_RATE = 2e-4
-FACTOR = 22 * 30
-MAX_SEQ_LENGTH = 128
+FACTOR = 22 * 20
+MAX_SEQ_LENGTH = 512
 VOCAB_SIZE = 32000
 INPUT_DATASET = "HuggingFaceTB/smollm-corpus"
 INSTRUCT_DATASET = "nroggendorff/elephant"
 OUTPUT_REPO = "nroggendorff/smallama"
-INSTRUCT_FINETUNE_BOOL = True
-INIT = 1#/1
-SHARD_SIZE = int(4e+6)
+INSTRUCT_FINETUNE_BOOL = False
+INIT = 0#/2
+SHARD_SIZE = int(5e+6)
 FP16 = True
 WARMUP_STEPS = 0
 DECAY = 0
@@ -179,8 +179,8 @@ def train_model(model, tokenizer, dataset, push, isinst):
 def main(push_to_hub=True, is_inst_finetune=False):
     dataset = load_data()
     if not is_inst_finetune:
-        training_corpus = get_training_corpus(dataset)
         if INIT == 0:
+            training_corpus = get_training_corpus(dataset)
             tokenizer = create_tokenizer(training_corpus)
         else:
             tokenizer = load_tokenizer()

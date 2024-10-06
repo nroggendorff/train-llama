@@ -8,17 +8,17 @@ from datasets import load_dataset, Dataset
 from tokenizers import ByteLevelBPETokenizer
 
 BATCH_SIZE = 32
-EPOCHS = 2
-LEARNING_RATE = 2e-4
-FACTOR = 22 * 30
+EPOCHS = 1
+LEARNING_RATE = 5e-4
+FACTOR = 22 * 35
 MAX_SEQ_LENGTH = 128
 VOCAB_SIZE = 52000
 INPUT_DATASET = "HuggingFaceTB/smollm-corpus"
 INSTRUCT_DATASET = "nroggendorff/elephant"
 OUTPUT_REPO = "nroggendorff/smallama"
 INSTRUCT_FINETUNE_BOOL = False
-INIT = 0#/15
-SHARD_SIZE = int(5e+5)
+INIT = 0#/3
+SHARD_SIZE = int(2e+6)
 FP16 = True
 WARMUP_STEPS = 0
 DECAY = 0

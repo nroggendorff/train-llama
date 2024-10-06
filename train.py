@@ -17,8 +17,8 @@ INPUT_DATASET = "HuggingFaceTB/smollm-corpus"
 INSTRUCT_DATASET = "nroggendorff/elephant"
 OUTPUT_REPO = "nroggendorff/smallama"
 INSTRUCT_FINETUNE_BOOL = False
-INIT = 0#/4
-SHARD_SIZE = int(3e+6)
+INIT = 0#/15
+SHARD_SIZE = int(5e+5)
 FP16 = True
 WARMUP_STEPS = 0
 DECAY = 1e-3
@@ -28,7 +28,7 @@ PUSH_TO_HUB = True
 def load_data():
     if not INSTRUCT_FINETUNE_BOOL:
         dataset = load_dataset(INPUT_DATASET, "cosmopedia-v2", split="train", streaming=True)
-        dataset = Dataset.from_generator(lambda: dataset.take(int(15e+6)))
+        dataset = Dataset.from_generator(lambda: dataset.take(int(8e+6)))
         # dataset = dataset.shard(num_shards=len(dataset) // SHARD_SIZE, index=INIT)
     else:
         dataset = load_dataset(INSTRUCT_DATASET, split="train")#, streaming=True)

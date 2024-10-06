@@ -9,9 +9,9 @@ from tokenizers import ByteLevelBPETokenizer
 
 BATCH_SIZE = 32
 EPOCHS = 2
-LEARNING_RATE = 3e-5
+LEARNING_RATE = 2e-4
 FACTOR = 22 * 30
-MAX_SEQ_LENGTH = 512
+MAX_SEQ_LENGTH = 128
 VOCAB_SIZE = 52000
 INPUT_DATASET = "HuggingFaceTB/smollm-corpus"
 INSTRUCT_DATASET = "nroggendorff/elephant"
@@ -21,8 +21,8 @@ INIT = 0#/15
 SHARD_SIZE = int(5e+5)
 FP16 = True
 WARMUP_STEPS = 0
-DECAY = 1e-3
-GRADIENT_ACCUMULATION_STEPS = 1
+DECAY = 0
+GRADIENT_ACCUMULATION_STEPS = 4
 PUSH_TO_HUB = True
 
 def load_data():

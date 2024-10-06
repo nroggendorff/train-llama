@@ -10,8 +10,8 @@ from tokenizers import ByteLevelBPETokenizer
 from torch.utils.data import DataLoader
 from torch.cuda.amp import autocast, GradScaler
 
-BATCH_SIZE = 64
-EPOCHS = 3
+BATCH_SIZE = 32
+EPOCHS = 1
 LEARNING_RATE = 1e-4
 FACTOR = 768
 MAX_SEQ_LENGTH = 128

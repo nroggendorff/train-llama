@@ -8,7 +8,6 @@ from transformers import (
 from datasets import load_dataset
 from tokenizers import ByteLevelBPETokenizer
 from torch.utils.data import DataLoader
-from torch.cuda.amp import autocast, GradScaler
 
 BATCH_SIZE = 8
 EPOCHS = 1
@@ -21,7 +20,6 @@ INSTRUCT_DATASET = "nroggendorff/elephant"
 OUTPUT_REPO = "nroggendorff/smallama"
 INSTRUCT_FINETUNE_BOOL = False
 INIT = 0
-SHARD_SIZE = int(5e+5)
 FP16 = True
 WARMUP_STEPS = 1000
 WEIGHT_DECAY = 0.01
@@ -32,10 +30,19 @@ NUM_WORKERS = 4
 def load_data():
     if not INSTRUCT_FINETUNE_BOOL:
         dataset = load_dataset(INPUT_DATASET, "cosmopedia-v2", split="train", streaming=True)
-        dataset = dataset.shard(num_shards=len(dataset) // SHARD_SIZE, index=INIT)
+        dataset = custom_shard_stream(dataset)
     else:
         dataset = load_dataset(INSTRUCT_DATASET, split="train")
     return dataset
+
+def custom_shard_stream(dataset, shard_size=5e5, shard_index=0):
+    def shard_generator():
+        count = 0
+        for example in dataset:
+            if count % shard_size == shard_index:
+                yield example
+            count += 1
+    return shard_generator()
 
 def create_tokenizer(training_corpus):
     tokenizer = ByteLevelBPETokenizer()
@@ -137,26 +144,30 @@ def train_model(model, tokenizer, dataset, push, isinst):
     scheduler = get_cosine_schedule_with_warmup(
         optimizer,
         num_warmup_steps=args.warmup_steps, 
-        num_training_steps=(len(dataset) // args.per_device_train_batch_size) * args.num_train_epochs
+        num_training_steps=args.num_train_epochs
     )
 
-    dataloader = DataLoader(
-        dataset,
-        batch_size=BATCH_SIZE,
-        num_workers=NUM_WORKERS
+    dataset = dataset.map(lambda examples: format_prompts(examples, tokenizer, isinst), batched=True, remove_columns=dataset.column_names)
+
+    trainer = trl.SFTTrainer(
+        model=model,
+        tokenizer=tokenizer,
+        args=args,
+        train_dataset=dataset,
+        optimizers=(optimizer, scheduler),
+        max_seq_length=MAX_SEQ_LENGTH
     )
-    
-    for batch in dataloader:
-        batch = format_prompts(batch, tokenizer, isinst)
-    
+
+    train_result = trainer.train()
+
     if push:
         repo_id = OUTPUT_REPO + "-it" if INSTRUCT_FINETUNE_BOOL else OUTPUT_REPO
-        msg = f"Training loss: {train.training_loss:.4f}"
-        model.push_to_hub(repo_id, commit_message=msg, force=True)
-        tokenizer.push_to_hub(repo_id, commit_message=msg, force=True)
+        msg = f"Training loss: {train_result.training_loss:.4f}"
+        trainer.model.push_to_hub(repo_id, commit_message=msg, force=True)
+        trainer.tokenizer.push_to_hub(repo_id, commit_message=msg, force=True)
     else:
-        model.save_pretrained("model")
-        tokenizer.save_pretrained("tokenizer")
+        trainer.model.save_pretrained("model")
+        trainer.tokenizer.save_pretrained("tokenizer")
 
 def main(push_to_hub=True, is_inst_finetune=False):
     dataset = load_data()

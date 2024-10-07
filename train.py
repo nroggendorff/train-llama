@@ -10,7 +10,7 @@ from tokenizers import ByteLevelBPETokenizer
 from torch.utils.data import DataLoader
 from torch.cuda.amp import autocast, GradScaler
 
-BATCH_SIZE = 32
+BATCH_SIZE = 8
 EPOCHS = 1
 LEARNING_RATE = 1e-4
 FACTOR = 768
@@ -20,7 +20,7 @@ INPUT_DATASET = "HuggingFaceTB/smollm-corpus"
 INSTRUCT_DATASET = "nroggendorff/elephant"
 OUTPUT_REPO = "nroggendorff/smallama"
 INSTRUCT_FINETUNE_BOOL = False
-INIT = 0#/15
+INIT = 0
 SHARD_SIZE = int(5e+5)
 FP16 = True
 WARMUP_STEPS = 1000
@@ -32,9 +32,9 @@ NUM_WORKERS = 4
 def load_data():
     if not INSTRUCT_FINETUNE_BOOL:
         dataset = load_dataset(INPUT_DATASET, "cosmopedia-v2", split="train", streaming=True)
-        dataset = dataset.take(int(8e+6))  # Keep streaming, no conversion to in-memory dataset
+        dataset = dataset.shard(num_shards=len(dataset) // SHARD_SIZE, index=INIT)
     else:
-        dataset = load_dataset(INSTRUCT_DATASET, split="train", streaming=True)
+        dataset = load_dataset(INSTRUCT_DATASET, split="train")
     return dataset
 
 def create_tokenizer(training_corpus):
@@ -53,6 +53,10 @@ def create_tokenizer(training_corpus):
 
 def load_tokenizer():
     return AutoTokenizer.from_pretrained(OUTPUT_REPO)
+
+def get_training_corpus(dataset):
+    for example in dataset:
+        yield example['text']
 
 def format_prompts(examples, tokenizer, isinst):
     texts = []
@@ -129,41 +133,48 @@ def train_model(model, tokenizer, dataset, push, isinst):
         save_total_limit=2,
     )
 
-    dataset = dataset.shard(num_shards=len(dataset) // SHARD_SIZE, index=INIT)
-
     optimizer = AdamW(model.parameters(), lr=args.learning_rate, weight_decay=WEIGHT_DECAY)
     scheduler = get_cosine_schedule_with_warmup(
         optimizer,
         num_warmup_steps=args.warmup_steps, 
-        num_training_steps=(SHARD_SIZE // args.per_device_train_batch_size) * args.num_train_epochs
+        num_training_steps=(len(dataset) // args.per_device_train_batch_size) * args.num_train_epochs
+    )
+
+    dataloader = DataLoader(
+        dataset,
+        batch_size=BATCH_SIZE,
+        num_workers=NUM_WORKERS
     )
     
-    dataloader = DataLoader(dataset, batch_size=BATCH_SIZE, num_workers=NUM_WORKERS)
-
     for batch in dataloader:
         batch = format_prompts(batch, tokenizer, isinst)
-        trainer = trl.SFTTrainer(
-            model=model,
-            tokenizer=tokenizer,
-            args=args,
-            train_dataset=batch,
-            dataset_text_field='text',
-            max_seq_length=MAX_SEQ_LENGTH,
-            optimizers=(optimizer, scheduler)
-        )
-        trainer.train()
-    
-    trained_model = trainer.model
-    trained_tokenizer = trainer.tokenizer
     
     if push:
         repo_id = OUTPUT_REPO + "-it" if INSTRUCT_FINETUNE_BOOL else OUTPUT_REPO
-        msg = "Training completed."
-        trained_model.push_to_hub(repo_id, commit_message=msg, force=True)
-        trained_tokenizer.push_to_hub(repo_id, commit_message=msg, force=True)
+        msg = f"Training loss: {train.training_loss:.4f}"
+        model.push_to_hub(repo_id, commit_message=msg, force=True)
+        tokenizer.push_to_hub(repo_id, commit_message=msg, force=True)
     else:
-        trained_model.save_pretrained("model")
-        trained_tokenizer.save_pretrained("tokenizer")
+        model.save_pretrained("model")
+        tokenizer.save_pretrained("tokenizer")
+
+def main(push_to_hub=True, is_inst_finetune=False):
+    dataset = load_data()
+    if not is_inst_finetune and INIT == 0:
+        training_corpus = get_training_corpus(dataset)
+        tokenizer = create_tokenizer(training_corpus)
+    else:
+        tokenizer = load_tokenizer()
+    
+    configure_tokenizer(tokenizer)
+    
+    if is_inst_finetune:
+        model = load_model()
+        model.resize_token_embeddings(len(tokenizer))
+    else:
+        model = create_model(tokenizer) if INIT == 0 else load_model()
+    
+    train_model(model, tokenizer, dataset, push_to_hub, is_inst_finetune)
 
 if __name__ == "__main__":
     main(PUSH_TO_HUB, INSTRUCT_FINETUNE_BOOL)

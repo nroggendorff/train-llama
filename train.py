@@ -15,7 +15,7 @@ BATCH_SIZE = 32
 EPOCHS = 1
 LEARNING_RATE = 1e-4
 FACTOR = 768
-MAX_SEQ_LENGTH = 128
+MAX_SEQ_LENGTH = 512
 VOCAB_SIZE = 32000
 INPUT_DATASET = "HuggingFaceTB/smollm-corpus"
 INSTRUCT_DATASET = "nroggendorff/elephant"
@@ -110,6 +110,8 @@ def configure_tokenizer(tokenizer):
         special_tokens["additional_special_tokens"] = ["<|user|>", "<|bot|>", "<|end|>"]
     tokenizer.add_special_tokens(special_tokens)
 
+    tokenizer.pad_token_id = MAX_SEQ_LENGTH - 1
+
     if INSTRUCT_FINETUNE_BOOL:
         tokenizer.user_token_id = tokenizer.convert_tokens_to_ids("<|user|>")
         tokenizer.assistant_token_id = tokenizer.convert_tokens_to_ids("<|bot|>")
@@ -185,7 +187,6 @@ def main(push_to_hub=True, is_inst_finetune=False):
         model.resize_token_embeddings(len(tokenizer))
     else:
         model = create_model(tokenizer) if INIT == 0 else load_model()
-        model.resize_token_embeddings(len(tokenizer))
     
     train_model(model, tokenizer, dataset, push_to_hub, is_inst_finetune)
 

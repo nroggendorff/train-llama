@@ -79,7 +79,7 @@ def format_prompts(examples, tokenizer, isinst):
 
 def create_model(tokenizer):
     config = LlamaConfig(
-        vocab_size=tokenizer.vocab_size,
+        vocab_size=tokenizer.vocab_size + 10,
         hidden_size=FACTOR,
         intermediate_size=FACTOR * 4,
         num_hidden_layers=12,

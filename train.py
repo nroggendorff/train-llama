@@ -135,7 +135,7 @@ def train_model(model, tokenizer, dataset, push, isinst):
         save_total_limit=2,
     )
 
-    dataset = dataset.shard(num_shards=len(dataset) // SHARD_SIZE, index=INIT)
+    # dataset = dataset.shard(num_shards=len(dataset) // SHARD_SIZE, index=INIT)
 
     optimizer = AdamW(model.parameters(), lr=args.learning_rate, weight_decay=WEIGHT_DECAY)
     scheduler = get_cosine_schedule_with_warmup(

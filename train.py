@@ -79,7 +79,7 @@ def format_prompts(examples, tokenizer, isinst):
 
 def create_model(tokenizer):
     config = LlamaConfig(
-        vocab_size=tokenizer.vocab_size + 10,
+        vocab_size=tokenizer.vocab_size,
         hidden_size=FACTOR,
         intermediate_size=FACTOR * 4,
         num_hidden_layers=12,
@@ -185,6 +185,7 @@ def main(push_to_hub=True, is_inst_finetune=False):
         model.resize_token_embeddings(len(tokenizer))
     else:
         model = create_model(tokenizer) if INIT == 0 else load_model()
+        model.resize_token_embeddings(len(tokenizer))
     
     train_model(model, tokenizer, dataset, push_to_hub, is_inst_finetune)
 

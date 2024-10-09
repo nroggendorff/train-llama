@@ -11,11 +11,11 @@ from torch.utils.data import DataLoader
 from torch.cuda.amp import autocast, GradScaler
 from itertools import islice
 
-BATCH_SIZE = 8
+BATCH_SIZE = 1
 EPOCHS = 1
 LEARNING_RATE = 1e-4
 FACTOR = 768
-MAX_SEQ_LENGTH = 512
+MAX_SEQ_LENGTH = 128
 VOCAB_SIZE = 32000
 INPUT_DATASET = "HuggingFaceTB/smollm-corpus"
 INSTRUCT_DATASET = "nroggendorff/elephant"

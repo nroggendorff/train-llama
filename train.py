@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 from torch.cuda.amp import autocast, GradScaler
 from itertools import islice
 
-BATCH_SIZE = 1
+BATCH_SIZE = 8
 EPOCHS = 1
 LEARNING_RATE = 1e-4
 FACTOR = 768

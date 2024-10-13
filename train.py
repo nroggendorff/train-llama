@@ -67,8 +67,8 @@ def format_prompts(examples, tokenizer, isinst):
             conversation = []
             parts = text.split('<|end|>')
             for i in range(0, len(parts) - 1, 2):
-                prompt = parts[i].replace("<|user|>", "")
-                response = parts[i + 1].replace("<|bot|>", "")
+                prompt = parts[i].replace("<|user|>", "").strip()
+                response = parts[i + 1].replace("<|bot|>", "").strip()
                 conversation.append({"role": "user", "content": prompt})
                 conversation.append({"role": "assistant", "content": response})
             formatted_conversation = tokenizer.apply_chat_template(conversation, tokenize=False)
@@ -110,7 +110,7 @@ def configure_tokenizer(tokenizer):
         special_tokens["additional_special_tokens"] = ["<|user|>", "<|bot|>", "<|end|>"]
     tokenizer.add_special_tokens(special_tokens)
 
-    tokenizer.pad_token_id = MAX_SEQ_LENGTH - 1
+    tokenizer.pad_token_id = tokenizer.eos_token_id
 
     if INSTRUCT_FINETUNE_BOOL:
         tokenizer.user_token_id = tokenizer.convert_tokens_to_ids("<|user|>")

@@ -12,17 +12,17 @@ from torch.cuda.amp import autocast, GradScaler
 from itertools import islice
 
 BATCH_SIZE = 8
-EPOCHS = 1
+EPOCHS = 3
 LEARNING_RATE = 1e-4
-FACTOR = 768
-MAX_SEQ_LENGTH = 128
+FACTOR = 12 ** 3 // 3
+MAX_SEQ_LENGTH = 512
 VOCAB_SIZE = 32000
 INPUT_DATASET = "HuggingFaceTB/smollm-corpus"
 INSTRUCT_DATASET = "nroggendorff/elephant"
 OUTPUT_REPO = "nroggendorff/smallama"
 INSTRUCT_FINETUNE_BOOL = False
 INIT = 0#/3
-SHARD_SIZE = int(2e+6)
+SHARD_SIZE = int(5e+5)
 FP16 = True
 WARMUP_STEPS = 1000
 WEIGHT_DECAY = 0.01

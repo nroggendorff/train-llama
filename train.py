@@ -110,10 +110,7 @@ def configure_tokenizer(tokenizer):
         special_tokens["additional_special_tokens"] = ["<|user|>", "<|bot|>", "<|end|>"]
     tokenizer.add_special_tokens(special_tokens)
 
-    tokenizer.vocab = {k: v + 1 for k, v in tokenizer.vocab.items()}
-    tokenizer.ids_to_tokens = {v: k for k, v in tokenizer.vocab.items()}
-
-    tokenizer.pad_token_id = 1
+    tokenizer.pad_token_id = MAX_SEQ_LENGTH - 1
 
     if INSTRUCT_FINETUNE_BOOL:
         tokenizer.user_token_id = tokenizer.convert_tokens_to_ids("<|user|>")

@@ -111,6 +111,8 @@ def configure_tokenizer(tokenizer):
     tokenizer.add_special_tokens(special_tokens)
 
     tokenizer.pad_token_id = MAX_SEQ_LENGTH - 1
+    tokenizer.bos_token_id = MAX_SEQ_LENGTH - 2
+    tokenizer.eos_token_id = MAX_SEQ_LENGTH - 3
 
     if INSTRUCT_FINETUNE_BOOL:
         tokenizer.user_token_id = tokenizer.convert_tokens_to_ids("<|user|>")

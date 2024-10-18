@@ -134,7 +134,7 @@ def train_model(model, tokenizer, dataset, push, isinst):
         fp16=FP16,
         save_steps=int(1e+10),
         logging_steps=10,
-        evaluation_strategy="steps",
+        evaluation_strategy="no",
         eval_steps=500,
         save_total_limit=2,
     )

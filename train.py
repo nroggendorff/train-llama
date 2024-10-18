@@ -110,16 +110,20 @@ def configure_tokenizer(tokenizer):
         special_tokens["additional_special_tokens"] = ["<|user|>", "<|bot|>", "<|end|>"]
     tokenizer.add_special_tokens(special_tokens)
 
-    tokenizer.pad_token_id = MAX_SEQ_LENGTH - 1
-    tokenizer.bos_token_id = MAX_SEQ_LENGTH - 2
-    tokenizer.eos_token_id = MAX_SEQ_LENGTH - 3
-
     if INSTRUCT_FINETUNE_BOOL:
         tokenizer.user_token_id = tokenizer.convert_tokens_to_ids("<|user|>")
         tokenizer.assistant_token_id = tokenizer.convert_tokens_to_ids("<|bot|>")
     
         chat_template = "{{ bos_token }}{% for message in messages %}{% if (message['role'] == 'user') != (loop.index0 % 2 == 0) %}{{ raise_exception('Conversation roles must alternate user/assistant/user/assistant/...') }}{% endif %}{% if message['role'] == 'user' %}{{ '<|user|>\n' + message['content'] + '<|end|>\n' }}{% elif message['role'] == 'assistant' %}{{ '<|bot|>\n' + message['content'] + '<|end|>\n' + eos_token}}{% else %}{{ raise_exception('Only user and assistant roles are supported!') }}{% endif %}{% endfor %}"
         tokenizer.chat_template = chat_template
+
+def update_tokenizer(tokenizer, corpus):
+    tokens = tokenizer.encode(corpus).tokens
+    
+    pre_vocab = tokenizer.get_vocab()
+    
+    oov_tokens = [token for token in tokens if token not in existing_vocab]
+    tokenizer.add_tokens(oov_tokens)
 
 def train_model(model, tokenizer, dataset, push, isinst):
     args = TrainingArguments(
@@ -176,12 +180,14 @@ def train_model(model, tokenizer, dataset, push, isinst):
 
 def main(push_to_hub=True, is_inst_finetune=False):
     dataset = load_data()
+    training_corpus = get_training_corpus(dataset)
+    
     if not is_inst_finetune and INIT == 0:
-        training_corpus = get_training_corpus(dataset)
         tokenizer = create_tokenizer(training_corpus)
     else:
         tokenizer = load_tokenizer()
-    
+        update_tokenizer(tokenizer, training_corpus)
+        
     configure_tokenizer(tokenizer)
     
     if is_inst_finetune:

@@ -122,7 +122,7 @@ def update_tokenizer(tokenizer, corpus):
     
     pre_vocab = tokenizer.get_vocab()
     
-    oov_tokens = [token for token in tokens if token not in existing_vocab]
+    oov_tokens = [token for token in tokens if token not in pre_vocab]
     tokenizer.add_tokens(oov_tokens)
 
 def train_model(model, tokenizer, dataset, push, isinst):

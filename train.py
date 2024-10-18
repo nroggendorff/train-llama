@@ -54,7 +54,7 @@ def create_tokenizer(training_corpus):
     return fast_tokenizer
 
 def load_tokenizer():
-    return AutoTokenizer.from_pretrained("meta-llama/Llama-3.1-8B")#OUTPUT_REPO)
+    return AutoTokenizer.from_pretrained(OUTPUT_REPO)
 
 def get_training_corpus(dataset):
     for i in range(0, len(dataset['text']), 1000):
@@ -176,7 +176,7 @@ def train_model(model, tokenizer, dataset, push, isinst):
 
 def main(push_to_hub=True, is_inst_finetune=False):
     dataset = load_data()
-    if not is_inst_finetune and INIT == 0 and False:
+    if not is_inst_finetune and INIT == 0:
         training_corpus = get_training_corpus(dataset)
         tokenizer = create_tokenizer(training_corpus)
     else:

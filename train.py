@@ -117,13 +117,23 @@ def configure_tokenizer(tokenizer):
         chat_template = "{{ bos_token }}{% for message in messages %}{% if (message['role'] == 'user') != (loop.index0 % 2 == 0) %}{{ raise_exception('Conversation roles must alternate user/assistant/user/assistant/...') }}{% endif %}{% if message['role'] == 'user' %}{{ '<|user|>\n' + message['content'] + '<|end|>\n' }}{% elif message['role'] == 'assistant' %}{{ '<|bot|>\n' + message['content'] + '<|end|>\n' + eos_token}}{% else %}{{ raise_exception('Only user and assistant roles are supported!') }}{% endif %}{% endfor %}"
         tokenizer.chat_template = chat_template
 
-def update_tokenizer(tokenizer, corpus):
-    tokens = tokenizer.encode(corpus).tokens
-    
-    pre_vocab = tokenizer.get_vocab()
-    
-    oov_tokens = [token for token in tokens if token not in pre_vocab]
-    tokenizer.add_tokens(oov_tokens)
+def update_tokenizer(tokenizer, dataset, batch_size=1000):
+    existing_vocab = tokenizer.get_vocab()
+
+    oov_tokens = set()
+
+    for i in range(0, len(dataset['text']), batch_size):
+        batch = dataset['text'][i : i + batch_size]
+        
+        batch_tokens = tokenizer.encode_batch(batch)
+        
+        for encoded in batch_tokens:
+            for token in encoded.tokens:
+                if token not in existing_vocab:
+                    oov_tokens.add(token)
+
+    tokenizer.add_tokens(list(oov_tokens))
+
 
 def train_model(model, tokenizer, dataset, push, isinst):
     args = TrainingArguments(
@@ -180,13 +190,13 @@ def train_model(model, tokenizer, dataset, push, isinst):
 
 def main(push_to_hub=True, is_inst_finetune=False):
     dataset = load_data()
-    training_corpus = get_training_corpus(dataset)
     
     if not is_inst_finetune and INIT == 0:
+        training_corpus = get_training_corpus(dataset)
         tokenizer = create_tokenizer(training_corpus)
     else:
         tokenizer = load_tokenizer()
-        update_tokenizer(tokenizer, training_corpus)
+        update_tokenizer(tokenizer, dataset)
         
     configure_tokenizer(tokenizer)
     

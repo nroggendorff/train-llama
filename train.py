@@ -126,7 +126,7 @@ def update_tokenizer(tokenizer, dataset, batch_size=1000):
         batch = dataset['text'][i : i + batch_size]
 
         for text in batch:
-            tokens = tokenizer.encode(text).tokens
+            tokens = tokenizer.encode(text)
 
             for token in tokens:
                 if token not in existing_vocab:

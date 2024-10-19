@@ -124,16 +124,15 @@ def update_tokenizer(tokenizer, dataset, batch_size=1000):
 
     for i in range(0, len(dataset['text']), batch_size):
         batch = dataset['text'][i : i + batch_size]
-        
-        batch_tokens = tokenizer.encode_batch(batch)
-        
-        for encoded in batch_tokens:
-            for token in encoded.tokens:
+
+        for text in batch:
+            tokens = tokenizer.encode(text).tokens
+
+            for token in tokens:
                 if token not in existing_vocab:
                     oov_tokens.add(token)
 
     tokenizer.add_tokens(list(oov_tokens))
-
 
 def train_model(model, tokenizer, dataset, push, isinst):
     args = TrainingArguments(

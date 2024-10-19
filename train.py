@@ -192,9 +192,10 @@ def main(push_to_hub=True, is_inst_finetune=False):
     
     if is_inst_finetune:
         model = load_model()
-        model.resize_token_embeddings(len(tokenizer))
     else:
         model = create_model(tokenizer) if INIT == 0 else load_model()
+
+    model.resize_token_embeddings(len(tokenizer))
     
     train_model(model, tokenizer, dataset, push_to_hub, is_inst_finetune)
 

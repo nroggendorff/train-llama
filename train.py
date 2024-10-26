@@ -214,9 +214,9 @@ def main(push_to_hub=True, is_inst_finetune=False):
         tokenizer = load_tokenizer()
         print("Loaded Tokenizer.")
 
-        print("Adding Tokens..")
-        num_new_tokens = update_tokenizer(tokenizer, dataset)
-        print(f"Added {num_new_tokens} new tokens to the vocabulary")
+        # print("Adding Tokens..")
+        # num_new_tokens = update_tokenizer(tokenizer, dataset)
+        # print(f"Added {num_new_tokens} new tokens to the vocabulary")
 
 
     if INIT == 0:

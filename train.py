@@ -126,24 +126,24 @@ def configure_tokenizer(tokenizer):
 
 def update_tokenizer(tokenizer, dataset, batch_size=1000):
     existing_vocab = tokenizer.get_vocab()
-
     oov_tokens = set()
-
+    
     for i in range(0, len(dataset['text']), batch_size):
-        batch = dataset['text'][i : i + batch_size]
-
+        batch = dataset['text'][i:i + batch_size]
+        
         for text in batch:
-            tokens = []
-
-            for textier_text in tokenizer.encode(text):
-                stringified_token = tokenizer.decode(textier_text)
-                tokens.append(stringified_token)
-
-            for token in tokens:
-                if token not in existing_vocab:
+            token_ids = tokenizer.encode(text, add_special_tokens=False)
+            
+            for token_id in token_ids:
+                token = tokenizer.decode([token_id])
+                if token.strip() and token not in existing_vocab:
                     oov_tokens.add(token)
-
-    tokenizer.add_tokens(list(oov_tokens))
+    
+    if oov_tokens:
+        num_added = tokenizer.add_tokens(list(oov_tokens))
+        return num_added
+    
+    return 0
 
 def train_model(model, tokenizer, dataset, push, isinst):
     args = TrainingArguments(
@@ -215,8 +215,8 @@ def main(push_to_hub=True, is_inst_finetune=False):
         print("Loaded Tokenizer.")
 
         print("Adding Tokens..")
-        update_tokenizer(tokenizer, dataset)
-        print("Added Tokens.")
+        num_new_tokens = update_tokenizer(tokenizer, dataset)
+        print(f"Added {num_new_tokens} new tokens to the vocabulary")
 
 
     if INIT == 0:

@@ -8,6 +8,7 @@ from transformers import (
 )
 from datasets import load_dataset, Dataset
 from tokenizers import ByteLevelBPETokenizer
+from huggingface_hub import HfApi
 from torch.utils.data import DataLoader
 from itertools import islice
 
@@ -28,6 +29,13 @@ WARMUP_STEPS = 0
 WEIGHT_DECAY = 0
 GRADIENT_ACCUMULATION_STEPS = 1
 PUSH_TO_HUB = True
+
+class Space:
+    def __init__(self):
+        self.api = HfApi()
+        self.pause = lambda: self.api.pause_space("nroggendorff/train-llama")
+
+space = Space()
 
 def load_data():
     if not INSTRUCT_FINETUNE_BOOL:
@@ -237,4 +245,4 @@ def main(push_to_hub=True, is_inst_finetune=False):
 
 if __name__ == "__main__":
     main(PUSH_TO_HUB, INSTRUCT_FINETUNE_BOOL)
-    exit()
+    space.pause()

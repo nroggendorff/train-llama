@@ -1,4 +1,5 @@
 import os
+from sys import exit
 import torch
 import trl
 from transformers import (
@@ -30,7 +31,7 @@ PUSH_TO_HUB = True
 
 def load_data():
     if not INSTRUCT_FINETUNE_BOOL:
-        dataset = load_dataset(INPUT_DATASET, "cosmopedia-v2", split="train", num_proc=BATCH_SIZE, streaming=True)
+        dataset = load_dataset(INPUT_DATASET, "cosmopedia-v2", split="train", streaming=True)
         start = INIT * SHARD_SIZE
         dataset = Dataset.from_dict({'text': [example['text'] for example in islice(dataset, start, start + SHARD_SIZE)]})
     else:
@@ -188,25 +189,52 @@ def train_model(model, tokenizer, dataset, push, isinst):
         trained_tokenizer.save_pretrained("tokenizer")
 
 def main(push_to_hub=True, is_inst_finetune=False):
+    print("Loading Data..")
     dataset = load_data()
+    print("Loaded data.")
     
     if not is_inst_finetune and INIT == 0:
+        print("Making Corpus..")
         training_corpus = get_training_corpus(dataset)
+        print("Made Corpus.")
+
+        print("Making Tokenizer..")
         tokenizer = create_tokenizer(training_corpus)
+        print("Made Tokenizer.")
     else:
+        print("Loading Tokenizer..")
         tokenizer = load_tokenizer()
+        print("Loaded Tokenizer.")
+
+        print("Adding Tokens..")
         update_tokenizer(tokenizer, dataset)
-        
-    configure_tokenizer(tokenizer)
+        print("Added Tokens.")
+
+
+    if INIT == 0:
+        print("Adding Special Tokens..")
+        configure_tokenizer(tokenizer)
+        print("Added Tokens.")
     
     if is_inst_finetune:
+        print("Loading Model..")
         model = load_model()
+        print("Loaded Model.")
     else:
+        if INIT == 0:
+            print("Creating Model..")
+        else:
+            print("Loading Model..")
         model = create_model(tokenizer) if INIT == 0 else load_model()
+        print("Done.")
 
+    print("Resizing Token Embeddings..")
     model.resize_token_embeddings(len(tokenizer))
-    
+    print("Done.")
+
+    print("Training Model..")
     train_model(model, tokenizer, dataset, push_to_hub, is_inst_finetune)
 
 if __name__ == "__main__":
     main(PUSH_TO_HUB, INSTRUCT_FINETUNE_BOOL)
+    exit()

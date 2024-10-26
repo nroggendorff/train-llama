@@ -8,7 +8,6 @@ from transformers import (
 from datasets import load_dataset, Dataset
 from tokenizers import ByteLevelBPETokenizer
 from torch.utils.data import DataLoader
-from torch.cuda.amp import autocast, GradScaler
 from itertools import islice
 
 BATCH_SIZE = 16
@@ -26,7 +25,7 @@ SHARD_SIZE = int(15e+5)
 FP16 = True
 WARMUP_STEPS = 0
 WEIGHT_DECAY = 0
-GRADIENT_ACCUMULATION_STEPS = 1#BATCH_SIZE // 4
+GRADIENT_ACCUMULATION_STEPS = 1
 PUSH_TO_HUB = True
 
 def load_data():
@@ -155,8 +154,6 @@ def train_model(model, tokenizer, dataset, push, isinst):
         save_total_limit=2,
     )
 
-    # dataset = dataset.shard(num_shards=len(dataset) // SHARD_SIZE, index=INIT)
-
     optimizer = AdamW(model.parameters(), lr=args.learning_rate, weight_decay=WEIGHT_DECAY)
     scheduler = get_cosine_schedule_with_warmup(
         optimizer,
@@ -213,4 +210,3 @@ def main(push_to_hub=True, is_inst_finetune=False):
 
 if __name__ == "__main__":
     main(PUSH_TO_HUB, INSTRUCT_FINETUNE_BOOL)
-    raise Exception("Done baking!")

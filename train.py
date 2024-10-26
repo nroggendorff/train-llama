@@ -242,7 +242,10 @@ def main(push_to_hub=True, is_inst_finetune=False):
 
     print("Training Model..")
     train_model(model, tokenizer, dataset, push_to_hub, is_inst_finetune)
+    raise Exception
 
 if __name__ == "__main__":
-    main(PUSH_TO_HUB, INSTRUCT_FINETUNE_BOOL)
-    space.pause()
+    try:
+        main(PUSH_TO_HUB, INSTRUCT_FINETUNE_BOOL)
+    except:
+        space.pause()

@@ -30,7 +30,7 @@ PUSH_TO_HUB = True
 
 def load_data():
     if not INSTRUCT_FINETUNE_BOOL:
-        dataset = load_dataset(INPUT_DATASET, "cosmopedia-v2", split="train", streaming=True)
+        dataset = load_dataset(INPUT_DATASET, "cosmopedia-v2", split="train", num_proc=BATCH_SIZE, streaming=True)
         start = INIT * SHARD_SIZE
         dataset = Dataset.from_dict({'text': [example['text'] for example in islice(dataset, start, start + SHARD_SIZE)]})
     else:

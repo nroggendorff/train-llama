@@ -22,11 +22,11 @@ INPUT_DATASET = "HuggingFaceTB/smollm-corpus"
 INSTRUCT_DATASET = "nroggendorff/elephant"
 OUTPUT_REPO = "nroggendorff/smallama"
 INSTRUCT_FINETUNE_BOOL = False
-INIT = 3
+INIT = 4
 SHARD_SIZE = int(15e+5)
 FP16 = True
 WARMUP_STEPS = 0
-WEIGHT_DECAY = 0
+WEIGHT_DECAY = 0.
 GRADIENT_ACCUMULATION_STEPS = 1
 PUSH_TO_HUB = True
 

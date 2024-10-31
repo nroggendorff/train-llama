@@ -22,7 +22,7 @@ INPUT_DATASET = "HuggingFaceTB/smollm-corpus"
 INSTRUCT_DATASET = "nroggendorff/elephant"
 OUTPUT_REPO = "nroggendorff/smallama"
 INSTRUCT_FINETUNE_BOOL = False
-INIT = 15
+INIT = 16
 SHARD_SIZE = int(15e+5)
 FP16 = True
 WARMUP_STEPS = 0
@@ -217,7 +217,6 @@ def main(push_to_hub=True, is_inst_finetune=False):
         # print("Adding Tokens..")
         # num_new_tokens = update_tokenizer(tokenizer, dataset)
         # print(f"Added {num_new_tokens} new tokens to the vocabulary")
-
 
     if INIT == 0:
         print("Adding Special Tokens..")

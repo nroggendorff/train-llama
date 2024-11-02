@@ -63,7 +63,7 @@ def create_tokenizer(training_corpus):
     return fast_tokenizer
 
 def load_tokenizer():
-    return AutoTokenizer.from_pretrained(OUTPUT_REPO)
+    return AutoTokenizer.from_pretrained(OUTPUT_REPO + '-it' if INSTRUCT_FINETUNE_BOOL else OUTPUT_REPO)
 
 def get_training_corpus(dataset):
     for i in range(0, len(dataset['text']), 1000):
@@ -105,7 +105,7 @@ def create_model(tokenizer):
     return LlamaForCausalLM(config)
 
 def load_model():
-    return AutoModelForCausalLM.from_pretrained(OUTPUT_REPO)
+    return AutoModelForCausalLM.from_pretrained(OUTPUT_REPO + '-it' if INSTRUCT_FINETUNE_BOOL else OUTPUT_REPO)
 
 def configure_tokenizer(tokenizer):
     special_tokens = {

@@ -23,7 +23,7 @@ INSTRUCT_DATASET = "nroggendorff/elephant"
 OUTPUT_REPO = "nroggendorff/smallama"
 INSTRUCT_FINETUNE_BOOL = True
 INIT = 0
-SHARD_SIZE = int(8e+5)
+SHARD_SIZE = int(15e+5)
 FP16 = True
 WARMUP_STEPS = 0
 WEIGHT_DECAY = 0.
@@ -43,7 +43,9 @@ def load_data():
         start = INIT * SHARD_SIZE
         dataset = Dataset.from_dict({'text': [example['text'] for example in islice(dataset, start, start + SHARD_SIZE)]})
     else:
-        dataset = load_dataset(INSTRUCT_DATASET, split="train")
+        dataset = load_dataset(INSTRUCT_DATASET, split="train", streaming=True)
+        start = INIT * SHARD_SIZE
+        dataset = Dataset.from_dict({'text': [example['text'] for example in islice(dataset, start, start + SHARD_SIZE)]})
     return dataset
 
 def create_tokenizer(training_corpus):

@@ -22,7 +22,7 @@ INPUT_DATASET = "HuggingFaceTB/smollm-corpus"
 INSTRUCT_DATASET = "nroggendorff/elephant"
 OUTPUT_REPO = "nroggendorff/smallama"
 INSTRUCT_FINETUNE_BOOL = True
-INIT = 2
+INIT = 3
 SHARD_SIZE = int(15e+5)
 FP16 = True
 WARMUP_STEPS = 0
@@ -159,9 +159,9 @@ def train_model(model, tokenizer, dataset, push, isinst):
         gradient_accumulation_steps=GRADIENT_ACCUMULATION_STEPS,
         fp16=FP16,
         save_steps=int(1e+10),
-        logging_steps=10,
+        logging_steps=1000,
         evaluation_strategy="no",
-        eval_steps=500,
+        eval_steps=2000,
         save_total_limit=2,
     )
 

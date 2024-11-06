@@ -12,7 +12,7 @@ from huggingface_hub import HfApi
 from torch.utils.data import DataLoader
 from itertools import islice
 
-BATCH_SIZE = 16
+BATCH_SIZE = 8
 EPOCHS = 1
 LEARNING_RATE = 2e-4
 FACTOR = 12 ** 3 // 3
@@ -27,7 +27,7 @@ SHARD_SIZE = int(2e+6)
 FP16 = True
 WARMUP_STEPS = 50
 WEIGHT_DECAY = 1e-3
-GRADIENT_ACCUMULATION_STEPS = 2
+GRADIENT_ACCUMULATION_STEPS = 4
 PUSH_TO_HUB = True
 
 class Space:

@@ -12,12 +12,12 @@ from huggingface_hub import HfApi
 from torch.utils.data import DataLoader
 from itertools import islice
 
-BATCH_SIZE = 8
+BATCH_SIZE = 16
 EPOCHS = 1
 LEARNING_RATE = 2e-4
 FACTOR = 12 ** 3 // 3
 MAX_SEQ_LENGTH = 128
-VOCAB_SIZE = 52000
+VOCAB_SIZE = 32000
 INPUT_DATASET = "HuggingFaceTB/smollm-corpus"
 INSTRUCT_DATASET = "nroggendorff/elephant"
 OUTPUT_REPO = "nroggendorff/smallama"
@@ -27,7 +27,7 @@ SHARD_SIZE = int(2e+6)
 FP16 = True
 WARMUP_STEPS = 50
 WEIGHT_DECAY = 1e-3
-GRADIENT_ACCUMULATION_STEPS = 4
+GRADIENT_ACCUMULATION_STEPS = 2
 PUSH_TO_HUB = True
 
 class Space:

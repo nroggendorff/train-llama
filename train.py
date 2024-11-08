@@ -256,5 +256,5 @@ if __name__ == "__main__":
     try:
         main(PUSH_TO_HUB, INSTRUCT_FINETUNE_BOOL)
     except Exception as e:
-        print(f'{e.__name__}: {e}')
+        print(f'{type(e).__name__}: {e}')
         space.pause()

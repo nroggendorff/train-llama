@@ -233,25 +233,22 @@ def main(push_to_hub=True, is_inst_finetune=False):
         configure_tokenizer(tokenizer)
         print("Added Tokens.")
     
-    if is_inst_finetune:
+    if is_inst_finetune and INIT > 0:
         print("Loading Model..")
         model = load_model()
         print("Loaded Model.")
     else:
-        if INIT == 0:
-            print("Creating Model..")
-        else:
-            print("Loading Model..")
+        print("Creating Model..")
         model = create_model(tokenizer) if INIT == 0 else load_model()
-        print("Done.")
+        print("Created Model.")
 
     print("Resizing Token Embeddings..")
     model.resize_token_embeddings(len(tokenizer))
-    print("Done.")
+    print("Resized Embeddings.")
 
     print("Training Model..")
     train_model(model, tokenizer, dataset, push_to_hub, is_inst_finetune)
-    raise FineError("All tasks have been completed.")
+    raise FineError("Trained Model.")
 
 if __name__ == "__main__":
     try:

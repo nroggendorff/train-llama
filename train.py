@@ -13,22 +13,24 @@ from torch.utils.data import DataLoader
 from itertools import islice
 
 BATCH_SIZE = 16
-EPOCHS = 1
+EPOCHS = 3
 LEARNING_RATE = 2e-4
 FACTOR = 12 ** 3 // 3
-MAX_SEQ_LENGTH = 128
+MAX_SEQ_LENGTH = 512
 VOCAB_SIZE = 32000
 INPUT_DATASET = "HuggingFaceTB/smollm-corpus"
 INSTRUCT_DATASET = "nroggendorff/elephant"
 OUTPUT_REPO = "nroggendorff/smallama"
 INSTRUCT_FINETUNE_BOOL = False
 INIT = 0
-SHARD_SIZE = int(2e+6)
+SHARD_SIZE = int(2e+5)
 FP16 = True
-WARMUP_STEPS = 50
 WEIGHT_DECAY = 1e-3
-GRADIENT_ACCUMULATION_STEPS = 2
+GRADIENT_ACCUMULATION_STEPS = BATCH_SIZE // 4
+WARMUP_STEPS = ((SHARD_SIZE // (BATCH_SIZE * GRADIENT_ACCUMULATION_STEPS)) * EPOCHS) // 10
 PUSH_TO_HUB = True
+
+total_steps = WARMUP_STEPS * 10
 
 class Space:
     def __init__(self):
@@ -38,15 +40,17 @@ class Space:
 space = Space()
 
 def load_data():
-    if not INSTRUCT_FINETUNE_BOOL:
-        dataset = load_dataset(INPUT_DATASET, "cosmopedia-v2", split="train", streaming=True)
+    try:
+        if not INSTRUCT_FINETUNE_BOOL:
+            dataset = load_dataset(INPUT_DATASET, "cosmopedia-v2", split="train", streaming=True)
+        else:
+            dataset = load_dataset(INSTRUCT_DATASET, split="train", streaming=True)
+
         start = INIT * SHARD_SIZE
-        dataset = Dataset.from_dict({'text': [example['text'] for example in islice(dataset, start, start + SHARD_SIZE)]})
-    else:
-        dataset = load_dataset(INSTRUCT_DATASET, split="train", streaming=True)
-        start = INIT * SHARD_SIZE
-        dataset = Dataset.from_dict({'text': [example['text'] for example in islice(dataset, start, start + SHARD_SIZE)]})
-    return dataset
+        data_list = list(islice(dataset, start, start + SHARD_SIZE))
+        
+        dataset = Dataset.from_dict({'text': [example['text'] for example in data_list]})
+        return dataset
 
 def create_tokenizer(training_corpus):
     tokenizer = ByteLevelBPETokenizer()
@@ -158,10 +162,10 @@ def train_model(model, tokenizer, dataset, push, isinst):
         weight_decay=WEIGHT_DECAY,
         gradient_accumulation_steps=GRADIENT_ACCUMULATION_STEPS,
         fp16=FP16,
-        save_steps=int(1e+10),
-        logging_steps=5000,
+        save_steps=WARMUP_STEPS,
+        logging_steps=WARMUP_STEPS,
         evaluation_strategy="no",
-        eval_steps=2000,
+        eval_steps=1,
         save_total_limit=2,
     )
 
@@ -169,7 +173,7 @@ def train_model(model, tokenizer, dataset, push, isinst):
     scheduler = get_cosine_schedule_with_warmup(
         optimizer,
         num_warmup_steps=args.warmup_steps, 
-        num_training_steps=(len(dataset) // args.per_device_train_batch_size) * args.num_train_epochs
+        num_training_steps=total_steps
     )
     
     dataset = dataset.map(lambda examples: format_prompts(examples, tokenizer, isinst), batched=True, remove_columns=dataset.column_names)

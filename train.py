@@ -78,18 +78,22 @@ def get_training_corpus(dataset):
 def format_prompts(examples, tokenizer, isinst):
     texts = []
     for text in examples['text']:
-        if isinst:
-            conversation = []
-            parts = text.split('<|end|>')
-            for i in range(0, len(parts) - 1, 2):
-                prompt = parts[i].replace("<|user|>", "").strip()
-                response = parts[i + 1].replace("<|bot|>", "").strip()
-                conversation.append({"role": "user", "content": prompt})
-                conversation.append({"role": "assistant", "content": response})
-            formatted_conversation = tokenizer.apply_chat_template(conversation, tokenize=False)
-            texts.append(formatted_conversation)
+        if text:
+            if isinst:
+                conversation = []
+                parts = text.split('<|end|>')
+                for i in range(0, len(parts) - 1, 2):
+                    prompt = parts[i].replace("<|user|>", "").strip()
+                    response = parts[i + 1].replace("<|bot|>", "").strip()
+                    conversation.append({"role": "user", "content": prompt})
+                    conversation.append({"role": "assistant", "content": response})
+                formatted_conversation = tokenizer.apply_chat_template(conversation, tokenize=False)
+                texts.append(formatted_conversation)
+            else:
+                texts.append(tokenizer.bos_token + text + tokenizer.eos_token)
         else:
-            texts.append(tokenizer.bos_token + text + tokenizer.eos_token)
+            print('Found empty entry in examples. Moving on..')
+            continue
     return {"text": texts}
 
 def create_model(tokenizer):
@@ -167,7 +171,7 @@ def train_model(model, tokenizer, dataset, push, isinst):
         fp16=FP16,
         save_steps=WARMUP_STEPS,
         logging_steps=WARMUP_STEPS,
-        evaluation_strategy="no",
+        eval_strategy="no",
         eval_steps=1,
         save_total_limit=2,
     )
@@ -180,7 +184,7 @@ def train_model(model, tokenizer, dataset, push, isinst):
     )
     
     dataset = dataset.map(lambda examples: format_prompts(examples, tokenizer, isinst), batched=True, remove_columns=dataset.column_names)
-    print("Mapped dataset sample:", dataset[0]['text'])
+    print("Mapped dataset sample length:", len(dataset[0]['text']))
     
     trainer = trl.SFTTrainer(
         model=model,

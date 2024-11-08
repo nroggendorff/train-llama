@@ -180,7 +180,8 @@ def train_model(model, tokenizer, dataset, push, isinst):
     )
     
     dataset = dataset.map(lambda examples: format_prompts(examples, tokenizer, isinst), batched=True, remove_columns=dataset.column_names)
-   
+    print("Mapped dataset sample:", dataset[0]['text'])
+    
     trainer = trl.SFTTrainer(
         model=model,
         tokenizer=tokenizer,

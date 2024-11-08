@@ -40,23 +40,20 @@ class Space:
 space = Space()
 
 def load_data():
-    try:
-        if not INSTRUCT_FINETUNE_BOOL:
-            dataset = load_dataset(INPUT_DATASET, "cosmopedia-v2", split="train", streaming=True)
-        else:
-            dataset = load_dataset(INSTRUCT_DATASET, split="train", streaming=True)
+    if not INSTRUCT_FINETUNE_BOOL:
+        dataset = load_dataset(INPUT_DATASET, "cosmopedia-v2", split="train", streaming=True)
+    else:
+        dataset = load_dataset(INSTRUCT_DATASET, split="train", streaming=True)
 
-        start = INIT * SHARD_SIZE
-        data_list = list(islice(dataset, start, start + SHARD_SIZE))
-        
-        dataset = Dataset.from_dict({'text': [example['text'] for example in data_list]})
-        return dataset
+    start = INIT * SHARD_SIZE
+    data_list = list(islice(dataset, start, start + SHARD_SIZE))
+    
+    dataset = Dataset.from_dict({'text': [example['text'] for example in data_list]})
+    return dataset
 
 def create_tokenizer(training_corpus):
     tokenizer = ByteLevelBPETokenizer()
     special_tokens = ["<s>", "<pad>", "</s>", "<unk>", "<mask>"]
-    if INSTRUCT_FINETUNE_BOOL:
-        special_tokens.extend(["<|user|>", "<|bot|>", "<|end|>"])
     tokenizer.train_from_iterator(
         training_corpus,
         vocab_size=VOCAB_SIZE,
@@ -117,7 +114,8 @@ def configure_tokenizer(tokenizer):
         "eos_token": "</s>",
         "unk_token": "<unk>",
         "pad_token": "<pad>",
-        "mask_token": "<mask>"
+        "mask_token": "<mask>",
+        "additional_special_tokens": []
     }
     if INSTRUCT_FINETUNE_BOOL:
         special_tokens["additional_special_tokens"] = ["<|user|>", "<|bot|>", "<|end|>"]

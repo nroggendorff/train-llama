@@ -222,7 +222,7 @@ def main(push_to_hub=True, is_inst_finetune=False):
 
         print("Making Tokenizer..")
         tokenizer = create_tokenizer(training_corpus)
-        print("Made Tokenizer.")
+        print(f"Made Tokenizer with size {len(tokenizer)}.")
     else:
         print("Loading Tokenizer..")
         tokenizer = load_tokenizer()

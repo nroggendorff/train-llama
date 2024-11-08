@@ -39,6 +39,11 @@ class Space:
 
 space = Space()
 
+class FineError(Exception):
+    def __init__(self, message="Script execution has completed."):
+        self.message = message
+        super().__init__(self.message)
+
 def load_data():
     if not INSTRUCT_FINETUNE_BOOL:
         dataset = load_dataset(INPUT_DATASET, "cosmopedia-v2", split="train", streaming=True)
@@ -245,10 +250,11 @@ def main(push_to_hub=True, is_inst_finetune=False):
 
     print("Training Model..")
     train_model(model, tokenizer, dataset, push_to_hub, is_inst_finetune)
-    raise Exception
+    raise FineError("All tasks have been completed.")
 
 if __name__ == "__main__":
     try:
         main(PUSH_TO_HUB, INSTRUCT_FINETUNE_BOOL)
-    except:
+    except Exception as e:
+        print(f'{e.__name__}: {e}')
         space.pause()

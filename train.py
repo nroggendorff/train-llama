@@ -100,10 +100,10 @@ def format_prompts(examples, tokenizer, isinst):
         truncation=True,
         max_length=MAX_SEQ_LENGTH,
         return_tensors="pt"
-    )
+    ).input_ids
     decoded_texts = tokenizer.batch_decode(tokenized_texts)
     
-    return decoded_texts
+    return {'text': decoded_texts}
 
 def create_model(tokenizer):
     config = LlamaConfig(

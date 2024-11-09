@@ -181,7 +181,7 @@ def train_model(model, tokenizer, dataset, push, isinst):
         save_steps=WARMUP_STEPS * 5,
         logging_steps=WARMUP_STEPS,
         eval_strategy="no",
-        eval_steps=1,
+        # eval_steps=WARMUP_STEPS,
         save_total_limit=2,
     )
 

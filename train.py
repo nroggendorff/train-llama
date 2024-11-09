@@ -94,7 +94,16 @@ def format_prompts(examples, tokenizer, isinst):
         else:
             print('Found empty entry in examples. Moving on..')
             continue
-    return {"text": texts}
+    tokenized_texts = tokenizer(
+        texts,
+        padding="max_length",
+        truncation=True,
+        max_length=MAX_SEQ_LENGTH,
+        return_tensors="pt"
+    )
+    decoded_texts = tokenizer.batch_decode(tokenized_texts)
+    
+    return decoded_texts
 
 def create_model(tokenizer):
     config = LlamaConfig(

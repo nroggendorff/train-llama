@@ -56,7 +56,7 @@ def load_data():
     dataset = Dataset.from_dict({'text': [example['text'] for example in data_list]})
     return dataset
 
-def encode_decode(text, tok):
+def encode_decode(texts, tok):
     tokenized_texts = tok(
         texts,
         padding="max_length",

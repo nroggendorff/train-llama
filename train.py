@@ -56,6 +56,25 @@ def load_data():
     dataset = Dataset.from_dict({'text': [example['text'] for example in data_list]})
     return dataset
 
+def encode_decode(text, tok):
+    tokenized_texts = tokenizer(
+        texts,
+        padding="max_length",
+        truncation=True,
+        max_length=MAX_SEQ_LENGTH,
+        return_tensors="pt"
+    ).input_ids
+
+    if tokenized_texts.dim() >= 1:
+        decoded_texts = tokenizer.batch_decode(tokenized_texts)
+    else:
+        print('Found invalid entry in examples. Returning dummy..')
+        decoded_texts = ['Nothing to see here.']
+    
+    islist = not len(decoded_texts) == 1
+    
+    return decoded_texts if islist else decoded_texts[0]
+
 def create_tokenizer(training_corpus):
     tokenizer = ByteLevelBPETokenizer()
     special_tokens = ["<s>", "<pad>", "</s>", "<unk>", "<mask>"]
@@ -88,22 +107,16 @@ def format_prompts(examples, tokenizer, isinst):
                     conversation.append({"role": "user", "content": prompt})
                     conversation.append({"role": "assistant", "content": response})
                 formatted_conversation = tokenizer.apply_chat_template(conversation, tokenize=False)
-                texts.append(formatted_conversation)
+                coded_text = tokenizer.code(formatted_conversation)
+                texts.append(coded_text)
             else:
-                texts.append(tokenizer.bos_token + text + tokenizer.eos_token)
+                texts.append(tokenizer.bos_token + tokenizer.code(text) + tokenizer.eos_token)
         else:
             print('Found empty entry in examples. Moving on..')
             continue
-    tokenized_texts = tokenizer(
-        texts,
-        padding="max_length",
-        truncation=True,
-        max_length=MAX_SEQ_LENGTH,
-        return_tensors="pt"
-    ).input_ids
-    decoded_texts = tokenizer.batch_decode(tokenized_texts)
-    
-    return {'text': decoded_texts}
+
+    coded_texts = tokenizer.code(texts)
+    return {'text': coded_texts}
 
 def create_model(tokenizer):
     config = LlamaConfig(
@@ -145,6 +158,8 @@ def configure_tokenizer(tokenizer):
     
         chat_template = "{{ bos_token }}{% for message in messages %}{% if (message['role'] == 'user') != (loop.index0 % 2 == 0) %}{{ raise_exception('Conversation roles must alternate user/assistant/user/assistant/...') }}{% endif %}{% if message['role'] == 'user' %}{{ '<|user|>\n' + message['content'] + '<|end|>\n' }}{% elif message['role'] == 'assistant' %}{{ '<|bot|>\n' + message['content'] + '<|end|>\n' + eos_token}}{% else %}{{ raise_exception('Only user and assistant roles are supported!') }}{% endif %}{% endfor %}"
         tokenizer.chat_template = chat_template
+
+    tokenizer.code = lambda example: encode_decode(example, tokenizer)
 
 def update_tokenizer(tokenizer, dataset, batch_size=1000):
     existing_vocab = tokenizer.get_vocab()

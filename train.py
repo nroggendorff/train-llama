@@ -239,7 +239,11 @@ def main(push_to_hub=True, is_inst_finetune=False):
     dataset = load_data()
     print("Loaded data.")
     
-    if not is_inst_finetune and INIT == 0:
+    if is_inst_finetune and INIT > 0:
+        print("Loading Tokenizer..")
+        tokenizer = load_tokenizer()
+        print("Loaded Tokenizer.")
+    else:
         print("Making Corpus..")
         training_corpus = get_training_corpus(dataset)
         print("Made Corpus.")
@@ -247,10 +251,6 @@ def main(push_to_hub=True, is_inst_finetune=False):
         print("Making Tokenizer..")
         tokenizer = create_tokenizer(training_corpus)
         print(f"Made Tokenizer with size {len(tokenizer)}.")
-    else:
-        print("Loading Tokenizer..")
-        tokenizer = load_tokenizer()
-        print("Loaded Tokenizer.")
 
         # print("Adding Tokens..")
         # num_new_tokens = update_tokenizer(tokenizer, dataset)
@@ -261,13 +261,13 @@ def main(push_to_hub=True, is_inst_finetune=False):
         configure_tokenizer(tokenizer)
         print("Added Tokens.")
     
-    if is_inst_finetune and INIT > 0:
+    if is_inst_finetune or INIT > 0:
         print("Loading Model..")
         model = load_model()
         print("Loaded Model.")
     else:
         print("Creating Model..")
-        model = create_model(tokenizer) if INIT == 0 else load_model()
+        model = create_model(tokenizer)
         print("Created Model.")
 
     print("Resizing Token Embeddings..")

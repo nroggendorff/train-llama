@@ -57,7 +57,7 @@ def load_data():
     return dataset
 
 def encode_decode(text, tok):
-    tokenized_texts = tokenizer(
+    tokenized_texts = tok(
         texts,
         padding="max_length",
         truncation=True,
@@ -66,7 +66,7 @@ def encode_decode(text, tok):
     ).input_ids
 
     if tokenized_texts.dim() >= 1:
-        decoded_texts = tokenizer.batch_decode(tokenized_texts)
+        decoded_texts = tok.batch_decode(tokenized_texts)
     else:
         print('Found invalid entry in examples. Returning dummy..')
         decoded_texts = ['Nothing to see here.']

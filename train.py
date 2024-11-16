@@ -57,6 +57,9 @@ def load_data():
     return dataset
 
 def encode_decode(texts, tok):
+    if tok.pad_token is None:
+        tok.pad_token = tok.eos_token
+    
     tokenized_texts = tok(
         texts,
         padding="max_length",
@@ -69,7 +72,7 @@ def encode_decode(texts, tok):
         decoded_texts = tok.batch_decode(tokenized_texts)
     else:
         print('Found invalid entry in examples. Returning dummy..')
-        decoded_texts = ['Nothing to see here.']
+        decoded_texts = [tokenizer.pad_token * MAX_SEQ_LENGTH]
     
     islist = not len(decoded_texts) == 1
     
@@ -97,7 +100,7 @@ def get_training_corpus(dataset):
 def format_prompts(examples, tokenizer, isinst):
     texts = []
     for text in examples['text']:
-        if text:
+        if text and len(text.strip()) > 0:
             if isinst:
                 conversation = []
                 parts = text.split('<|end|>')
@@ -114,6 +117,9 @@ def format_prompts(examples, tokenizer, isinst):
         else:
             print('Found empty entry in examples. Moving on..')
             continue
+
+    if len(texts) == 0:
+        raise ValueError("No valid texts found in examples for formatting.")
 
     coded_texts = tokenizer.code(texts)
     return {'text': coded_texts}
@@ -208,7 +214,24 @@ def train_model(model, tokenizer, dataset, push, isinst):
     )
     
     dataset = dataset.map(lambda examples: format_prompts(examples, tokenizer, isinst), batched=True, remove_columns=dataset.column_names)
+
+    if 'text' not in dataset.column_names:
+        raise ValueError("Dataset transformation failed: 'text' column missing after mapping.")
+    
     print("Mapped dataset sample length:", len(dataset[0]['text']))
+
+    try:
+        test_input = tokenizer(
+            ["This is a test input."], 
+            return_tensors="pt", 
+            padding="max_length", 
+            truncation=True, 
+            max_length=MAX_SEQ_LENGTH
+        )
+        test_output = model(**test_input)
+        print("Model test output shape:", test_output.logits.shape)
+    except RuntimeError as e:
+        print(f"Error processing test batch: {e}")
     
     trainer = trl.SFTTrainer(
         model=model,
@@ -270,8 +293,14 @@ def main(push_to_hub=True, is_inst_finetune=False):
         model = create_model(tokenizer)
         print("Created Model.")
 
+    print(f"Tokenizer vocabulary size: {len(tokenizer)}")
+    print(f"Special tokens: {tokenizer.special_tokens_map}")
+
     print("Resizing Token Embeddings..")
-    model.resize_token_embeddings(len(tokenizer))
+    try:
+        model.resize_token_embeddings(len(tokenizer))
+    except RuntimeError as e:
+        raise RuntimeError(f"Error resizing token embeddings: {e}")
     print("Resized Embeddings.")
 
     print("Training Model..")

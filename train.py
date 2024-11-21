@@ -222,10 +222,10 @@ def train_model(model, tokenizer, dataset, push, isinst):
 
     try:
         test_input = tokenizer(
-            ["This is a test input."], 
-            return_tensors="pt", 
-            padding="max_length", 
-            truncation=True, 
+            ["This is a test input."],
+            return_tensors="pt",
+            padding="max_length",
+            truncation=True,
             max_length=MAX_SEQ_LENGTH
         )
         test_output = model(**test_input)
@@ -238,7 +238,7 @@ def train_model(model, tokenizer, dataset, push, isinst):
         tokenizer=tokenizer,
         args=args,
         train_dataset=dataset,
-        dataset_text_field='text',
+        # dataset_text_field='text',
         max_seq_length=MAX_SEQ_LENGTH,
         optimizers=(optimizer, scheduler)
     )

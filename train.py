@@ -4,8 +4,9 @@ import torch
 import trl
 from transformers import (
     AutoTokenizer, LlamaConfig, AutoModelForCausalLM, LlamaForCausalLM,
-    TrainingArguments, PreTrainedTokenizerFast, AdamW, get_cosine_schedule_with_warmup
+    PreTrainedTokenizerFast, AdamW, get_cosine_schedule_with_warmup
 )
+from trl import SFTConfig, SFTTrainer
 from datasets import load_dataset, Dataset
 from tokenizers import ByteLevelBPETokenizer
 from huggingface_hub import HfApi
@@ -126,7 +127,7 @@ def create_model(tokenizer):
     return LlamaForCausalLM(config)
 
 def train_model(model, tokenizer, dataset, push_to_hub, is_instructional):
-    args = TrainingArguments(
+    config = SFTConfig(
         output_dir="model",
         num_train_epochs=Config.EPOCHS,
         per_device_train_batch_size=Config.BATCH_SIZE,
@@ -145,7 +146,12 @@ def train_model(model, tokenizer, dataset, push_to_hub, is_instructional):
         batched=True, 
         remove_columns=dataset.column_names
     )
-    trainer = trl.SFTTrainer(model=model, tokenizer=tokenizer, args=args, train_dataset=dataset)
+    trainer = SFTTrainer(
+        model=model,
+        tokenizer=tokenizer,
+        config=config,
+        train_dataset=dataset
+    )
     train_result = trainer.train()
 
     if push_to_hub:

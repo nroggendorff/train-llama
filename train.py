@@ -27,10 +27,11 @@ SHARD_SIZE = int(2e+5)
 FP16 = True
 WEIGHT_DECAY = 1e-3
 GRADIENT_ACCUMULATION_STEPS = BATCH_SIZE // 4
-WARMUP_STEPS = ((SHARD_SIZE // (BATCH_SIZE * GRADIENT_ACCUMULATION_STEPS)) * EPOCHS) // 10
+
 PUSH_TO_HUB = True
 
-total_steps = WARMUP_STEPS * 10
+total_steps = (SHARD_SIZE * EPOCHS) // (BATCH_SIZE * GRADIENT_ACCUMULATION_STEPS)
+WARMUP_STEPS = total_steps * 0.1
 
 class Space:
     def __init__(self):
@@ -202,6 +203,7 @@ def train_model(model, tokenizer, dataset, push, isinst):
         save_steps=WARMUP_STEPS * 5,
         logging_steps=WARMUP_STEPS,
         eval_strategy="no",
+        report_to="no",
         # eval_steps=WARMUP_STEPS,
         save_total_limit=2,
     )

@@ -192,7 +192,7 @@ def train_model(model, tokenizer, dataset, push, isinst):
     args = TrainingArguments(
         output_dir="model",
         num_train_epochs=EPOCHS,
-        per_device_train_batch_size=BATCH_SIZE,
+        per_gpu_train_batch_size=BATCH_SIZE,
         learning_rate=LEARNING_RATE,
         optim="adamw_torch",
         warmup_steps=WARMUP_STEPS,

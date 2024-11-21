@@ -14,7 +14,6 @@ from itertools import islice
 from typing import Optional
 from logging import getLogger, StreamHandler, INFO
 
-# Logger setup
 logger = getLogger(__name__)
 logger.setLevel(INFO)
 handler = StreamHandler()

@@ -17,6 +17,8 @@ RUN [ -f configlib ] && mv configlib config.py || true && \
     [ -f util ] && mv util util.py || true && \
     [ -f config ] && mv config config.json || true
 
+RUN python util.py $(cat /run/secrets/HF_TOKEN)
+
 RUN python -c "print('Caching datasets..'); \
 import json; \
 from datasets import load_dataset; \

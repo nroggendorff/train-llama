@@ -21,33 +21,56 @@ handler = StreamHandler()
 logger.addHandler(handler)
 
 class Config:
-    # Model and training hyperparameters
-    BATCH_SIZE = 16
-    EPOCHS = 3
-    LEARNING_RATE = 2e-4
-    MAX_SEQ_LENGTH = 512
-    VOCAB_SIZE = 32000
-    FP16 = True
-    WEIGHT_DECAY = 1e-3
-    GRADIENT_ACCUMULATION_STEPS = BATCH_SIZE // 4
+    def __init__(self):
+        # Model and training hyperparameters
+        self.BATCH_SIZE = 16
+        self.EPOCHS = 3
+        self.LEARNING_RATE = 2e-4
+        self.MAX_SEQ_LENGTH = 512
+        self.VOCAB_SIZE = 32000
+        self.FP16 = True
+        self.WEIGHT_DECAY = 1e-3
+        self.GRADIENT_ACCUMULATION_STEPS = self.BATCH_SIZE // 4
+    
+        # Dataset configurations
+        self.INPUT_DATASET = "HuggingFaceTB/smollm-corpus"
+        self.INSTRUCT_DATASET = "nroggendorff/elephant"
+        self.SHARD_SIZE = int(2e+5)
+    
+        # Output and repo settings
+        self.OUTPUT_REPO = "nroggendorff/smallama"
+        self.PUSH_TO_HUB = True
+        self.INSTRUCT_FINETUNE_BOOL = False
+    
+        # Training steps and warmup
+        self.FACTOR = 12 ** 3 // 3
+        self.TOTAL_STEPS = (self.SHARD_SIZE * self.EPOCHS) // (self.BATCH_SIZE * self.GRADIENT_ACCUMULATION_STEPS)
+        self.WARMUP_STEPS = int(self.TOTAL_STEPS * 0.1)
+    
+        # Initial state for shard offset
+        self.INIT = 0
 
-    # Dataset configurations
-    INPUT_DATASET = "HuggingFaceTB/smollm-corpus"
-    INSTRUCT_DATASET = "nroggendorff/elephant"
-    SHARD_SIZE = int(2e+5)
+        # ignore
+        self.getConfig = lambda: self._args()
 
-    # Output and repo settings
-    OUTPUT_REPO = "nroggendorff/smallama"
-    PUSH_TO_HUB = True
-    INSTRUCT_FINETUNE_BOOL = False
+    # @staticmethod
+    def _args(self):
+        return SFTConfig(
+            output_dir="model",
+            num_train_epochs=self.EPOCHS,
+            per_device_train_batch_size=self.BATCH_SIZE,
+            learning_rate=self.LEARNING_RATE,
+            warmup_steps=self.WARMUP_STEPS,
+            weight_decay=self.WEIGHT_DECAY,
+            gradient_accumulation_steps=self.GRADIENT_ACCUMULATION_STEPS,
+            fp16=self.FP16,
+            save_steps=int(self.WARMUP_STEPS * 5),
+            logging_steps=int(self.WARMUP_STEPS),
+            save_total_limit=2,
+            report_to="none",
+        )
 
-    # Training steps and warmup
-    FACTOR = 12 ** 3 // 3
-    TOTAL_STEPS = (SHARD_SIZE * EPOCHS) // (BATCH_SIZE * GRADIENT_ACCUMULATION_STEPS)
-    WARMUP_STEPS = int(TOTAL_STEPS * 0.1)
-
-    # Initial state for shard offset
-    INIT = 0
+config = Config().getConfig()
 
 class Space:
     def __init__(self):
@@ -71,14 +94,14 @@ def encode_decode(texts, tokenizer):
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
     tokenized_texts = tokenizer(
-        texts, padding="max_length", truncation=True, max_length=Config.MAX_SEQ_LENGTH, return_tensors="pt"
+        texts, padding="max_length", truncation=True, max_length=config.MAX_SEQ_LENGTH, return_tensors="pt"
     ).input_ids
-    return tokenizer.batch_decode(tokenized_texts) if tokenized_texts.dim() >= 1 else [tokenizer.pad_token * Config.MAX_SEQ_LENGTH]
+    return tokenizer.batch_decode(tokenized_texts) if tokenized_texts.dim() >= 1 else [tokenizer.pad_token * config.MAX_SEQ_LENGTH]
 
 def create_tokenizer(training_corpus):
     tokenizer = ByteLevelBPETokenizer()
     special_tokens = ["<s>", "<pad>", "</s>", "<unk>", "<mask>"]
-    tokenizer.train_from_iterator(training_corpus, vocab_size=Config.VOCAB_SIZE, min_frequency=2, special_tokens=special_tokens)
+    tokenizer.train_from_iterator(training_corpus, vocab_size=config.VOCAB_SIZE, min_frequency=2, special_tokens=special_tokens)
     return PreTrainedTokenizerFast(tokenizer_object=tokenizer._tokenizer)
 
 def load_tokenizer(repo: str):
@@ -111,11 +134,11 @@ def format_prompts(examples, tokenizer, is_instructional):
 def create_model(tokenizer):
     config = LlamaConfig(
         vocab_size=tokenizer.vocab_size,
-        hidden_size=Config.FACTOR,
-        intermediate_size=Config.FACTOR * 4,
+        hidden_size=config.FACTOR,
+        intermediate_size=config.FACTOR * 4,
         num_hidden_layers=12,
         num_attention_heads=12,
-        max_position_embeddings=Config.MAX_SEQ_LENGTH,
+        max_position_embeddings=config.MAX_SEQ_LENGTH,
         rms_norm_eps=1e-5,
         initializer_range=0.02,
         use_cache=True,
@@ -127,20 +150,7 @@ def create_model(tokenizer):
     return LlamaForCausalLM(config)
 
 def train_model(model, tokenizer, dataset, push_to_hub, is_instructional):
-    config = SFTConfig(
-        output_dir="model",
-        num_train_epochs=Config.EPOCHS,
-        per_device_train_batch_size=Config.BATCH_SIZE,
-        learning_rate=Config.LEARNING_RATE,
-        warmup_steps=Config.WARMUP_STEPS,
-        weight_decay=Config.WEIGHT_DECAY,
-        gradient_accumulation_steps=Config.GRADIENT_ACCUMULATION_STEPS,
-        fp16=Config.FP16,
-        save_steps=int(Config.WARMUP_STEPS * 5),
-        logging_steps=int(Config.WARMUP_STEPS),
-        save_total_limit=2,
-        report_to="none",
-    )
+    config = 
     dataset = dataset.map(
         lambda examples: format_prompts(examples, tokenizer, is_instructional), 
         batched=True, 
@@ -155,7 +165,7 @@ def train_model(model, tokenizer, dataset, push_to_hub, is_instructional):
     train_result = trainer.train()
 
     if push_to_hub:
-        repo_id = Config.OUTPUT_REPO + "-it" if Config.INSTRUCT_FINETUNE_BOOL else Config.OUTPUT_REPO
+        repo_id = config.OUTPUT_REPO + "-it" if config.INSTRUCT_FINETUNE_BOOL else config.OUTPUT_REPO
         trainer.model.push_to_hub(repo_id, commit_message=f"Training loss: {train_result.training_loss:.4f}", force=True)
         trainer.tokenizer.push_to_hub(repo_id, commit_message=f"Training loss: {train_result.training_loss:.4f}", force=True)
     else:
@@ -163,18 +173,18 @@ def train_model(model, tokenizer, dataset, push_to_hub, is_instructional):
         trainer.tokenizer.save_pretrained("tokenizer")
 
 def main():
-    dataset = load_data(Config.INPUT_DATASET, "train", Config.SHARD_SIZE, Config.INIT)
+    dataset = load_data(config.INPUT_DATASET, "train", config.SHARD_SIZE, config.INIT)
     tokenizer = (
-        load_tokenizer(Config.OUTPUT_REPO)
-        if Config.INSTRUCT_FINETUNE_BOOL and Config.INIT > 0
+        load_tokenizer(config.OUTPUT_REPO)
+        if config.INSTRUCT_FINETUNE_BOOL and config.INIT > 0
         else create_tokenizer(get_training_corpus(dataset))
     )
     model = (
         load_model()
-        if Config.INSTRUCT_FINETUNE_BOOL or Config.INIT > 0
+        if config.INSTRUCT_FINETUNE_BOOL or config.INIT > 0
         else create_model(tokenizer)
     )
-    train_model(model, tokenizer, dataset, Config.PUSH_TO_HUB, Config.INSTRUCT_FINETUNE_BOOL)
+    train_model(model, tokenizer, dataset, config.PUSH_TO_HUB, config.INSTRUCT_FINETUNE_BOOL)
 
 if __name__ == "__main__":
     try:

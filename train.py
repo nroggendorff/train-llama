@@ -1,5 +1,5 @@
 import torch
-from transformers import AutoModelForCausalLM, AdamW, get_cosine_schedule_with_warmup
+from transformers import AutoModelForCausalLM, AdamW, get_cosine_schedule_with_warmup, AutoTokenizer
 from trl import SFTTrainer
 from datasets import load_from_disk
 from config import Config

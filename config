@@ -9,7 +9,7 @@
   "gradient-accumulation-steps": 4,
   "input-dataset": "nroggendorff/micropus",
   "instruct-dataset": "nroggendorff/elephant",
-  "shard-size": 5000,
+  "shard-size": 50000,
   "output-repo": "nroggendorff/smallama",
   "push-to-hub": true,
   "instruct-finetune-bool": false,

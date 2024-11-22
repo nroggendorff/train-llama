@@ -12,7 +12,7 @@
   "shard-size": 200,
   "output-repo": "nroggendorff/smallama",
   "push-to-hub": true,
-  "instruct-finetune-bool": false,
+  "instruct-finetune-bool": true,
   "factor": 864,
-  "init": 1
+  "init": 0
 }

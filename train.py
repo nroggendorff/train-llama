@@ -13,26 +13,57 @@ from trl import SFTConfig, SFTTrainer
 from torch.utils.data import DataLoader
 from itertools import islice
 
-BATCH_SIZE = 16
-EPOCHS = 3
-LEARNING_RATE = 2e-4
-FACTOR = 12 ** 3 // 3
-MAX_SEQ_LENGTH = 512
-VOCAB_SIZE = 32000
-INPUT_DATASET = "HuggingFaceTB/smollm-corpus"
-INSTRUCT_DATASET = "nroggendorff/elephant"
-OUTPUT_REPO = "nroggendorff/smallama"
-INSTRUCT_FINETUNE_BOOL = False
-INIT = 0
-SHARD_SIZE = int(2e+5)
-FP16 = True
-WEIGHT_DECAY = 1e-3
-GRADIENT_ACCUMULATION_STEPS = BATCH_SIZE // 4
+class Config:
+    def __init__(self):
+        # Model and training hyperparameters
+        self.BATCH_SIZE = 16
+        self.EPOCHS = 3
+        self.LEARNING_RATE = 2e-4
+        self.MAX_SEQ_LENGTH = 512
+        self.VOCAB_SIZE = 32000
+        self.FP16 = True
+        self.WEIGHT_DECAY = 1e-3
+        self.GRADIENT_ACCUMULATION_STEPS = self.BATCH_SIZE // 4
+    
+        # Dataset configurations
+        self.INPUT_DATASET = "HuggingFaceTB/smollm-corpus"
+        self.INSTRUCT_DATASET = "nroggendorff/elephant"
+        self.SHARD_SIZE = int(2e+5)
+    
+        # Output and repo settings
+        self.OUTPUT_REPO = "nroggendorff/smallama"
+        self.PUSH_TO_HUB = True
+        self.INSTRUCT_FINETUNE_BOOL = False
+    
+        # Training steps and warmup
+        self.FACTOR = 12 ** 3 // 3
+        self.TOTAL_STEPS = (self.SHARD_SIZE * self.EPOCHS) // (self.BATCH_SIZE * self.GRADIENT_ACCUMULATION_STEPS)
+        self.WARMUP_STEPS = int(self.TOTAL_STEPS * 0.1)
+    
+        # Initial state for shard offset
+        self.INIT = 0
 
-PUSH_TO_HUB = True
+        # ignore
+        self.getConfig = lambda: self._args()
 
-total_steps = (SHARD_SIZE * EPOCHS) // (BATCH_SIZE * GRADIENT_ACCUMULATION_STEPS)
-WARMUP_STEPS = total_steps * 0.1
+    # @staticmethod
+    def _args(self):
+        return SFTConfig(
+            output_dir="model",
+            num_train_epochs=self.EPOCHS,
+            per_device_train_batch_size=self.BATCH_SIZE,
+            learning_rate=self.LEARNING_RATE,
+            warmup_steps=self.WARMUP_STEPS,
+            weight_decay=self.WEIGHT_DECAY,
+            gradient_accumulation_steps=self.GRADIENT_ACCUMULATION_STEPS,
+            fp16=self.FP16,
+            save_steps=int(self.WARMUP_STEPS * 5),
+            logging_steps=int(self.WARMUP_STEPS),
+            save_total_limit=2,
+            report_to="none",
+        )
+
+config = Config()
 
 class Space:
     def __init__(self):
@@ -45,13 +76,13 @@ class FineError(Exception):
         super().__init__(self.message)
 
 def load_data():
-    if not INSTRUCT_FINETUNE_BOOL:
-        dataset = load_dataset(INPUT_DATASET, "cosmopedia-v2", split="train", streaming=True)
+    if not config.INSTRUCT_FINETUNE_BOOL:
+        dataset = load_dataset(config.INPUT_DATASET, "cosmopedia-v2", split="train", streaming=True)
     else:
-        dataset = load_dataset(INSTRUCT_DATASET, split="train", streaming=True)
+        dataset = load_dataset(config.INSTRUCT_DATASET, split="train", streaming=True)
 
-    start = INIT * SHARD_SIZE
-    data_list = list(islice(dataset, start, start + SHARD_SIZE))
+    start = config.INIT * config.SHARD_SIZE
+    data_list = list(islice(dataset, start, start + config.SHARD_SIZE))
     
     dataset = Dataset.from_dict({'text': [example['text'] for example in data_list]})
     return dataset
@@ -64,7 +95,7 @@ def encode_decode(texts, tok):
         texts,
         padding="max_length",
         truncation=True,
-        max_length=MAX_SEQ_LENGTH,
+        max_length=config.MAX_SEQ_LENGTH,
         return_tensors="pt"
     ).input_ids
 
@@ -72,7 +103,7 @@ def encode_decode(texts, tok):
         decoded_texts = tok.batch_decode(tokenized_texts)
     else:
         print('Found invalid entry in examples. Returning dummy..')
-        decoded_texts = [tokenizer.pad_token * MAX_SEQ_LENGTH]
+        decoded_texts = [tok.pad_token * config.MAX_SEQ_LENGTH]
     
     islist = not len(decoded_texts) == 1
     
@@ -83,7 +114,7 @@ def create_tokenizer(training_corpus):
     special_tokens = ["<s>", "<pad>", "</s>", "<unk>", "<mask>"]
     tokenizer.train_from_iterator(
         training_corpus,
-        vocab_size=VOCAB_SIZE,
+        vocab_size=config.VOCAB_SIZE,
         min_frequency=2,
         special_tokens=special_tokens
     )
@@ -91,7 +122,7 @@ def create_tokenizer(training_corpus):
     return fast_tokenizer
 
 def load_tokenizer():
-    return AutoTokenizer.from_pretrained(OUTPUT_REPO + '-it' if INSTRUCT_FINETUNE_BOOL else OUTPUT_REPO)
+    return AutoTokenizer.from_pretrained(config.OUTPUT_REPO + '-it' if config.INSTRUCT_FINETUNE_BOOL else config.OUTPUT_REPO)
 
 def get_training_corpus(dataset):
     for i in range(0, len(dataset['text']), 1000):
@@ -125,13 +156,13 @@ def format_prompts(examples, tokenizer, isinst):
     return {'text': coded_texts}
 
 def create_model(tokenizer):
-    config = LlamaConfig(
+    model_config = LlamaConfig(
         vocab_size=tokenizer.vocab_size,
-        hidden_size=FACTOR,
-        intermediate_size=FACTOR * 4,
+        hidden_size=config.FACTOR,
+        intermediate_size=config.FACTOR * 4,
         num_hidden_layers=12,
         num_attention_heads=12,
-        max_position_embeddings=MAX_SEQ_LENGTH,
+        max_position_embeddings=config.MAX_SEQ_LENGTH,
         rms_norm_eps=1e-5,
         initializer_range=0.02,
         use_cache=True,
@@ -140,10 +171,10 @@ def create_model(tokenizer):
         eos_token_id=tokenizer.eos_token_id,
         tie_word_embeddings=False,
     )
-    return LlamaForCausalLM(config)
+    return LlamaForCausalLM(model_config)
 
 def load_model():
-    return AutoModelForCausalLM.from_pretrained(OUTPUT_REPO + '-it' if INSTRUCT_FINETUNE_BOOL else OUTPUT_REPO)
+    return AutoModelForCausalLM.from_pretrained(config.OUTPUT_REPO + '-it' if config.INSTRUCT_FINETUNE_BOOL else config.OUTPUT_REPO)
 
 def configure_tokenizer(tokenizer):
     special_tokens = {
@@ -154,11 +185,11 @@ def configure_tokenizer(tokenizer):
         "mask_token": "<mask>",
         "additional_special_tokens": []
     }
-    if INSTRUCT_FINETUNE_BOOL:
+    if config.INSTRUCT_FINETUNE_BOOL:
         special_tokens["additional_special_tokens"] = ["<|user|>", "<|bot|>", "<|end|>"]
     tokenizer.add_special_tokens(special_tokens)
 
-    if INSTRUCT_FINETUNE_BOOL:
+    if config.INSTRUCT_FINETUNE_BOOL:
         tokenizer.user_token_id = tokenizer.convert_tokens_to_ids("<|user|>")
         tokenizer.assistant_token_id = tokenizer.convert_tokens_to_ids("<|bot|>")
     
@@ -189,25 +220,9 @@ def update_tokenizer(tokenizer, dataset, batch_size=1000):
     return 0
 
 def train_model(model, tokenizer, dataset, push, isinst):
-    args = SFTConfig(
-        output_dir="model",
-        num_train_epochs=EPOCHS,
-        per_device_train_batch_size=BATCH_SIZE,
-        learning_rate=LEARNING_RATE,
-        optim="adamw_torch",
-        warmup_steps=WARMUP_STEPS,
-        weight_decay=WEIGHT_DECAY,
-        gradient_accumulation_steps=GRADIENT_ACCUMULATION_STEPS,
-        fp16=FP16,
-        save_steps=WARMUP_STEPS * 5,
-        logging_steps=WARMUP_STEPS,
-        eval_strategy="no",
-        report_to="no",
-        # eval_steps=WARMUP_STEPS,
-        save_total_limit=2,
-    )
+    args = config.getConfig()
 
-    optimizer = AdamW(model.parameters(), lr=args.learning_rate, weight_decay=WEIGHT_DECAY)
+    optimizer = AdamW(model.parameters(), lr=args.learning_rate, weight_decay=config.WEIGHT_DECAY)
     scheduler = get_cosine_schedule_with_warmup(
         optimizer,
         num_warmup_steps=args.warmup_steps, 
@@ -234,13 +249,13 @@ def train_model(model, tokenizer, dataset, push, isinst):
     except RuntimeError as e:
         print(f"Error processing test batch: {e}")
     
-    trainer = trl.SFTTrainer(
+    trainer = SFTTrainer(
         model=model,
         tokenizer=tokenizer,
         args=args,
         train_dataset=dataset,
         # dataset_text_field='text',
-        max_seq_length=MAX_SEQ_LENGTH,
+        max_seq_length=config.MAX_SEQ_LENGTH,
         optimizers=(optimizer, scheduler)
     )
     
@@ -250,7 +265,7 @@ def train_model(model, tokenizer, dataset, push, isinst):
     trained_tokenizer = trainer.tokenizer
     
     if push:
-        repo_id = OUTPUT_REPO + "-it" if INSTRUCT_FINETUNE_BOOL else OUTPUT_REPO
+        repo_id = config.OUTPUT_REPO + "-it" if config.INSTRUCT_FINETUNE_BOOL else config.OUTPUT_REPO
         msg = f"Training loss: {train.training_loss:.4f}"
         trained_model.push_to_hub(repo_id, commit_message=msg, force=True)
         trained_tokenizer.push_to_hub(repo_id, commit_message=msg, force=True)
@@ -258,12 +273,12 @@ def train_model(model, tokenizer, dataset, push, isinst):
         trained_model.save_pretrained("model")
         trained_tokenizer.save_pretrained("tokenizer")
 
-def main(push_to_hub=True, is_inst_finetune=False):
+def main(push_to_hub=True, is_inst_finetune=config.INSTRUCT_FINETUNE_BOOL):
     print("Loading Data..")
     dataset = load_data()
     print("Loaded data.")
     
-    if is_inst_finetune and INIT > 0:
+    if is_inst_finetune and config.INIT > 0:
         print("Loading Tokenizer..")
         tokenizer = load_tokenizer()
         print("Loaded Tokenizer.")
@@ -285,7 +300,7 @@ def main(push_to_hub=True, is_inst_finetune=False):
         configure_tokenizer(tokenizer)
         print("Added Tokens.")
     
-    if is_inst_finetune or INIT > 0:
+    if is_inst_finetune or config.INIT > 0:
         print("Loading Model..")
         model = load_model()
         print("Loaded Model.")
@@ -310,7 +325,7 @@ def main(push_to_hub=True, is_inst_finetune=False):
 
 if __name__ == "__main__":
     try:
-        main(PUSH_TO_HUB, INSTRUCT_FINETUNE_BOOL)
+        main()
     except Exception as e:
         print(f'{type(e).__name__}: {e}')
         Space().pause()

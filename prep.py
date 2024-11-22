@@ -91,7 +91,6 @@ def main():
     print("Saving Prepared Data..")
     save_prepared_data(dataset, tokenizer)
     print("Prepared data saved.")
-    raise FineError("Trained Model.")
 
 if __name__ == "__main__":
     try:

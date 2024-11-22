@@ -32,9 +32,4 @@ print('Cached Data.')"
 RUN --mount=type=cache,target=/root/.cache/datasetv \
 python -u prep.py
 
-FROM python:3.9
-
-WORKDIR /app
-COPY --chown=user . /app
-
 CMD ["python", "train.py"]

@@ -32,5 +32,6 @@ print('Cached Data.')"
 RUN --mount=type=cache,target=/root/.cache/datasetv \
 python -u prep.py
 
-USER root
+FROM python:3.9
+
 CMD ["python", "train.py"]

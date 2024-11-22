@@ -29,7 +29,7 @@ config = json.load(open('config.json')); \
 load_dataset(config['instruct-dataset'], split='train') if config['instruct-finetune-bool'] else load_dataset(config['input-dataset'], split='train'); \
 print('Cached Data.')"
 
-# RUN --mount=type=cache,target=/root/.cache/datasetv \
-# python -u prep.py
+RUN --mount=type=cache,target=/root/.cache/datasetv \
+python -u prep.py
 
-CMD ["python", "prep.py &&", "python", "train.py"]
+CMD ["python", "train.py"]

@@ -1,18 +1,14 @@
-import os
-from sys import exit
-import torch
 import trl
 from transformers import (
-    AutoTokenizer, LlamaConfig, AutoModelForCausalLM, LlamaForCausalLM,
-    PreTrainedTokenizerFast, AdamW, get_cosine_schedule_with_warmup
+    AutoTokenizer, LlamaConfig, LlamaForCausalLM,
+    PreTrainedTokenizerFast
 )
 from trl import SFTConfig, SFTTrainer
 from datasets import load_dataset, Dataset
 from tokenizers import ByteLevelBPETokenizer
 from huggingface_hub import HfApi
-from torch.utils.data import DataLoader
 from itertools import islice
-from typing import Optional
+
 from logging import getLogger, StreamHandler, INFO
 
 logger = getLogger(__name__)
@@ -132,7 +128,7 @@ def format_prompts(examples, tokenizer, is_instructional):
     return {'text': tokenizer.code(texts)}
 
 def create_model(tokenizer):
-    config = LlamaConfig(
+    model_config = LlamaConfig(
         vocab_size=tokenizer.vocab_size,
         hidden_size=config.FACTOR,
         intermediate_size=config.FACTOR * 4,
@@ -147,10 +143,9 @@ def create_model(tokenizer):
         eos_token_id=tokenizer.eos_token_id,
         tie_word_embeddings=False,
     )
-    return LlamaForCausalLM(config)
+    return LlamaForCausalLM(model_config)
 
 def train_model(model, tokenizer, dataset, push_to_hub, is_instructional):
-    config = 
     dataset = dataset.map(
         lambda examples: format_prompts(examples, tokenizer, is_instructional), 
         batched=True, 

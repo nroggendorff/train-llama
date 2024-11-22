@@ -15,7 +15,7 @@ def load_model(tokenizer):
     return model
 
 def create_model(tokenizer):
-    config = LlamaConfig(
+    model_config = LlamaConfig(
         vocab_size=tokenizer.vocab_size,
         hidden_size=config.FACTOR,
         intermediate_size=config.FACTOR * 4,
@@ -30,7 +30,7 @@ def create_model(tokenizer):
         eos_token_id=tokenizer.eos_token_id,
         tie_word_embeddings=False,
     )
-    return LlamaForCausalLM(config)
+    return LlamaForCausalLM(model_config)
 
 def train_model(model, tokenizer, dataset, push):
     args = config.getConfig()

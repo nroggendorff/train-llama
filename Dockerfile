@@ -32,4 +32,6 @@ print('Cached Data.')"
 RUN --mount=type=cache,target=/root/.cache/datasetv \
 python -u prep.py
 
+RUN CHMOD 777 /app
+
 CMD ["python", "train.py"]

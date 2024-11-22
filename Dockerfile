@@ -3,7 +3,6 @@ FROM bitnami/deepspeed:latest
 
 USER root
 RUN useradd -m -u 1000 user
-# USER user
 ENV PATH="/home/user/.local/bin:$PATH"
 
 COPY --chown=user ./requirements.txt requirements.txt
@@ -18,6 +17,8 @@ RUN touch __init__.py
 RUN [ -f configlib ] && mv configlib config.py || true && \
     [ -f util ] && mv util util.py || true && \
     [ -f config ] && mv config config.json || true
+
+USER user
 
 RUN --mount=type=secret,id=HF_TOKEN,mode=0444,required=true \
 python util.py $(cat /run/secrets/HF_TOKEN)

@@ -1,5 +1,5 @@
 {
-  "batch-size": 32,
+  "batch-size": 8,
   "epochs": 3,
   "learning-rate": 2e-4,
   "max-seq-length": 512,

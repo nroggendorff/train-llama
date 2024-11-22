@@ -1,3 +1,4 @@
+import os
 from huggingface_hub import HfApi
 
 class FineError(Exception):
@@ -8,4 +9,4 @@ class FineError(Exception):
 class Space:
     def __init__(self):
         self.api = HfApi()
-        self.pause = lambda: self.api.pause_space("nroggendorff/train-llama")
+        self.pause = lambda: self.api.pause_space(os.getenv('SPACE_REPO_NAME'))

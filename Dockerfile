@@ -14,6 +14,7 @@ pip install -U --no-cache-dir -r requirements.txt
 WORKDIR /app
 
 COPY --chown=user . /app
+RUN chown -R user:user /app
 
 RUN touch __init__.py
 RUN [ -f configlib ] && mv configlib config.py || true && \

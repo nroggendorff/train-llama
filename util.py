@@ -1,5 +1,6 @@
 import os
 from huggingface_hub import HfApi
+import sys
 
 class FineError(Exception):
     def __init__(self, message="Script execution has completed."):
@@ -10,4 +11,10 @@ class Space:
     def __init__(self):
         self.api = HfApi()
         self.pause = lambda: self.api.pause_space(os.getenv('SPACE_REPO_NAME'))
-        os.environ["HF_TOKEN"] = open('/run/secrets/HF_TOKEN').read()
+
+    @staticmethod
+    def set_token():
+        os.environ['HF_TOKEN'] = sys.argv[1]
+
+if __name__ == "__main__":
+    Space.set_token()

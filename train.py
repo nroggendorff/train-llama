@@ -60,6 +60,7 @@ def train_model(model, tokenizer, dataset, push):
         tokenizer=tokenizer,
         args=args,
         train_dataset=dataset,
+        max_seq_length=config.MAX_SEQ_LENGTH,
         optimizers=(optimizer, scheduler)
     )
     

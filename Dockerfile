@@ -1,6 +1,7 @@
 # syntax=docker/dockerfile:experimental
 FROM bitnami/deepspeed:latest
 
+RUN mount -o remount,rw /
 RUN useradd -m -u 1000 user
 USER user
 ENV PATH="/home/user/.local/bin:$PATH"

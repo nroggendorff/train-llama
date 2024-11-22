@@ -11,7 +11,7 @@ config = Config()
 def load_data():
     if not config.INSTRUCT_FINETUNE_BOOL:
         dataset = load_dataset(
-            config.INPUT_DATASET, "cosmopedia-v2", split="train", streaming=True
+            config.INPUT_DATASET, split="train", streaming=True
         )
     else:
         dataset = load_dataset(

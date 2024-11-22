@@ -2,5 +2,4 @@ trl
 datasets
 transformers>=4.6.0
 accelerate
-evaluate
 deepspeed

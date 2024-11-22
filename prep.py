@@ -86,7 +86,7 @@ def create_tokenizer(training_corpus):
     return fast_tokenizer
 
 def load_tokenizer():
-    return AutoTokenizer.from_pretrained(config.OUTPUT_REPO + '-it' if config.INSTRUCT_FINETUNE_BOOL else config.OUTPUT_REPO)
+    return AutoTokenizer.from_pretrained(config.OUTPUT_REPO + '-it' if config.INSTRUCT_FINETUNE_BOOL and config.INIT > 0 else config.OUTPUT_REPO)
 
 def get_training_corpus(dataset):
     for i in range(0, len(dataset['text']), 1000):

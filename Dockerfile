@@ -2,7 +2,7 @@
 FROM python:3.9
 
 COPY ./requirements.txt requirements.txt
-RUN --mount=type=cache,target=/root/.cache/pip pip install -U --no-cache-dir -r requirements.txt
+RUN --mount=type=cache,target=/root/.cache/pip pip install -U -r requirements.txt
 
 RUN useradd -m -u 1000 user
 USER user
@@ -17,16 +17,11 @@ RUN [ -f configlib ] && mv configlib config.py || true && \
     [ -f util ] && mv util util.py || true && \
     [ -f config ] && mv config config.json || true
 
-RUN python -c "try: \
+RUN python -c "print('Caching datasets..') \
 import json; \
 from datasets import load_dataset; \
 config = json.load(open('config.json')); \
-load_dataset(config['input-dataset'], split='train'); \
-load_dataset(config['instruct-dataset'], split='train'); \
-except Exception as e: \
-import util; \
-print(f'{type(e).__name__}: {e}'); \
-util.Space().pause()"
+load_dataset(config['instruct-dataset'], split='train') if config['instruct-finetune-bool'] else load_dataset(config['input-dataset'], split='train')"
 
 RUN python -u prep.py
 

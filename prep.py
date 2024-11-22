@@ -4,19 +4,28 @@ from datasets import load_dataset, Dataset
 from tokenizers import ByteLevelBPETokenizer
 from transformers import PreTrainedTokenizerFast, AutoTokenizer
 from config import Config
+from util import *
 
 config = Config()
 
 def load_data():
     if not config.INSTRUCT_FINETUNE_BOOL:
-        dataset = load_dataset(config.INPUT_DATASET, "cosmopedia-v2", split="train", streaming=True)
+        dataset = load_dataset(
+            config.INPUT_DATASET, "cosmopedia-v2", split="train", streaming=True
+        )
     else:
-        dataset = load_dataset(config.INSTRUCT_DATASET, split="train", streaming=True)
+        dataset = load_dataset(
+            config.INSTRUCT_DATASET, split="train", streaming=True
+        )
 
     start = config.INIT * config.SHARD_SIZE
-    data_list = list(islice(dataset, start, start + config.SHARD_SIZE))
-    
-    dataset = Dataset.from_dict({'text': [example['text'] for example in data_list]})
+    end = start + config.SHARD_SIZE
+
+    data_generator = (
+        example["text"] for i, example in enumerate(dataset) if start <= i < end
+    )
+
+    dataset = Dataset.from_dict({"text": list(data_generator)})
     return dataset
 
 def create_tokenizer(training_corpus):
@@ -82,9 +91,11 @@ def main():
     print("Saving Prepared Data..")
     save_prepared_data(dataset, tokenizer)
     print("Prepared data saved.")
+    raise FineError("Trained Model.")
 
 if __name__ == "__main__":
     try:
         main()
     except Exception as e:
         print(f'{type(e).__name__}: {e}')
+        Space().pause()

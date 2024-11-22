@@ -1,12 +1,11 @@
 # syntax=docker/dockerfile:experimental
-
 FROM python:3.9
+
+RUN apt update && apt install jq
 
 RUN useradd -m -u 1000 user
 USER user
 ENV PATH="/home/user/.local/bin:$PATH"
-
-RUN apt update && apt install jq
 
 WORKDIR /app
 COPY --chown=user ./requirements.txt requirements.txt

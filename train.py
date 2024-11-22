@@ -1,5 +1,7 @@
 import torch
-from transformers import AutoModelForCausalLM, AdamW, get_cosine_schedule_with_warmup, AutoTokenizer
+from transformers import (
+    AdamW, get_cosine_schedule_with_warmup, AutoTokenizer, LlamaForCausalLM, LlamaConfig
+)
 from trl import SFTTrainer
 from datasets import load_from_disk
 from config import Config
@@ -8,7 +10,7 @@ from util import *
 config = Config()
 
 def load_model(tokenizer):
-    model = AutoModelForCausalLM.from_pretrained(config.OUTPUT_REPO + '-it' if config.INSTRUCT_FINETUNE_BOOL else config.OUTPUT_REPO)
+    model = LlamaForCausalLM.from_pretrained(config.OUTPUT_REPO + '-it' if config.INSTRUCT_FINETUNE_BOOL else config.OUTPUT_REPO)
     model.resize_token_embeddings(len(tokenizer))
     return model
 

@@ -13,6 +13,6 @@ COPY --chown=user . /app
 RUN touch __init__.py
 RUN mv config config.py
 
-RUN python -v prep.py
+RUN python -u prep.py
 
 CMD ["python", "train.py"]

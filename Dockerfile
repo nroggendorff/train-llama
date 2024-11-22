@@ -8,7 +8,7 @@ ENV PATH="/home/user/.local/bin:$PATH"
 
 COPY --chown=user ./requirements.txt requirements.txt
 RUN --mount=type=cache,target=/root/.cache/pip \
-pip install -U --no-cache-dir -r requirements.txt
+pip install --user -U --no-cache-dir -r requirements.txt
 
 WORKDIR /app
 

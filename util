@@ -1,0 +1,11 @@
+from huggingface_hub import HfApi
+
+class FineError(Exception):
+    def __init__(self, message="Script execution has completed."):
+        self.message = message
+        super().__init__(self.message)
+
+class Space:
+    def __init__(self):
+        self.api = HfApi()
+        self.pause = lambda: self.api.pause_space("nroggendorff/train-llama")

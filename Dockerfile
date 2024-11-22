@@ -17,14 +17,15 @@ RUN [ -f configlib ] && mv configlib config.py || true && \
     [ -f util ] && mv util util.py || true && \
     [ -f config ] && mv config config.json || true
 
-ENV HF_TOKEN $(cat /run/secrets/HF_TOKEN)
-
-RUN python -c "\
+RUN python -c "try: \
 import json; \
 from datasets import load_dataset; \
 config = json.load(open('config.json')); \
 load_dataset(config['input-dataset'], split='train'); \
-load_dataset(config['instruct-dataset'], split='train')"
+load_dataset(config['instruct-dataset'], split='train'); \
+except: \
+import util; \
+util.Space().pause()"
 
 RUN python -u prep.py
 

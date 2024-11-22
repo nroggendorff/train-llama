@@ -295,7 +295,7 @@ def main(push_to_hub=True, is_inst_finetune=config.INSTRUCT_FINETUNE_BOOL):
         # num_new_tokens = update_tokenizer(tokenizer, dataset)
         # print(f"Added {num_new_tokens} new tokens to the vocabulary")
 
-    if INIT == 0:
+    if config.INIT == 0:
         print("Adding Special Tokens..")
         configure_tokenizer(tokenizer)
         print("Added Tokens.")

@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:experimental
-FROM python:3.9
+FROM bitnami/deepspeed:latest
 
 RUN useradd -m -u 1000 user
 USER user

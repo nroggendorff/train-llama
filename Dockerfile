@@ -32,6 +32,5 @@ print('Cached Data.')"
 RUN --mount=type=cache,target=/root/.cache/datasetv \
 python -u prep.py
 
-RUN /bin/chmod 777 /app
-
+USER root
 CMD ["python", "train.py"]

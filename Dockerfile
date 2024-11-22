@@ -3,12 +3,12 @@ FROM bitnami/deepspeed:latest
 
 USER root
 RUN useradd -m -u 1000 user
-USER user
+# USER user
 ENV PATH="/home/user/.local/bin:$PATH"
 
 COPY --chown=user ./requirements.txt requirements.txt
 RUN --mount=type=cache,target=/root/.cache/pip \
-pip install --user -U --no-cache-dir -r requirements.txt
+pip install -U --no-cache-dir -r requirements.txt
 
 WORKDIR /app
 

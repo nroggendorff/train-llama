@@ -53,7 +53,7 @@ def main(push_to_hub=True):
 
     print("Training Model..")
     train_model(model, tokenizer, dataset, push_to_hub)
-    raise FineError("Trained Model.")
+    raise Conclusion("Trained Model.")
 
 if __name__ == "__main__":
     try:

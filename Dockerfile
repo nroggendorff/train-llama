@@ -5,6 +5,10 @@ RUN useradd -m -u 1000 user
 USER user
 ENV PATH="/home/user/.local/bin:$PATH"
 
+RUN which nvcc
+
+ENV CUDA_HOME="/usr/"
+
 COPY --chown=user ./requirements.txt requirements.txt
 RUN --mount=type=cache,target=/root/.cache/pip \
 pip install -U --no-cache-dir -r requirements.txt

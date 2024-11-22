@@ -5,7 +5,7 @@ RUN useradd -m -u 1000 user
 USER user
 ENV PATH="/home/user/.local/bin:$PATH"
 
-RUN which nvcc
+RUN nvcc --version
 
 ENV CUDA_HOME="/usr/"
 

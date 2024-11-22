@@ -26,14 +26,13 @@ USER user
 RUN --mount=type=secret,id=HF_TOKEN,mode=0444,required=true \
 python util.py $(cat /run/secrets/HF_TOKEN)
 
-RUN --mount=type=cache,target=/root/.cache/dataset python -c "print('Caching Data..'); \
+RUN python -c "print('Caching Data..'); \
 import json; \
 from datasets import load_dataset; \
 config = json.load(open('config.json')); \
 load_dataset(config['instruct-dataset'], split='train') if config['instruct-finetune-bool'] else load_dataset(config['input-dataset'], split='train'); \
 print('Cached Data.')"
 
-RUN --mount=type=cache,target=/root/.cache/datasetv \
-python -u prep.py
+RUN python -u prep.py
 
 CMD ["python", "train.py"]

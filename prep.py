@@ -139,6 +139,10 @@ def main():
     configure_tokenizer(tokenizer)
     print("Added Tokens.")
 
+    print("Mapping Data..")
+    dataset = dataset.map(lambda examples: format_prompts(examples, tokenizer, config.INSTRUCT_FINETUNE_BOOL), batched=True, remove_columns=dataset.column_names)
+    print("Mapped Data.")
+
     print("Saving Prepared Data..")
     save_prepared_data(dataset, tokenizer)
     print("Prepared data saved.")

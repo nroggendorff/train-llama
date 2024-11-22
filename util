@@ -10,3 +10,4 @@ class Space:
     def __init__(self):
         self.api = HfApi()
         self.pause = lambda: self.api.pause_space(os.getenv('SPACE_REPO_NAME'))
+        os.environ["HF_TOKEN"] = open('/run/secrets/HF_TOKEN').read()

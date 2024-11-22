@@ -18,8 +18,8 @@ def train_model(model, tokenizer, dataset, push):
     optimizer = AdamW(model.parameters(), lr=args.learning_rate, weight_decay=config.WEIGHT_DECAY)
     scheduler = get_cosine_schedule_with_warmup(
         optimizer,
-        num_warmup_steps=args.warmup_steps, 
-        num_training_steps=args.num_training_steps
+        num_warmup_steps=args.warmup_steps,
+        num_training_steps=config.TOTAL_STEPS
     )
     
     trainer = SFTTrainer(

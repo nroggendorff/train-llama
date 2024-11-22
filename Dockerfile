@@ -17,7 +17,7 @@ RUN [ -f configlib ] && mv configlib config.py || true && \
     [ -f util ] && mv util util.py || true && \
     [ -f config ] && mv config config.json || true
 
-RUN python -c "print('Caching datasets..') \
+RUN python -c "print('Caching datasets..'); \
 import json; \
 from datasets import load_dataset; \
 config = json.load(open('config.json')); \

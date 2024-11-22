@@ -36,7 +36,7 @@ class Config:
         self.INSTRUCT_FINETUNE_BOOL = False
     
         # Training steps and warmup
-        self.FACTOR = 12 ** 3 // 3
+        self.FACTOR = 12 ** 3 // 2
         self.TOTAL_STEPS = (self.SHARD_SIZE * self.EPOCHS) // (self.BATCH_SIZE * self.GRADIENT_ACCUMULATION_STEPS)
         self.WARMUP_STEPS = int(self.TOTAL_STEPS * 0.1)
     
@@ -160,11 +160,11 @@ def create_model(tokenizer):
         vocab_size=tokenizer.vocab_size,
         hidden_size=config.FACTOR,
         intermediate_size=config.FACTOR * 4,
-        num_hidden_layers=12,
-        num_attention_heads=12,
+        num_hidden_layers=config.FACTOR // 2 ** 4,
+        num_attention_heads=config.FACTOR // 2 ** 5,
         max_position_embeddings=config.MAX_SEQ_LENGTH,
         rms_norm_eps=1e-5,
-        initializer_range=0.02,
+        initializer_range=2e-2,
         use_cache=True,
         pad_token_id=tokenizer.pad_token_id,
         bos_token_id=tokenizer.bos_token_id,

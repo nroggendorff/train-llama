@@ -13,7 +13,7 @@ COPY --chown=user . /app
 RUN touch __init__.py
 RUN mv configlib config.py && mv util util.py && mv config config.json
 
-ARG HF_TOKEN
+ENV HF_TOKEN $(cat /run/secrets/HF_TOKEN)
 
 RUN python -u prep.py
 

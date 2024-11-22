@@ -34,4 +34,7 @@ python -u prep.py
 
 FROM python:3.9
 
+WORKDIR /app
+COPY --chown=user . /app
+
 CMD ["python", "train.py"]

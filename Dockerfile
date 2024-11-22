@@ -13,6 +13,8 @@ COPY --chown=user . /app
 RUN touch __init__.py
 RUN mv configlib config.py && mv util util.py && mv config config.json
 
+ARG HF_TOKEN
+
 RUN python -u prep.py
 
 CMD ["python", "train.py"]

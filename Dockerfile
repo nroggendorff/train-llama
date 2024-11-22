@@ -1,8 +1,6 @@
 # syntax=docker/dockerfile:experimental
 FROM python:3.9
 
-RUN apt update && apt install -y jq
-
 RUN useradd -m -u 1000 user
 USER user
 ENV PATH="/home/user/.local/bin:$PATH"
@@ -20,7 +18,12 @@ RUN [ -f configlib ] && mv configlib config.py || true && \
 
 ENV HF_TOKEN $(cat /run/secrets/HF_TOKEN)
 
-RUN printf "from datasets import load_dataset\nload_dataset('$(jq '.input-dataset' config.json)', split='train')\nload_dataset('$(jq '.instruct-dataset' config.json)', split='train')" | python
+RUN python -c "\
+import json; \
+from datasets import load_dataset; \
+config = json.load(open('config.json')); \
+load_dataset(config['input-dataset'], split='train'); \
+load_dataset(config['instruct-dataset'], split='train')"
 
 RUN python -u prep.py
 

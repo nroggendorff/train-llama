@@ -89,8 +89,14 @@ def load_tokenizer():
     return AutoTokenizer.from_pretrained(config.OUTPUT_REPO + '-it' if config.INSTRUCT_FINETUNE_BOOL and config.INIT > 0 else config.OUTPUT_REPO)
 
 def get_training_corpus(dataset):
-    for i in range(0, len(dataset['text']), 1000):
-        yield dataset['text'][i : i + 1000]
+    buffer = []
+    for i, text in enumerate(dataset):
+        buffer.append(text["text"])
+        if (i + 1) % 1000 == 0:
+            yield buffer
+            buffer = []
+    if buffer:
+        yield buffer
 
 def configure_tokenizer(tokenizer):
     special_tokens = {
@@ -114,10 +120,6 @@ def configure_tokenizer(tokenizer):
 
     tokenizer.code = lambda example: encode_decode(example, tokenizer)
 
-def save_prepared_data(dataset, tokenizer):
-    dataset.save_to_disk("prepared_dataset")
-    tokenizer.save_pretrained("prepared_tokenizer")
-
 def main():
     print("Loading Data..")
     dataset = load_data()
@@ -140,7 +142,8 @@ def main():
     print("Mapped Data.")
 
     print("Saving Prepared Data..")
-    save_prepared_data(dataset, tokenizer)
+    dataset.save_to_disk("prepared_dataset")
+    tokenizer.save_pretrained("prepared_tokenizer")
     print("Prepared data saved.")
 
 if __name__ == "__main__":

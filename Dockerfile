@@ -1,8 +1,6 @@
 # syntax=docker/dockerfile:experimental
 FROM python:3.9
 
-RUN apt update && apt install -y nvidia-cuda-toolkit
-
 RUN useradd -m -u 1000 user
 USER user
 ENV PATH="/home/user/.local/bin:$PATH"

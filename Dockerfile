@@ -21,8 +21,7 @@ RUN [ -f configlib ] && mv configlib config.py || true && \
 RUN --mount=type=secret,id=HF_TOKEN,mode=0444,required=true \
 python util.py $(cat /run/secrets/HF_TOKEN)
 
-RUN --mount=type=cache,target=/root/.cache/dataset \
-python -c " \
+RUN --mount=type=cache,target=/root/.cache/dataset python -c " \
 import json; \
 from datasets import load_dataset; \
 config = json.load(open('config.json')); \

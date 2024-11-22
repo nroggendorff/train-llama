@@ -6,7 +6,7 @@ RUN useradd -m -u 1000 user
 USER user
 ENV PATH="/home/user/.local/bin:$PATH"
 
-RUN sudo apt update && sudo apt install jq
+RUN apt update && apt install jq
 
 WORKDIR /app
 COPY --chown=user ./requirements.txt requirements.txt

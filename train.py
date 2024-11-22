@@ -3,13 +3,9 @@ from transformers import AutoModelForCausalLM, AdamW, get_cosine_schedule_with_w
 from trl import SFTTrainer
 from datasets import load_from_disk
 from config import Config
+from util import *
 
 config = Config()
-
-class FineError(Exception):
-    def __init__(self, message="Script execution has completed."):
-        self.message = message
-        super().__init__(self.message)
 
 def load_model(tokenizer):
     model = AutoModelForCausalLM.from_pretrained(config.OUTPUT_REPO + '-it' if config.INSTRUCT_FINETUNE_BOOL else config.OUTPUT_REPO)
@@ -64,3 +60,4 @@ if __name__ == "__main__":
         main()
     except Exception as e:
         print(f'{type(e).__name__}: {e}')
+        Space().pause()

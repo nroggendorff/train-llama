@@ -23,8 +23,9 @@ from datasets import load_dataset; \
 config = json.load(open('config.json')); \
 load_dataset(config['input-dataset'], split='train'); \
 load_dataset(config['instruct-dataset'], split='train'); \
-except: \
+except Exception as e: \
 import util; \
+print(f'{type(e).__name__}: {e}'); \
 util.Space().pause()"
 
 RUN python -u prep.py

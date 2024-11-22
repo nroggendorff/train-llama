@@ -7,7 +7,7 @@
   "fp16": true,
   "weight-decay": 1e-2,
   "gradient-accumulation-steps": 4,
-  "input-dataset": "nroggendorff/doug",
+  "input-dataset": "nroggendorff/corpus",
   "instruct-dataset": "nroggendorff/elephant",
   "shard-size": 200,
   "output-repo": "nroggendorff/smallama",

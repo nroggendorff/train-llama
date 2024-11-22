@@ -127,9 +127,9 @@ def main():
     training_corpus = get_training_corpus(dataset)
     print("Made Corpus.")
 
-    print("Making Tokenizer..")
+    print("Getting Tokenizer..")
     tokenizer = load_tokenizer() if config.INSTRUCT_FINETUNE_BOOL or config.INIT > 0 else create_tokenizer(training_corpus)
-    print(f"Made Tokenizer with size {len(tokenizer)}.")
+    print(f"Got Tokenizer with size {len(tokenizer)}.")
 
     print("Adding Special Tokens..")
     configure_tokenizer(tokenizer)

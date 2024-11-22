@@ -21,11 +21,12 @@ RUN [ -f configlib ] && mv configlib config.py || true && \
 RUN --mount=type=secret,id=HF_TOKEN,mode=0444,required=true \
 python util.py $(cat /run/secrets/HF_TOKEN)
 
-# RUN python -c " \
-# import json; \
-# from datasets import load_dataset; \
-# config = json.load(open('config.json')); \
-# load_dataset(config['instruct-dataset'], split='train') if config['instruct-finetune-bool'] else load_dataset(config['input-dataset'], split='train')"
+RUN --mount=type=cache,target=/root/.cache/dataset \
+python -c " \
+import json; \
+from datasets import load_dataset; \
+config = json.load(open('config.json')); \
+load_dataset(config['instruct-dataset'], split='train') if config['instruct-finetune-bool'] else load_dataset(config['input-dataset'], split='train')"
 
 RUN python -u prep.py
 

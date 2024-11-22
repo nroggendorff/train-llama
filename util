@@ -2,7 +2,7 @@ import os
 from huggingface_hub import HfApi
 import sys
 
-class FineError(Exception):
+class Conclusion(Exception):
     def __init__(self, message="Script execution has completed."):
         self.message = message
         super().__init__(self.message)

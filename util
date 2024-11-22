@@ -10,7 +10,7 @@ class FineError(Exception):
 class Space:
     def __init__(self):
         self.api = HfApi()
-        self.pause = lambda: self.api.pause_space(os.getenv('SPACE_REPO_NAME'))
+        self.pause = lambda: self.api.pause_space(f'{os.getenv('SPACE_AUTHOR_NAME')}/{os.getenv('SPACE_REPO_NAME')}')
 
     @staticmethod
     def set_token():

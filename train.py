@@ -10,7 +10,7 @@ from util import *
 config = Config()
 
 def load_model(tokenizer):
-    model = LlamaForCausalLM.from_pretrained(config.OUTPUT_REPO + '-it' if config.INSTRUCT_FINETUNE_BOOL else config.OUTPUT_REPO)
+    model = LlamaForCausalLM.from_pretrained(config.OUTPUT_REPO + '-it' if config.INSTRUCT_FINETUNE_BOOL and config.INIT > 0 else config.OUTPUT_REPO)
     model.resize_token_embeddings(len(tokenizer))
     return model
 

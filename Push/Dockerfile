@@ -1,8 +1,8 @@
-FROM alpine:latest
+FROM docker
 
 USER root
 
-RUN apk add --no-cache git bash docker-cli
+RUN apk add --no-cache git bash
 
 ARG REPO_URL=https://github.com/nroggendorff/train-llama.git
 

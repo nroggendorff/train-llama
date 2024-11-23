@@ -30,10 +30,11 @@ RUN python -c "print('Caching Data..'); \
     import json; \
     from datasets import load_dataset; \
     config = json.load(open('config.json')); \
-    load_dataset(config['instruct-dataset'], split='train') if config['instruct-finetune-bool'] else load_dataset(config['input-dataset'], split='test'); \
+    load_dataset(config['instruct-dataset'], split='train') if config['instruct-finetune-bool'] else \
+    load_dataset(config['input-dataset'], split='train'); \
     print('Cached Data.')"
 
-CMD ["echo", "Built container, the following should be run on GPU.", "Rebuild image when swapping to instruct to fix cache."]
+CMD ["echo", "Built container, the following should be run on GPU."]
 
 # RUN python -u prep.py
 

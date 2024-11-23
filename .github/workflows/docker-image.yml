@@ -2,9 +2,9 @@ name: Train Llama
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
   build:
@@ -24,7 +24,10 @@ jobs:
 
       - name: Build and tag the Docker image
         run: |
-          docker build . -f Dockerfile -t nroggendorff/train-llama:latest
+          docker build . \
+            -f Dockerfile \
+            --build-arg HF_TOKEN=${HF_TOKEN} \
+            -t nroggendorff/train-llama:latest
 
       - name: Push the Docker image
         run: |

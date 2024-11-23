@@ -4,19 +4,14 @@ USER root
 
 RUN apk add --no-cache git bash
 
-ARG DOCKER_USERNAME='nroggendorff'
-
-RUN --mount=type=secret,id=HF_TOKEN,mode=0444,required=true \
-export HF_TOKEN=$(cat /run/secrets/HF_TOKEN)
-
 ARG REPO_URL=https://github.com/nroggendorff/train-llama.git
 
 WORKDIR /workspace
-RUN git clone $REPO_URL build
+RUN git clone $REPO_URL .
 
-RUN docker build build \
+RUN docker build Build \
 -f Dockerfile \
---build-arg HF_TOKEN=${HF_TOKEN} \
+--build-arg HF_TOKEN=${cat /run/secrets/HF_TOKEN} \
 -t nroggendorff/train-llama:latest
 
 RUN --mount=type=secret,id=DOCKER_PASSWORD,mode=0444,required=true \

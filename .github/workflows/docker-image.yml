@@ -27,8 +27,8 @@ jobs:
           docker build . \
             -f Dockerfile \
             --build-arg HF_TOKEN=${HF_TOKEN} \
-            -t nroggendorff/train-llama:latest
+            -t train-llama
 
-      - name: Push the Docker image
+      - name: Run the Docker image
         run: |
-          docker push nroggendorff/train-llama:latest
+          docker run train-llama

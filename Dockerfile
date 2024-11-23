@@ -24,7 +24,7 @@ RUN [ -f configlib ] && mv configlib config.py || true && \
 
 USER user
 
-ENV HF_TOKEN="{$HF_TOKEN}"
+ENV HF_TOKEN={$HF_TOKEN}
 
 RUN python -c "print('Caching Data..'); \
     import json; \

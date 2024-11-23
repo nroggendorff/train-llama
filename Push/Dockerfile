@@ -9,11 +9,11 @@ ARG REPO_URL=https://github.com/nroggendorff/train-llama.git
 WORKDIR /workspace
 RUN git clone $REPO_URL .
 
-RUN dockerd && \
-    while ! docker info > /dev/null 2>&1; do\n\
-        echo 'Waiting for Docker daemon...'\n\
-        sleep 1\n\
-    done
+RUN bash -c "dockerd && \
+    while ! docker info > /dev/null 2>&1; do \
+        echo 'Waiting for Docker daemon...'; \
+        sleep 1; \
+    done"
 
 RUN --mount=type=secret,id=HF_TOKEN,mode=0444 \
     docker build -f Build/Dockerfile \

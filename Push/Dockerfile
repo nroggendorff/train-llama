@@ -9,8 +9,8 @@ ARG REPO_URL=https://github.com/nroggendorff/train-llama.git
 WORKDIR /workspace
 RUN git clone $REPO_URL .
 
-RUN docker build Build \
-    -f Dockerfile \
+RUN --mount=type=secret,id=HF_TOKEN,mode=0444 \
+    docker build -f Build/Dockerfile \
     --build-arg HF_TOKEN=$(cat /run/secrets/HF_TOKEN) \
     -t nroggendorff/train-llama:latest .
 

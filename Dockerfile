@@ -22,8 +22,6 @@ RUN [ -f configlib ] && mv configlib config.py || true && \
     [ -f util ] && mv util util.py || true && \
     [ -f config ] && mv config config.json || true
 
-RUN rm -rf /opt/hostedtoolcache
-
 USER user
 
 ENV HF_TOKEN="{$HF_TOKEN}"

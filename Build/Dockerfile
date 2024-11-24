@@ -8,7 +8,6 @@ ENV PATH="/home/user/.local/bin:$PATH"
 ENV HF_HOME="/home/user/.cache/huggingface"
 ENV TOKENIZERS_PARALLELISM=false
 
-COPY --chown=user ./requirements.txt requirements.txt
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install -U --no-cache-dir -r requirements.txt
 

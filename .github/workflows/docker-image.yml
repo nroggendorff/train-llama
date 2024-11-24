@@ -3,8 +3,6 @@ name: Train Llama
 on:
   push:
     branches: ["main"]
-  pull_request:
-    branches: ["main"]
 
 jobs:
   build:
@@ -19,10 +17,10 @@ jobs:
       - name: Install huggingface
         run: |
           pip install huggingface-hub
-      
-      - name: Send the build image
-        run: |
-          python push.py
+
+      # - name: Send the build image
+      #   run: |
+      #     python push.py
 
       - name: Send the run image
         run: |

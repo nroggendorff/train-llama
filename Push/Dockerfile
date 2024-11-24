@@ -11,7 +11,7 @@ RUN git clone $REPO_URL .
 RUN bash -c "dockerd & \
     while ! docker info > /dev/null 2>&1; do \
         echo 'Waiting for Docker daemon in rootless mode...'; \
-        sleep 1; \
+        sleep 2; \
     done"
 
 RUN --mount=type=secret,id=HF_TOKEN,mode=0444 \

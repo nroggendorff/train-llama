@@ -9,6 +9,7 @@ ENV HF_HOME="/home/user/.cache/huggingface"
 ENV TOKENIZERS_PARALLELISM=false
 
 WORKDIR /app
+RUN apt update && apt install -y jq
 
 COPY --chown=user . /app
 RUN chown -R user:user /app

@@ -21,20 +21,20 @@ RUN [ -f configlib ] && mv configlib config.py || true && \
     [ -f util ] && mv util util.py || true && \
     [ -f config ] && mv config config.json || true
 
-USER user
+# -- to be used if you have enough storage --
 
-ENV HF_TOKEN={$HF_TOKEN}
+# USER user
 
-RUN python -c "print('Caching Data..'); \
-    import json; \
-    from datasets import load_dataset; \
-    config = json.load(open('config.json')); \
-    load_dataset(config['instruct-dataset'], split='train') if config['instruct-finetune-bool'] else \
-    load_dataset(config['input-dataset'], split='train'); \
-    print('Cached Data.')"
+# ENV HF_TOKEN={$HF_TOKEN}
+
+# RUN python -c "print('Caching Data..'); \
+#     import json; \
+#     from datasets import load_dataset; \
+#     config = json.load(open('config.json')); \
+#     load_dataset(config['instruct-dataset'], split='train'); \
+#     load_dataset(config['input-dataset'], split='train'); \
+#     print('Cached Data.')"
+
+# -------------------------------------------
 
 CMD ["echo", "Built container, the following should be run on GPU."]
-
-# RUN python -u prep.py
-
-# CMD ["python", "train.py"]

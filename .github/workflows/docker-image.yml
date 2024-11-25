@@ -14,13 +14,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: nroggendorff
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and tag the Docker image
+        run: |
+          docker buildx build . \
+            -f Build/Dockerfile \
+            --build-arg HF_TOKEN=${HF_TOKEN} \
+            -t nroggendorff/train-llama:latest
+
+      - name: Push the Docker image
+        run: |
+          docker push nroggendorff/train-llama:latest
+
       - name: Install huggingface
         run: |
           pip install huggingface-hub
-
-      # - name: Send the build image
-      #   run: |
-      #     python push.py
 
       - name: Send the run image
         run: |

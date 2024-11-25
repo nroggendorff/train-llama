@@ -17,9 +17,9 @@ pr_id = api.upload_folder(
 lastpr = pr_id - 1
 
 for _ in range(5):
-    item_deets = api.get_discussion_details(repo_id, pr_id, repo_type='space')
+    item_deets = api.get_discussion_details(repo_id, lastpr, repo_type='space')
     if item_deets.title == comment and item_deets.status == "open":
-        api.change_discussion_status(repo_id, pr_id, 'closed', repo_type='space')
+        api.change_discussion_status(repo_id, lastpr, 'closed', repo_type='space')
         break
     else:
         lastpr -= 1

@@ -5,7 +5,7 @@ USER root
 ARG CONFIG="config.json"
 
 RUN tmp=$(mktemp) && \
-    jq '.init = 1' "${CONFIG}" > "$tmp" && \
+    jq '.init = 0' "${CONFIG}" > "$tmp" && \
     mv "$tmp" "${CONFIG}"
 
 RUN python -u prep.py

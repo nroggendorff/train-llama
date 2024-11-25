@@ -12,8 +12,14 @@ pr_id = api.upload_folder(
     repo_type="space",
     create_pr=True,
     commit_message=comment
-).pr_num - 1
+).pr_num
 
-isnt_v = api.get_discussion_details(repo_id, pr_id, repo_type='space').title == comment
+lastpr = pr_id - 1
 
-api.change_discussion_status(repo_id, pr_id, 'closed', repo_type='space')
+for _ in range(5):
+    item_deets = api.get_discussion_details(repo_id, pr_id, repo_type='space')
+    if item_deets.title == comment and item_deets.status == "open":
+        api.change_discussion_status(repo_id, pr_id, 'closed', repo_type='space')
+        break
+    else:
+        lastpr -= 1

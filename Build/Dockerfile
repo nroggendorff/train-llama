@@ -8,13 +8,13 @@ ENV PATH="/home/user/.local/bin:$PATH"
 ENV HF_HOME="/home/user/.cache/huggingface"
 ENV TOKENIZERS_PARALLELISM=false
 
-RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install -U --no-cache-dir -r requirements.txt
-
 WORKDIR /app
 
 COPY --chown=user . /app
 RUN chown -R user:user /app
+
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install -U --no-cache-dir -r requirements.txt
 
 RUN touch __init__.py
 RUN [ -f configlib ] && mv configlib config.py || true && \

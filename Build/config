@@ -14,5 +14,5 @@
   "push-to-hub": true,
   "instruct-finetune-bool": false,
   "factor": 864,
-  "init": 1
+  "init": 0
 }

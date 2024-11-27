@@ -11,7 +11,6 @@ pr_id = api.upload_folder(
     repo_id=repo_id,
     repo_type="space",
     create_pr=True,
-    force=True,
     commit_message=comment
 ).pr_num
 

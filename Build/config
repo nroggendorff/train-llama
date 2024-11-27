@@ -1,18 +1,18 @@
 {
   "batch-size": 16,
   "epochs": 3,
-  "learning-rate": 2e-4,
+  "learning-rate": 0.0002,
   "max-seq-length": 512,
-  "vocab-size": 32000,
+  "vocab-size": 52000,
   "fp16": true,
-  "weight-decay": 1e-2,
+  "weight-decay": 0.01,
   "gradient-accumulation-steps": 4,
   "input-dataset": "nroggendorff/micropus",
   "instruct-dataset": "nroggendorff/elephant",
-  "shard-size": 500000,
+  "shard-size": 524288,
   "output-repo": "nroggendorff/smallama",
   "push-to-hub": true,
   "instruct-finetune-bool": false,
-  "factor": 864,
+  "factor": 896,
   "init": 0
 }

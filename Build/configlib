@@ -56,4 +56,5 @@ class Config:
             logging_steps=max(self.BATCH_SIZE, int(self.WARMUP_STEPS)),
             save_total_limit=2,
             report_to="none",
+            deepspeed="auto"
         )

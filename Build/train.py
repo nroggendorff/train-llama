@@ -32,9 +32,7 @@ def create_model(tokenizer):
     )
     return LlamaForCausalLM(model_config)
 
-def train_model(model, tokenizer, dataset, push):
-    args = config.getConfig()
-
+def train_model(args, model, tokenizer, dataset, push):
     optimizer = AdamW(model.parameters(), lr=args.learning_rate, weight_decay=config.WEIGHT_DECAY)
     scheduler = get_cosine_schedule_with_warmup(
         optimizer,
@@ -60,7 +58,6 @@ def train_model(model, tokenizer, dataset, push):
         tokenizer=tokenizer,
         args=args,
         train_dataset=dataset,
-        max_seq_length=config.MAX_SEQ_LENGTH,
         optimizers=(optimizer, scheduler)
     )
     
@@ -81,12 +78,16 @@ def main(push_to_hub=True, is_inst=config.INSTRUCT_FINETUNE_BOOL):
     tokenizer = AutoTokenizer.from_pretrained("prepared_tokenizer")
     print("Loaded Prepared Data.")
 
+    print("Initializing TrainingArguments..")
+    args = config.getConfig()
+    print("Initialized Arguments.")
+
     print("Getting Model..")
     model = load_model(tokenizer) if is_inst or config.INIT > 0 else create_model(tokenizer)
     print("Got Model.")
 
     print("Training Model..")
-    train_model(model, tokenizer, dataset, push_to_hub)
+    train_model(args, model, tokenizer, dataset, push_to_hub)
     raise Conclusion("Trained Model.")
 
 if __name__ == "__main__":

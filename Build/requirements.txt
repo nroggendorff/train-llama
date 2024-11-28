@@ -1,5 +1,7 @@
 trl
 datasets
-transformers>=4.6.0
+transformers
 accelerate
 numpy
+liger-kernel
+deepspeed

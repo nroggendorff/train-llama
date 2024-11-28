@@ -41,8 +41,14 @@ class Config:
     def _load_json(json_file):
         with open(json_file, 'r') as f:
             return json.load(f)
+    
+    @staticmethod
+    class _AutoDict(dict):
+        def __getitem__(self, key):
+            return self.get(key, "auto")
 
     def _args(self):
+        ds_config = self._AutoDict()
         return SFTConfig(
             output_dir="model",
             num_train_epochs=self.EPOCHS,
@@ -56,5 +62,7 @@ class Config:
             logging_steps=max(self.BATCH_SIZE, int(self.WARMUP_STEPS)),
             save_total_limit=2,
             report_to="none",
-            deepspeed="auto"
+            deepspeed=ds_config,
+            use_liger=True,
+            max_seq_length=self.MAX_SEQ_LENGTH
         )

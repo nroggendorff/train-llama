@@ -6,4 +6,4 @@ RUN tmp=$(mktemp) && \
     mv "$tmp" "${CONFIG}"
 RUN chown -R user:user config.json
 
-CMD ["bash", "-c", "python prep.py && python train.py"]
+CMD ["bash", "-c", "python prep.py && deepspeed train.py"]

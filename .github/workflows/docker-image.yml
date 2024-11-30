@@ -1,8 +1,7 @@
 name: Train Llama
 
 on:
-  push:
-    branches: ["main"]
+  push
 
 jobs:
   build:

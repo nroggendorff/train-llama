@@ -4,15 +4,18 @@ from transformers import (
 )
 from trl import SFTTrainer
 from datasets import load_from_disk
+from accelerate import Accelerator
 from config import Config
-from util import *
 
 config = Config()
+accelerator = Accelerator()
 
 def load_model(tokenizer):
-    model = LlamaForCausalLM.from_pretrained(config.OUTPUT_REPO + '-it' if config.INSTRUCT_FINETUNE_BOOL and config.INIT > 0 else config.OUTPUT_REPO)
+    model = LlamaForCausalLM.from_pretrained(
+        config.OUTPUT_REPO + '-it' if config.INSTRUCT_FINETUNE_BOOL and config.INIT > 0 else config.OUTPUT_REPO
+    )
     model.resize_token_embeddings(len(tokenizer))
-    return model
+    return accelerator.prepare(model)
 
 def create_model(tokenizer):
     model_config = LlamaConfig(
@@ -30,7 +33,8 @@ def create_model(tokenizer):
         eos_token_id=tokenizer.eos_token_id,
         tie_word_embeddings=False,
     )
-    return LlamaForCausalLM(model_config)
+    model = LlamaForCausalLM(model_config)
+    return accelerator.prepare(model)
 
 def train_model(args, model, tokenizer, dataset, push):
     optimizer = AdamW(model.parameters(), lr=args.learning_rate, weight_decay=config.WEIGHT_DECAY)
@@ -42,35 +46,37 @@ def train_model(args, model, tokenizer, dataset, push):
 
     try:
         test_input = tokenizer(
-            ["This is a test input."], 
-            return_tensors="pt", 
-            padding="max_length", 
-            truncation=True, 
+            ["This is a test input."],
+            return_tensors="pt",
+            padding="max_length",
+            truncation=True,
             max_length=config.MAX_SEQ_LENGTH
         )
         test_output = model(**test_input)
         print("Model test output shape:", test_output.logits.shape)
     except RuntimeError as e:
         print(f"Error processing test batch: {e}")
-    
+
     trainer = SFTTrainer(
         model=model,
         tokenizer=tokenizer,
         args=args,
         train_dataset=dataset,
-        optimizers=(optimizer, scheduler)
+        optimizers=(optimizer, scheduler),
+        deepspeed=args.deepspeed
     )
-    
+
     train = trainer.train()
-    
-    if push:
-        repo_id = config.OUTPUT_REPO + "-it" if config.INSTRUCT_FINETUNE_BOOL else config.OUTPUT_REPO
-        msg = f"Training loss: {train.training_loss:.4f}"
-        trainer.model.push_to_hub(repo_id, commit_message=msg, force=True)
-        trainer.tokenizer.push_to_hub(repo_id, commit_message=msg, force=True)
-    else:
-        trainer.model.save_pretrained("trained_model")
-        trainer.tokenizer.save_pretrained("trained_tokenizer")
+
+    if accelerator.is_main_process:
+        if push:
+            repo_id = config.OUTPUT_REPO + "-it" if config.INSTRUCT_FINETUNE_BOOL else config.OUTPUT_REPO
+            msg = f"Training loss: {train.training_loss:.4f}"
+            trainer.model.push_to_hub(repo_id, commit_message=msg, force=True)
+            trainer.tokenizer.push_to_hub(repo_id, commit_message=msg, force=True)
+        else:
+            trainer.model.save_pretrained("trained_model")
+            trainer.tokenizer.save_pretrained("trained_tokenizer")
 
 def main(push_to_hub=True, is_inst=config.INSTRUCT_FINETUNE_BOOL):
     print("Loading Prepared Data..")
@@ -87,12 +93,12 @@ def main(push_to_hub=True, is_inst=config.INSTRUCT_FINETUNE_BOOL):
     print("Got Model.")
 
     print("Training Model..")
-    train_model(args, model, tokenizer, dataset, push_to_hub)
-    raise Conclusion("Trained Model.")
+    train_model(args, model, tokenizer, dataset, push_to_hub=True)
+    print("Training complete.")
 
 if __name__ == "__main__":
     try:
         main()
     except Exception as e:
         print(f'{type(e).__name__}: {e}')
-        Space().pause()
+        accelerator.wait_for_everyone()

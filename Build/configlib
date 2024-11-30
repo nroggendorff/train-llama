@@ -3,7 +3,7 @@ from trl import SFTConfig
 
 class Config:
     def __init__(self):
-        # Load config from the JSON file
+        # Load config from a JSON file
         config_data = self._load_json('config.json')
 
         # Model and training hyperparameters
@@ -34,21 +34,46 @@ class Config:
         # Initial state for shard offset
         self.INIT = config_data.get("init")
 
-        # ignore
+        # Returns the configured arguments
         self.getConfig = lambda: self._args()
 
     @staticmethod
     def _load_json(json_file):
+        """Loads a JSON configuration file."""
         with open(json_file, 'r') as f:
             return json.load(f)
-    
+
     @staticmethod
     class _AutoDict(dict):
         def __getitem__(self, key):
             return self.get(key, "auto")
 
     def _args(self):
-        ds_config = self._AutoDict()
+        ds_config = self._AutoDict({
+            "zero_optimization": {
+                "stage": 2,
+                "offload_optimizer": {
+                    "device": "cpu",
+                    "pin_memory": True
+                },
+                "offload_param": {
+                    "device": "cpu",
+                    "pin_memory": True
+                }
+            },
+            "train_micro_batch_size_per_gpu": self.BATCH_SIZE,
+            "gradient_accumulation_steps": self.GRADIENT_ACCUMULATION_STEPS,
+            "optimizer": {
+                "type": "AdamW",
+                "params": {
+                    "lr": self.LEARNING_RATE
+                }
+            },
+            "fp16": {
+                "enabled": self.FP16
+            }
+        })
+
         return SFTConfig(
             output_dir="model",
             num_train_epochs=self.EPOCHS,

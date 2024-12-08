@@ -22,8 +22,6 @@ RUN [ -f configlib ] && mv configlib config.py || true && \
     [ -f util ] && mv util util.py || true && \
     [ -f config ] && mv config config.json || true
 
-# -- to be used if you have enough storage --
-
 # USER user
 
 # ENV HF_TOKEN={$HF_TOKEN}
@@ -36,6 +34,4 @@ RUN [ -f configlib ] && mv configlib config.py || true && \
 #     load_dataset(config['input-dataset'], split='train'); \
 #     print('Cached Data.')"
 
-# -------------------------------------------
-
-CMD ["echo", "Built container, the following should be run on GPU."]
+CMD ["bash", "-c", "python prep.py && deepspeed --num_gpus=$(nvidia-smi --query-gpu=gpu_name --format=csv,noheader | wc -l) train.py"]

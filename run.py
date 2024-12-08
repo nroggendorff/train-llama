@@ -8,9 +8,8 @@ repo_id = "nroggendorff/train-llama"
 file_content = "FROM nroggendorff/train-llama:latest \n" \
 "RUN jq '.init = 0 | .\"instruct-finetune-bool\" = false' config.json > temp.json && \\ \n" \
 "    mv temp.json config.json && \\ \n" \
-"    chown -R user:user config.json \n" \
-"CMD [\"bash\", \"-c\", \"python prep.py && deepspeed --num_gpus=$(nvidia-smi --query-gpu=gpu_name --format=csv,noheader | wc -l) train.py\"]"
-print(file_content)
+"    chown -R user:user config.json"
+
 comment = "Merge when ready " + ''.join([chr(u) for u in [randint(33, 126) for _ in range(8)]])
 
 with tempfile.NamedTemporaryFile(mode='w', suffix='.dockerfile') as tmp_file:

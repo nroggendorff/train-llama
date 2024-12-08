@@ -5,6 +5,7 @@ from tokenizers import ByteLevelBPETokenizer
 from transformers import PreTrainedTokenizerFast, AutoTokenizer
 from config import Config
 from util import *
+from functools import lru_cache
 
 config = Config()
 
@@ -16,6 +17,7 @@ def load_data():
     ).skip(config.INIT * config.SHARD_SIZE).take(config.SHARD_SIZE)
     return dataset
 
+@lru_cache(maxsize=None)
 def encode_decode(texts, tok):
     if tok.pad_token is None:
         tok.pad_token = tok.eos_token
@@ -32,7 +34,7 @@ def encode_decode(texts, tok):
         decoded_texts = tok.batch_decode(tokenized_texts)
     else:
         print('Found invalid entry in examples. Returning dummy..')
-        decoded_texts = [tok.pad_token * MAX_SEQ_LENGTH]
+        decoded_texts = [tok.pad_token * config.MAX_SEQ_LENGTH]
     
     islist = not len(decoded_texts) == 1
     

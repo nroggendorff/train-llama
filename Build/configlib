@@ -1,4 +1,5 @@
 import json
+import os
 from trl import SFTConfig
 
 class Config:
@@ -6,8 +7,7 @@ class Config:
         # Load config from the JSON file
         config_data = self._load_json('config.json')
 
-        # Model and training hyperparameters
-        self.BATCH_SIZE = config_data.get("batch-size")
+        self.BATCH_SIZE = int(os.getenv('BATCH_SIZE', 0)) or config_data.get("batch-size")
         self.EPOCHS = config_data.get("epochs")
         self.LEARNING_RATE = config_data.get("learning-rate")
         self.MAX_SEQ_LENGTH = config_data.get("max-seq-length")
@@ -48,36 +48,7 @@ class Config:
             return self.get(key, "auto")
 
     def _args(self):
-        ds_config = {
-            "fp16": {
-                "enabled": self.FP16
-            },
-            "zero_optimization": {
-                "stage": 2,
-                "offload_optimizer": {
-                    "device": "cpu",
-                    "pin_memory": True
-                },
-                "allgather_partitions": True,
-                "allgather_bucket_size": 2e8,
-                "overlap_comm": True,
-                "reduce_scatter": True,
-                "reduce_bucket_size": 2e8,
-                "contiguous_gradients": True
-            },
-            "gradient_accumulation_steps": self.GRADIENT_ACCUMULATION_STEPS,
-            "train_batch_size": self.BATCH_SIZE * self.GRADIENT_ACCUMULATION_STEPS,
-            "train_micro_batch_size_per_gpu": self.BATCH_SIZE,
-            "gradient_clipping": 1.0,
-            "scheduler": {
-                "type": "WarmupDecayLR",
-                "params": {
-                    "total_num_steps": self.TOTAL_STEPS,
-                    "warmup_num_steps": self.WARMUP_STEPS
-                }
-            }
-        }
-
+        ds_config = self._AutoDict()
         return SFTConfig(
             output_dir="model",
             num_train_epochs=self.EPOCHS,
@@ -92,6 +63,6 @@ class Config:
             save_total_limit=2,
             report_to="none",
             deepspeed=ds_config,
-            max_seq_length=self.MAX_SEQ_LENGTH,
-            ddp_find_unused_parameters=False
+            use_liger=True,
+            max_seq_length=self.MAX_SEQ_LENGTH
         )

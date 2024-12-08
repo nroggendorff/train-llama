@@ -88,4 +88,4 @@ if __name__ == "__main__":
         main()
     except Exception as e:
         print(f'{type(e).__name__}: {e}')
-        Space().pause()
+        Space().stop()

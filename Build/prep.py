@@ -9,19 +9,11 @@ from util import *
 config = Config()
 
 def load_data():
-    if config.INSTRUCT_FINETUNE_BOOL:
-        dataset = load_dataset(
-            config.INSTRUCT_DATASET, split="train"
-        )
-    else:
-        dataset = load_dataset(
-            config.INPUT_DATASET, split="train"
-        )
-
-    start = config.INIT * config.SHARD_SIZE
-    end = start + config.SHARD_SIZE
-
-    dataset = dataset.select(range(start, end))
+    dataset = load_dataset(
+        config.INSTRUCT_DATASET if config.INSTRUCT_FINETUNE_BOOL else config.INPUT_DATASET,
+        split="train",
+        streaming=True
+    ).skip(config.INIT * config.SHARD_SIZE).take(config.SHARD_SIZE)
     return dataset
 
 def encode_decode(texts, tok):

@@ -6,4 +6,4 @@ RUN tmp=$(mktemp) && \
     mv "$tmp" "${CONFIG}"
 RUN chown -R user:user config.json
 
-CMD ["bash", "-c", "python prep.py && deepspeed train.py"]
+CMD ["bash", "-c", "python prep.py && deepspeed --num_gpus=$(nvidia-smi --query-gpu=gpu_name --format=csv,noheader | wc -l) train.py"]

@@ -33,13 +33,6 @@ def create_model(tokenizer):
     return LlamaForCausalLM(model_config)
 
 def train_model(args, model, tokenizer, dataset, push):
-    optimizer = AdamW(model.parameters(), lr=args.learning_rate, weight_decay=config.WEIGHT_DECAY)
-    scheduler = get_cosine_schedule_with_warmup(
-        optimizer,
-        num_warmup_steps=args.warmup_steps,
-        num_training_steps=config.TOTAL_STEPS
-    )
-
     try:
         test_input = tokenizer(
             ["This is a test input."], 
@@ -58,19 +51,19 @@ def train_model(args, model, tokenizer, dataset, push):
         tokenizer=tokenizer,
         args=args,
         train_dataset=dataset,
-        optimizers=(optimizer, scheduler)
     )
     
     train = trainer.train()
     
-    if push:
-        repo_id = config.OUTPUT_REPO + "-it" if config.INSTRUCT_FINETUNE_BOOL else config.OUTPUT_REPO
-        msg = f"Training loss: {train.training_loss:.4f}"
-        trainer.model.push_to_hub(repo_id, commit_message=msg, force=True)
-        trainer.tokenizer.push_to_hub(repo_id, commit_message=msg, force=True)
-    else:
-        trainer.model.save_pretrained("trained_model")
-        trainer.tokenizer.save_pretrained("trained_tokenizer")
+    if trainer.is_world_process_zero():
+        if push:
+            repo_id = config.OUTPUT_REPO + "-it" if config.INSTRUCT_FINETUNE_BOOL else config.OUTPUT_REPO
+            msg = f"Training loss: {train.training_loss:.4f}"
+            trainer.model.push_to_hub(repo_id, commit_message=msg, force=True)
+            trainer.tokenizer.push_to_hub(repo_id, commit_message=msg, force=True)
+        else:
+            trainer.model.save_pretrained("trained_model")
+            trainer.tokenizer.save_pretrained("trained_tokenizer")
 
 def main(push_to_hub=True, is_inst=config.INSTRUCT_FINETUNE_BOOL):
     print("Loading Prepared Data..")
@@ -96,4 +89,3 @@ if __name__ == "__main__":
     except Exception as e:
         print(f'{type(e).__name__}: {e}')
         Space().pause()
-        

@@ -1,9 +1,7 @@
-import torch
-from transformers import (
-    AdamW, get_cosine_schedule_with_warmup, AutoTokenizer, LlamaForCausalLM, LlamaConfig
-)
-from trl import SFTTrainer
 from datasets import load_from_disk
+from transformers import AutoTokenizer, LlamaConfig, LlamaForCausalLM
+from trl import SFTTrainer
+
 from config import Config
 from util import *
 
@@ -45,16 +43,16 @@ def train_model(args, model, tokenizer, dataset, push):
         print("Model test output shape:", test_output.logits.shape)
     except RuntimeError as e:
         print(f"Error processing test batch: {e}")
-    
+
     trainer = SFTTrainer(
         model=model,
         tokenizer=tokenizer,
         args=args,
         train_dataset=dataset,
     )
-    
+
     train = trainer.train()
-    
+
     if trainer.is_world_process_zero():
         if push:
             repo_id = config.OUTPUT_REPO + "-it" if config.INSTRUCT_FINETUNE_BOOL else config.OUTPUT_REPO

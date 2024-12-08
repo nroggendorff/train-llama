@@ -1,11 +1,11 @@
-import os
-from itertools import islice
-from datasets import load_dataset, Dataset
+from functools import lru_cache
+
+from datasets import load_dataset
 from tokenizers import ByteLevelBPETokenizer
-from transformers import PreTrainedTokenizerFast, AutoTokenizer
+from transformers import AutoTokenizer, PreTrainedTokenizerFast
+
 from config import Config
 from util import *
-from functools import lru_cache
 
 config = Config()
 
@@ -24,7 +24,7 @@ def load_data():
 def encode_decode(texts, tok):
     if tok.pad_token is None:
         tok.pad_token = tok.eos_token
-    
+
     tokenized_texts = tok(
         texts,
         padding="max_length",
@@ -38,9 +38,9 @@ def encode_decode(texts, tok):
     else:
         print('Found invalid entry in examples. Returning dummy..')
         decoded_texts = [tok.pad_token * config.MAX_SEQ_LENGTH]
-    
+
     islist = not len(decoded_texts) == 1
-    
+
     return decoded_texts if islist else decoded_texts[0]
 
 def format_prompts(examples, tokenizer, isinst):
@@ -111,7 +111,7 @@ def configure_tokenizer(tokenizer):
     if config.INSTRUCT_FINETUNE_BOOL:
         tokenizer.user_token_id = tokenizer.convert_tokens_to_ids("<|user|>")
         tokenizer.assistant_token_id = tokenizer.convert_tokens_to_ids("<|bot|>")
-    
+
         chat_template = "{{ bos_token }}{% for message in messages %}{% if (message['role'] == 'user') != (loop.index0 % 2 == 0) %}{{ raise_exception('Conversation roles must alternate user/assistant/user/assistant/...') }}{% endif %}{% if message['role'] == 'user' %}{{ '<|user|>\n' + message['content'] + '<|end|>\n' }}{% elif message['role'] == 'assistant' %}{{ '<|bot|>\n' + message['content'] + '<|end|>\n' + eos_token}}{% else %}{{ raise_exception('Only user and assistant roles are supported!') }}{% endif %}{% endfor %}"
         tokenizer.chat_template = chat_template
 
@@ -121,7 +121,7 @@ def main():
     print("Loading Data..")
     dataset = load_data()
     print("Loaded data.")
-    
+
     print("Making Corpus..")
     training_corpus = get_training_corpus(dataset)
     print("Made Corpus.")

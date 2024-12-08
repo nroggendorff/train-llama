@@ -17,7 +17,7 @@ def load_data():
         streaming=True
     )
 
-    shard_data = list(tqdm(dataset.skip(config.INIT * config.SHARD_SIZE).take(config.shard_size), total=config.SHARD_SIZE, desc="Creating shard"))
+    shard_data = list(tqdm(dataset.skip(config.INIT * config.SHARD_SIZE).take(config.SHARD_SIZE), total=config.SHARD_SIZE, desc="Creating shard"))
     shard = Dataset.from_list(shard_data)
 
     return shard

@@ -65,7 +65,7 @@ def train_model(args, model, tokenizer, dataset, push):
             trainer.model.save_pretrained("trained_model")
             trainer.tokenizer.save_pretrained("trained_tokenizer")
 
-def main(push_to_hub=True, is_inst=config.INSTRUCT_FINETUNE_BOOL):
+def main(push_to_hub=config.PUSH_TO_HUB, is_inst=config.INSTRUCT_FINETUNE_BOOL):
     print("Loading Prepared Data..")
     dataset = load_from_disk("prepared_dataset")
     tokenizer = AutoTokenizer.from_pretrained("prepared_tokenizer")

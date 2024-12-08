@@ -11,12 +11,13 @@ config = Config()
 
 def load_data():
     dataset = load_dataset(
-        config.INSTRUCT_DATASET if config.INSTRUCT_FINETUNE_BOOL else config.INPUT_DATASET,
-        split="train"
+        config.INSTRUCT_DATASET if config.INSTRUCT_FINETUNE_BOOL else config.INPUT_DATASET, split="train"
     )
-    dataset = Dataset.from_dict(
-        dataset.select(range(config.INIT * config.SHARD_SIZE, (config.INIT + 1) * config.SHARD_SIZE))
-    )
+
+    start = config.INIT * config.SHARD_SIZE
+    end = start + config.SHARD_SIZE
+
+    dataset = dataset.select(range(start, end))
     return dataset
 
 @lru_cache(maxsize=None)

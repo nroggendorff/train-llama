@@ -25,4 +25,4 @@ try:
         else:
             lastpr -= 1
 except TypeError:
-    print("No diff detected.")
+    pass

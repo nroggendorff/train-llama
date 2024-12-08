@@ -15,12 +15,14 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Log in to Docker Hub
+        if: startsWith(github.event.head_commit.message, 'act on ') || startsWith(github.event.pull_request.title, 'act on ')
         uses: docker/login-action@v2
         with:
           username: nroggendorff
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build and tag the Docker image
+        if: startsWith(github.event.head_commit.message, 'act on ') || startsWith(github.event.pull_request.title, 'act on ')
         run: |
           docker buildx build Build \
             -f Build/Dockerfile \
@@ -28,13 +30,16 @@ jobs:
             -t nroggendorff/train-llama:latest
 
       - name: Push the Docker image
+        if: startsWith(github.event.head_commit.message, 'act on ') || startsWith(github.event.pull_request.title, 'act on ')
         run: |
           docker push nroggendorff/train-llama:latest
 
       - name: Install huggingface
+        if: startsWith(github.event.head_commit.message, 'act on ') || startsWith(github.event.pull_request.title, 'act on ')
         run: |
           pip install huggingface-hub
 
       - name: Send the run image
+        if: startsWith(github.event.head_commit.message, 'act on ') || startsWith(github.event.pull_request.title, 'act on ')
         run: |
           python run.py

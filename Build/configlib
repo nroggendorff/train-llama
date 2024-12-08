@@ -66,3 +66,4 @@ class Config:
             use_liger=True,
             max_seq_length=self.MAX_SEQ_LENGTH
         )
+        

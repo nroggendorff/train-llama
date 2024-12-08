@@ -1,6 +1,7 @@
 from functools import lru_cache
+from tqdm import tqdm
 
-from datasets import load_dataset
+from datasets import load_dataset, Dataset
 from tokenizers import ByteLevelBPETokenizer
 from transformers import AutoTokenizer, PreTrainedTokenizerFast
 
@@ -11,14 +12,15 @@ config = Config()
 
 def load_data():
     dataset = load_dataset(
-        config.INSTRUCT_DATASET if config.INSTRUCT_FINETUNE_BOOL else config.INPUT_DATASET, split="train"
+        config.INSTRUCT_DATASET if config.INSTRUCT_FINETUNE_BOOL else config.INPUT_DATASET,
+        split="train",
+        streaming=True
     )
 
-    start = config.INIT * config.SHARD_SIZE
-    end = start + config.SHARD_SIZE
+    shard_data = list(tqdm(dataset.skip(config.INIT * config.SHARD_SIZE), total=config.SHARD_SIZE, desc="Creating shard"))
+    shard = Dataset.from_list(shard_data)
 
-    dataset = dataset.select(range(start, end))
-    return dataset
+    return shard
 
 @lru_cache(maxsize=None)
 def encode_decode(texts, tok):

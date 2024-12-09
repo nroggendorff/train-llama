@@ -42,7 +42,7 @@ class Config:
     def _load_json(json_file):
         with open(json_file, 'r') as f:
             return json.load(f)
-    
+
     @staticmethod
     class _AutoDict(dict):
         def __getitem__(self, key):

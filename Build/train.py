@@ -1,3 +1,5 @@
+import os
+import torch
 from datasets import load_from_disk
 from transformers import AutoTokenizer, LlamaConfig, LlamaForCausalLM
 from trl import SFTTrainer
@@ -63,6 +65,14 @@ def train_model(args, model, tokenizer, dataset, push):
             trainer.tokenizer.save_pretrained("trained_tokenizer")
 
 def main(push_to_hub=config.PUSH_TO_HUB, is_inst=config.INSTRUCT_FINETUNE_BOOL):
+    print("Initializing accelerator..")
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+        torch.cuda.set_device(int(os.environ.get("LOCAL_RANK", 0)))
+    else:
+        device = torch.device("cpu")
+    print(f"Using device: {device}")
+
     print("Loading Prepared Data..")
     dataset = load_from_disk("prepared_dataset")
     tokenizer = AutoTokenizer.from_pretrained("prepared_tokenizer")

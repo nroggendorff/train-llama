@@ -6,10 +6,10 @@ from huggingface_hub import HfApi
 api = HfApi()
 repo_id = "nroggendorff/train-llama"
 
-file_content = "FROM nroggendorff/train-llama:latest \n" \
-"RUN jq '.init = 0 | .\"instruct-finetune-bool\" = false' config.json > temp.json && \\ \n" \
-"    mv temp.json config.json && \\ \n" \
-"    chown -R user:user config.json"
+file_content = "FROM nroggendorff/train-llama:latest" \
+"\nRUN jq '.init = 0 | .\"instruct-finetune-bool\" = false' config.json > temp.json && \\" \
+"\n\tmv temp.json config.json && \\" \
+"\n\tchown -R user:user config.json"
 
 comment = "Merge when ready " + ''.join([chr(u) for u in [randint(33, 126) for _ in range(8)]])
 

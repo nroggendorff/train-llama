@@ -18,6 +18,7 @@ def load_data():
     )
 
     shard_data = list(tqdm(dataset.skip(config.INIT * config.SHARD_SIZE).take(config.SHARD_SIZE), total=config.SHARD_SIZE, desc="Creating shard"))
+    print(f'Shard set loaded with size {len(shard_data)}, realizing shard data..')
     shard = Dataset.from_list(shard_data)
 
     return shard

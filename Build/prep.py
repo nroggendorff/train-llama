@@ -23,29 +23,6 @@ def load_data():
 
     return shard
 
-@lru_cache(maxsize=None)
-def encode_decode(texts, tok):
-    if tok.pad_token is None:
-        tok.pad_token = tok.eos_token
-
-    tokenized_texts = tok(
-        texts,
-        padding="max_length",
-        truncation=True,
-        max_length=config.MAX_SEQ_LENGTH,
-        return_tensors="pt"
-    ).input_ids
-
-    if tokenized_texts.dim() > 0:
-        decoded_texts = tok.batch_decode(tokenized_texts)
-    else:
-        print('Found invalid entry in examples. Returning dummy..')
-        decoded_texts = [tok.pad_token * config.MAX_SEQ_LENGTH]
-
-    islist = not len(decoded_texts) == 1
-
-    return decoded_texts if islist else decoded_texts[0]
-
 def format_prompts(examples, tokenizer, isinst):
     texts = []
     for text in examples['text']:
@@ -59,10 +36,10 @@ def format_prompts(examples, tokenizer, isinst):
                     conversation.append({"role": "user", "content": prompt})
                     conversation.append({"role": "assistant", "content": response})
                 formatted_conversation = tokenizer.apply_chat_template(conversation, tokenize=False)
-                coded_text = tokenizer.code(formatted_conversation)
-                texts.append(coded_text)
+
+                texts.append(formatted_conversation)
             else:
-                texts.append(tokenizer.bos_token + tokenizer.code(text) + tokenizer.eos_token)
+                texts.append(tokenizer.bos_token +text + tokenizer.eos_token)
         else:
             print('Found empty entry in examples. Moving on..')
             continue
@@ -70,8 +47,7 @@ def format_prompts(examples, tokenizer, isinst):
     if len(texts) == 0:
         raise ValueError("No valid texts found in examples for formatting.")
 
-    coded_texts = tokenizer.code(texts)
-    return {'text': coded_texts}
+    return {'text': texts}
 
 def create_tokenizer(training_corpus):
     tokenizer = ByteLevelBPETokenizer()
@@ -117,8 +93,6 @@ def configure_tokenizer(tokenizer):
 
         chat_template = "{{ bos_token }}{% for message in messages %}{% if (message['role'] == 'user') != (loop.index0 % 2 == 0) %}{{ raise_exception('Conversation roles must alternate user/assistant/user/assistant/...') }}{% endif %}{% if message['role'] == 'user' %}{{ '<|user|>\n' + message['content'] + '<|end|>\n' }}{% elif message['role'] == 'assistant' %}{{ '<|bot|>\n' + message['content'] + '<|end|>\n' + eos_token}}{% else %}{{ raise_exception('Only user and assistant roles are supported!') }}{% endif %}{% endfor %}"
         tokenizer.chat_template = chat_template
-
-    tokenizer.code = lambda example: encode_decode(example, tokenizer)
 
 def main():
     print("Loading Data..")

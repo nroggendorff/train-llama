@@ -22,7 +22,7 @@ with tempfile.NamedTemporaryFile(mode='w', suffix='.dockerfile') as tmp_file:
         path_in_repo="Dockerfile",
         repo_id=repo_id,
         repo_type="space",
-        create_pr=True,
+        # create_pr=True,
         commit_message=comment
     ).pr_num
 

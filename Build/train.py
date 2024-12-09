@@ -31,6 +31,13 @@ def create_model(tokenizer):
     return LlamaForCausalLM(model_config)
 
 def train_model(args, model, tokenizer, dataset, push):
+    trainer = SFTTrainer(
+        model=model,
+        tokenizer=tokenizer,
+        args=args,
+        train_dataset=dataset,
+    )
+
     if trainer.is_world_process_zero():
         try:
             test_input = tokenizer(
@@ -42,13 +49,6 @@ def train_model(args, model, tokenizer, dataset, push):
             print("Model test output shape:", test_output.logits.shape)
         except RuntimeError as e:
             print(f"Error processing test batch: {e}")
-
-    trainer = SFTTrainer(
-        model=model,
-        tokenizer=tokenizer,
-        args=args,
-        train_dataset=dataset,
-    )
 
     train = trainer.train()
 

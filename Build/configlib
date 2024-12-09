@@ -5,7 +5,6 @@ from trl import SFTConfig
 
 class Config:
     def __init__(self):
-        # Load config from the JSON file
         config_data = self._load_json('config.json')
 
         self.BATCH_SIZE = int(os.getenv('BATCH_SIZE', 0)) or config_data.get("batch-size")
@@ -17,25 +16,20 @@ class Config:
         self.WEIGHT_DECAY = config_data.get("weight-decay")
         self.GRADIENT_ACCUMULATION_STEPS = config_data.get("gradient-accumulation-steps")
 
-        # Dataset configurations
         self.INPUT_DATASET = config_data.get("input-dataset")
         self.INSTRUCT_DATASET = config_data.get("instruct-dataset")
         self.SHARD_SIZE = config_data.get("shard-size")
 
-        # Output and repo settings
         self.OUTPUT_REPO = config_data.get("output-repo")
         self.PUSH_TO_HUB = config_data.get("push-to-hub")
         self.INSTRUCT_FINETUNE_BOOL = config_data.get("instruct-finetune-bool")
 
-        # Training steps and warmup
         self.FACTOR = config_data.get("factor")
         self.TOTAL_STEPS = (self.SHARD_SIZE * self.EPOCHS) // (self.BATCH_SIZE * self.GRADIENT_ACCUMULATION_STEPS)
         self.WARMUP_STEPS = int(self.TOTAL_STEPS * 0.1)
 
-        # Initial state for shard offset
         self.INIT = config_data.get("init")
 
-        # ignore
         self.getConfig = lambda: self._args()
 
     @staticmethod

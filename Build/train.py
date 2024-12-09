@@ -31,18 +31,14 @@ def create_model(tokenizer):
     return LlamaForCausalLM(model_config)
 
 def train_model(args, model, tokenizer, dataset, push):
-    model = model.to("cuda")
-
     if trainer.is_world_process_zero():
         try:
             test_input = tokenizer(
                 ["This is a test input."], 
-                return_tensors="pt", 
-                padding="max_length", 
-                truncation=True, 
-                max_length=config.MAX_SEQ_LENGTH
+                return_tensors="pt"
             ).to("cuda")
-            test_output = model(**test_input)
+            test_output = model.to("cuda")(**test_input)
+
             print("Model test output shape:", test_output.logits.shape)
         except RuntimeError as e:
             print(f"Error processing test batch: {e}")

@@ -65,7 +65,5 @@ class Config:
             report_to="none",
             deepspeed=ds_config,
             use_liger=True,
-            max_seq_length=self.MAX_SEQ_LENGTH,
-            use_cuda=True,
-            device="cuda"
+            max_seq_length=self.MAX_SEQ_LENGTH
         )

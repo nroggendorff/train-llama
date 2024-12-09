@@ -31,6 +31,8 @@ def create_model(tokenizer):
     return LlamaForCausalLM(model_config)
 
 def train_model(args, model, tokenizer, dataset, push):
+    model = model.to("cuda")
+
     if trainer.is_world_process_zero():
         try:
             test_input = tokenizer(
@@ -39,7 +41,7 @@ def train_model(args, model, tokenizer, dataset, push):
                 padding="max_length", 
                 truncation=True, 
                 max_length=config.MAX_SEQ_LENGTH
-            )
+            ).to("cuda")
             test_output = model(**test_input)
             print("Model test output shape:", test_output.logits.shape)
         except RuntimeError as e:

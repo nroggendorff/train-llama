@@ -38,16 +38,19 @@ class Config:
             return json.load(f)
 
     class _AutoDict(dict):
+        def __init__(self, config):
+            self.config = config
+
         def __getitem__(self, key):
             cuda_settings = {
                 "zero_optimization": {"stage": 2},
-                "fp16": {"enabled": Config.FP16},
+                "fp16": {"enabled": self.config.FP16},
                 "accelerator": {"type": "cuda"}
             }
             return cuda_settings.get(key, self.get(key, "auto"))
 
     def _args(self):
-        ds_config = self._AutoDict()
+        ds_config = self._AutoDict(self)
         return SFTConfig(
             output_dir="model",
             num_train_epochs=self.EPOCHS,

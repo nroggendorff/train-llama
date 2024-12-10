@@ -4,10 +4,7 @@ FROM bitnami/deepspeed:latest
 USER root
 RUN useradd -m -u 1000 user
 
-RUN useradd -m -u 1000 user
-
 WORKDIR /app
-RUN apt update && apt install -y jq
 
 COPY --chown=user . /app
 RUN pip install --no-cache-dir -r requirements.txt

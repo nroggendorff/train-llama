@@ -3,5 +3,5 @@ datasets
 transformers
 accelerate
 numpy
-liger-kernel
+# liger-kernel
 deepspeed

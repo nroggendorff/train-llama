@@ -37,10 +37,14 @@ class Config:
         with open(json_file, 'r') as f:
             return json.load(f)
 
-    @staticmethod
     class _AutoDict(dict):
         def __getitem__(self, key):
-            return self.get(key, "auto")
+            cuda_settings = {
+                "zero_optimization": {"stage": 2},
+                "fp16": {"enabled": Config.FP16},
+                "accelerator": {"type": "cuda"}
+            }
+            return cuda_settings.get(key, self.get(key, "auto"))
 
     def _args(self):
         ds_config = self._AutoDict()

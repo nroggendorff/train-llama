@@ -28,7 +28,7 @@ def create_model(tokenizer):
         pad_token_id=tokenizer.pad_token_id,
         bos_token_id=tokenizer.bos_token_id,
         eos_token_id=tokenizer.eos_token_id,
-        tie_word_embeddings=False,
+        tie_word_embeddings=False
     )
     return LlamaForCausalLM(model_config)
 
@@ -37,7 +37,7 @@ def train_model(args, model, tokenizer, dataset, push):
         model=model,
         tokenizer=tokenizer,
         args=args,
-        train_dataset=dataset,
+        train_dataset=dataset
     )
 
     if trainer.is_world_process_zero():

@@ -8,8 +8,6 @@ WORKDIR /app
 COPY requirements.txt /app
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY --chown=user . /app
-
-RUN touch __init__.py
+COPY --chown=user:user . /app
 
 CMD ["bash", "-c", "python prep.py && deepspeed --num_gpus=$(nvidia-smi --query-gpu=gpu_name --format=csv,noheader | wc -l) train.py"]

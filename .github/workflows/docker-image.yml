@@ -32,10 +32,6 @@ jobs:
         run: |
           docker push nroggendorff/train-llama:latest
 
-      - name: Install huggingface
+      - name: Restart Space
         run: |
-          pip install huggingface-hub
-
-      - name: Send the run image
-        run: |
-          python run.py
+          pip install huggingface-hub && python run.py

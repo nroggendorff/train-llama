@@ -1,6 +1,5 @@
-FROM bitnami/deepspeed:latest
+FROM bitnami/deepspeed
 
-USER root
 RUN useradd -m -u 1000 user
 
 WORKDIR /app

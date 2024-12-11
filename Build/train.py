@@ -43,7 +43,7 @@ def train_model(args, model, tokenizer, dataset, push):
     if trainer.is_world_process_zero():
         try:
             test_input = tokenizer(
-                ["This is a test input."], 
+                ["I love pizza, but"], 
                 return_tensors="pt"
             ).to("cuda")
             test_output = model.to("cuda")(**test_input)

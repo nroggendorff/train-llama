@@ -1,12 +1,8 @@
 FROM bitnami/deepspeed
 
-RUN useradd -m -u 1000 user
-
 WORKDIR /app
 
 COPY requirements.txt /app
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY --chown=1000:1000 . /app
-
-CMD ["bash", "-c", "python prep.py && deepspeed --num_gpus=$(nvidia-smi --query-gpu=gpu_name --format=csv,noheader | wc -l) train.py"]
+CMD ["bash", "-c", "python prep.py && deepspeed --num_gpus=$(python -c 'import torch; print(torch.cuda.device_count())') train.py"]

@@ -13,4 +13,4 @@ RUN mkdir -p /opt/bitnami/deepspeed && \
     useradd -m user && \
     chmod -R 777 /opt/bitnami/deepspeed /app
 
-CMD ["bash", "-c", "python prep.py && deepspeed --num_gpus=$(python -c 'import torch; print(torch.cuda.device_count())') train.py"]
+CMD ["deepspeed", "--num_gpus=$(python -c 'import torch; print(torch.cuda.device_count())')", "trainer.py"]

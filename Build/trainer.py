@@ -12,8 +12,10 @@ devices = torch.cuda.device_count()
 def trainer():
     prep.main()
 
-    os.environ['NUM_GPUS'] = str(devices)
-    sys.argv = [sys.argv[0], 'train.py']
+    sys.argv = [
+        "--num_gpus", str(devices),
+        "train.py"
+    ]
 
     launch.main()
 

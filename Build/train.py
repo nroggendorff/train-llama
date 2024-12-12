@@ -11,26 +11,21 @@ from util import *
 config = Config()
 
 def load_model(tokenizer):
-    if int(os.environ.get("LOCAL_RANK", 0)) == 0:
-        model = LlamaForCausalLM.from_pretrained(
-            config.OUTPUT_REPO + '-it' if config.INSTRUCT_FINETUNE_BOOL and config.INIT > 0 else config.OUTPUT_REPO
-        )
-        model.resize_token_embeddings(len(tokenizer))
-    else:
-        model = None
+    if dist.is_initialized():
+        dist.barrier()
+
+    model = LlamaForCausalLM.from_pretrained(
+        config.OUTPUT_REPO + '-it' if config.INSTRUCT_FINETUNE_BOOL and config.INIT > 0 else config.OUTPUT_REPO
+    )
+    model.resize_token_embeddings(len(tokenizer))
 
     if dist.is_initialized():
         dist.barrier()
 
-    if int(os.environ.get("LOCAL_RANK", 0)) != 0:
-        model = LlamaForCausalLM.from_pretrained(
-            config.OUTPUT_REPO + '-it' if config.INSTRUCT_FINETUNE_BOOL and config.INIT > 0 else config.OUTPUT_REPO
-        )
-        model.resize_token_embeddings(len(tokenizer))
-
     return model
 
 def create_model(tokenizer):
+    rank = int(os.environ.get("LOCAL_RANK", 0))
     if dist.is_initialized():
         torch.manual_seed(config.SEED)
         if torch.cuda.is_available():
@@ -54,9 +49,15 @@ def create_model(tokenizer):
 
     model = LlamaForCausalLM(model_config)
 
+    first_param = next(model.parameters())
+    print(f"Rank {rank} - First param sum before sync: {first_param.sum().item()}")
+    
     if dist.is_initialized():
         for param in model.parameters():
             dist.broadcast(param.data, src=0)
+
+    first_param = next(model.parameters())
+    print(f"Rank {rank} - First param sum after sync: {first_param.sum().item()}")
 
     return model
 

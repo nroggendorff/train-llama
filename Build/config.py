@@ -29,6 +29,7 @@ class Config:
         self.WARMUP_STEPS = int(self.TOTAL_STEPS * 0.1)
 
         self.INIT = config_data.get("init")
+        self.SEED = 42
 
         self.getConfig = lambda: self._args()
 

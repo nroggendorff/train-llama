@@ -11,5 +11,7 @@ class Space:
         self.api = HfApi()
         self.pause = lambda: self.api.pause_space(f"{os.getenv('SPACE_AUTHOR_NAME')}/{os.getenv('SPACE_REPO_NAME')}")
 
-    def stop(self):
+    def stop(self, message=None):
+        if message:
+            raise Conclusion(f"{type(message).__name__}: {message}")
         raise Conclusion()

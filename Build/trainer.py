@@ -4,14 +4,18 @@ import os
 from util import Space
 from doubt import discord_logging
 import deepspeed.launcher.launch as launch
+import sys
 
 devices = torch.cuda.device_count()
 
 @discord_logging(app_name='trainer', webhook_url=os.getenv('DISCORD_WEBHOOK_URL'))
 def trainer():
     prep.main()
-    args = f"train.py --num_gpus={devices}".split()
-    launch.main(args)
+
+    os.environ['NUM_GPUS'] = str(devices)
+    sys.argv = [sys.argv[0], 'train.py']
+
+    launch.main()
 
 if __name__ == "__main__":
     try:

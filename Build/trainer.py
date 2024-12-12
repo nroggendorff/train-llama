@@ -1,19 +1,17 @@
 import prep
-
 import torch
-
 import os
-import subprocess
-
 from util import Space
 from doubt import discord_logging
+import deepspeed.launcher.launch as launch
 
 devices = torch.cuda.device_count()
 
 @discord_logging(app_name='trainer', webhook_url=os.getenv('DISCORD_WEBHOOK_URL'))
 def trainer():
     prep.main()
-    subprocess.run(["deepspeed", f"--num_gpus={devices}", "train.py"])
+    args = f"train.py --num_gpus={devices}".split()
+    launch.main(args)
 
 if __name__ == "__main__":
     try:

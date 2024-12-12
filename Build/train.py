@@ -1,5 +1,6 @@
 import os
 import torch
+import torch.distributed as dist
 from datasets import load_from_disk
 from transformers import AutoTokenizer, LlamaConfig, LlamaForCausalLM
 from trl import SFTTrainer
@@ -10,11 +11,31 @@ from util import *
 config = Config()
 
 def load_model(tokenizer):
-    model = LlamaForCausalLM.from_pretrained(config.OUTPUT_REPO + '-it' if config.INSTRUCT_FINETUNE_BOOL and config.INIT > 0 else config.OUTPUT_REPO)
-    model.resize_token_embeddings(len(tokenizer))
+    if int(os.environ.get("LOCAL_RANK", 0)) == 0:
+        model = LlamaForCausalLM.from_pretrained(
+            config.OUTPUT_REPO + '-it' if config.INSTRUCT_FINETUNE_BOOL and config.INIT > 0 else config.OUTPUT_REPO
+        )
+        model.resize_token_embeddings(len(tokenizer))
+    else:
+        model = None
+
+    if dist.is_initialized():
+        dist.barrier()
+
+    if int(os.environ.get("LOCAL_RANK", 0)) != 0:
+        model = LlamaForCausalLM.from_pretrained(
+            config.OUTPUT_REPO + '-it' if config.INSTRUCT_FINETUNE_BOOL and config.INIT > 0 else config.OUTPUT_REPO
+        )
+        model.resize_token_embeddings(len(tokenizer))
+
     return model
 
 def create_model(tokenizer):
+    if dist.is_initialized():
+        torch.manual_seed(config.SEED)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed_all(config.SEED)
+
     model_config = LlamaConfig(
         vocab_size=tokenizer.vocab_size,
         hidden_size=config.FACTOR,
@@ -30,7 +51,14 @@ def create_model(tokenizer):
         eos_token_id=tokenizer.eos_token_id,
         tie_word_embeddings=False
     )
-    return LlamaForCausalLM(model_config)
+
+    model = LlamaForCausalLM(model_config)
+
+    if dist.is_initialized():
+        for param in model.parameters():
+            dist.broadcast(param.data, src=0)
+
+    return model
 
 def train_model(args, model, tokenizer, dataset, push):
     trainer = SFTTrainer(
@@ -67,11 +95,13 @@ def train_model(args, model, tokenizer, dataset, push):
 def main(push_to_hub=config.PUSH_TO_HUB, is_inst=config.INSTRUCT_FINETUNE_BOOL):
     print("Initializing accelerator..")
     if torch.cuda.is_available():
+        if "LOCAL_RANK" in os.environ:
+            torch.cuda.set_device(int(os.environ["LOCAL_RANK"]))
+            dist.init_process_group(backend="nccl")
         device = torch.device("cuda")
-        torch.cuda.set_device(int(os.environ.get("LOCAL_RANK", 0)))
     else:
         device = torch.device("cpu")
-    print(f"Using device: {device}")
+    print(f"Using device: {device}, rank: {os.environ.get('LOCAL_RANK', 0)}")
 
     print("Loading Prepared Data..")
     dataset = load_from_disk("prepared_dataset")

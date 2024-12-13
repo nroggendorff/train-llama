@@ -57,6 +57,9 @@ def create_model(tokenizer):
     if dist.is_initialized():
         dist.barrier()
         rank = int(os.environ.get("LOCAL_RANK", 0))
+        device = torch.device(f"cuda:{rank}" if torch.cuda.is_available() else "cpu")
+
+        model = model.to(device)
 
         if rank == 0:
             first_param = next(model.parameters())

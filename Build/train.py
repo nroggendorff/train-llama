@@ -50,7 +50,7 @@ def train_model(args, model, device, tokenizer, dataset, push):
             print(f"Failed to save model: {e}")
             raise
 
-def main(push_to_hub=config.PUSH_TO_HUB, is_inst=config.INSTRUCT_FINETUNE_BOOL):
+def main(push_to_hub=config.PUSH_TO_HUB):
     print("Initializing accelerator..")
 
     if torch.cuda.is_available():

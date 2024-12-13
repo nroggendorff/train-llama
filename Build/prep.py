@@ -1,13 +1,61 @@
 from tqdm import tqdm
+import torch
 
 from datasets import load_dataset, Dataset
 from tokenizers import ByteLevelBPETokenizer
-from transformers import AutoTokenizer, PreTrainedTokenizerFast
+from transformers import AutoTokenizer, PreTrainedTokenizerFast, LlamaConfig, LlamaForCausalLM
+import torch.distributed as dist
 
 from config import Config
 from util import *
 
 config = Config()
+
+def load_model(tokenizer):
+    if dist.is_initialized():
+        dist.barrier()
+
+    try:
+        model_path = config.OUTPUT_REPO + '-it' if config.INSTRUCT_FINETUNE_BOOL and config.INIT > 0 else config.OUTPUT_REPO
+        model = LlamaForCausalLM.from_pretrained(model_path)
+        model.resize_token_embeddings(len(tokenizer))
+    except Exception as e:
+        print(f"Failed to load model from {model_path}: {e}")
+        raise
+
+    if dist.is_initialized():
+        dist.barrier()
+
+    return model
+
+def create_model(tokenizer):
+    torch.manual_seed(config.SEED)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(config.SEED)
+
+    model_config = LlamaConfig(
+        vocab_size=tokenizer.vocab_size,
+        hidden_size=config.FACTOR,
+        intermediate_size=config.FACTOR * 4,
+        num_hidden_layers=config.FACTOR // 2 ** 5,
+        num_attention_heads=config.FACTOR // 2 ** 4,
+        max_position_embeddings=config.MAX_SEQ_LENGTH,
+        rms_norm_eps=1e-5,
+        initializer_range=0.02,
+        use_cache=True,
+        pad_token_id=tokenizer.pad_token_id,
+        bos_token_id=tokenizer.bos_token_id,
+        eos_token_id=tokenizer.eos_token_id,
+        tie_word_embeddings=False
+    )
+
+    try:
+        model = LlamaForCausalLM(model_config)
+    except Exception as e:
+        print(f"Failed to create model: {e}")
+        raise
+
+    return model
 
 def load_data():
     dataset = load_dataset(
@@ -93,7 +141,7 @@ def configure_tokenizer(tokenizer):
         chat_template = "{{ bos_token }}{% for message in messages %}{% if (message['role'] == 'user') != (loop.index0 % 2 == 0) %}{{ raise_exception('Conversation roles must alternate user/assistant/user/assistant/...') }}{% endif %}{% if message['role'] == 'user' %}{{ '<|user|>\n' + message['content'] + '<|end|>\n' }}{% elif message['role'] == 'assistant' %}{{ '<|bot|>\n' + message['content'] + '<|end|>\n' + eos_token}}{% else %}{{ raise_exception('Only user and assistant roles are supported!') }}{% endif %}{% endfor %}"
         tokenizer.chat_template = chat_template
 
-def main():
+def main(is_inst=config.INSTRUCT_FINETUNE_BOOL):
     print("Loading Data..")
     dataset = load_data()
     print("Loaded data.")
@@ -114,9 +162,18 @@ def main():
     dataset = dataset.map(lambda examples: format_prompts(examples, tokenizer, config.INSTRUCT_FINETUNE_BOOL), batched=True, remove_columns=dataset.column_names)
     print("Mapped Data.")
 
+    print("Getting Model..")
+    try:
+        model = load_model(tokenizer) if is_inst or config.INIT > 0 else create_model(tokenizer)
+        print("Got Model.")
+    except Exception as e:
+        print(f"Failed to initialize model: {e}")
+        raise
+
     print("Saving Prepared Data..")
-    dataset.save_to_disk("prepared_dataset")
-    tokenizer.save_pretrained("prepared_tokenizer")
+    dataset.save_to_disk("/tmp/prepared_dataset")
+    tokenizer.save_pretrained("/tmp/prepared_tokenizer")
+    model.save_pretrained("/tmp/prepared_model")
     print("Prepared data saved.")
 
 if __name__ == "__main__":

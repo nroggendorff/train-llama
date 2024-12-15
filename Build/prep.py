@@ -172,7 +172,9 @@ def main(is_inst=config.INSTRUCT_FINETUNE_BOOL):
 
     print("Saving Prepared Data..")
     dataset.save_to_disk("/tmp/prepared_dataset")
+    print("Saving pretrained tokenizer..")
     tokenizer.save_pretrained("/tmp/prepared_tokenizer")
+    print("Saving model..")
     model.save_pretrained("/tmp/prepared_model")
     print("Prepared data saved.")
 

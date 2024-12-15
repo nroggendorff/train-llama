@@ -171,9 +171,9 @@ def main(is_inst=config.INSTRUCT_FINETUNE_BOOL):
         raise
 
     print("Saving Prepared Data..")
-    dataset.save_to_disk("/tmp/prepared_dataset")
-    tokenizer.save_pretrained("/tmp/prepared_tokenizer")
-    model.save_pretrained("/tmp/prepared_model")
+    dataset.save_to_disk("prepared_dataset")
+    tokenizer.save_pretrained("prepared_tokenizer")
+    model.save_pretrained("prepared_model")
     print("Prepared data saved.")
 
 if __name__ == "__main__":

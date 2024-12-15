@@ -80,9 +80,9 @@ def main(push_to_hub=config.PUSH_TO_HUB):
 
     print("Loading Prepared Data..")
     try:
-        dataset = load_from_disk("/tmp/prepared_dataset")
-        tokenizer = AutoTokenizer.from_pretrained("/tmp/prepared_tokenizer")
-        model = AutoModelForCausalLM.from_pretrained("/tmp/prepared_model")
+        dataset = load_from_disk("prepared_dataset")
+        tokenizer = AutoTokenizer.from_pretrained("prepared_tokenizer")
+        model = AutoModelForCausalLM.from_pretrained("prepared_model")
         print("Loaded Prepared Data.")
     except Exception as e:
         print(f"Failed to load dataset or tokenizer: {e}")

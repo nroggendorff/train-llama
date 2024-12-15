@@ -1,6 +1,5 @@
-FROM bitnami/deepspeed
+FROM python:3.9-slim
 
-USER root
 RUN useradd -m -u 1000 user
 
 ARG APP=/home/user/app

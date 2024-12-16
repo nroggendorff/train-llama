@@ -15,7 +15,8 @@ RUN install -d -o user -g user \
     ${APP}/prepared_dataset/data \
     ${APP}/prepared_tokenizer \
     ${APP}/prepared_model
-RUN chmod -R 777 ${APP}
+RUN chmod -R 777 ${APP} && \
+    chmod -R 777 /opt/bitnami
 
 USER user
 CMD ["/bin/bash", "-c", "python prep.py && deepspeed --num_gpus=$(python -c 'import torch; print(torch.cuda.device_count())') train.py"]

@@ -1,5 +1,6 @@
 FROM bitnami/deepspeed
 
+USER root
 RUN useradd -m -u 1000 user
 
 ARG APP=/home/user/app

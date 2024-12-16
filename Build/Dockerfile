@@ -12,7 +12,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY --chown=user . .
 
 RUN install -d -o user -g user \
-    /home/user/app/prepared_dataset \
+    /home/user/app/prepared_dataset/data \
     /home/user/app/prepared_tokenizer \
     /home/user/app/prepared_model
 

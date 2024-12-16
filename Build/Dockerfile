@@ -11,5 +11,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY --chown=user . .
 
+RUN install -d -o user -g user \
+    ${APP}/prepared_dataset/data \
+    ${APP}/prepared_tokenizer \
+    ${APP}/prepared_model
+
 USER user
 CMD ["/bin/bash", "-c", "python prep.py && deepspeed --num_gpus=$(python3 -c 'import torch; print(torch.cuda.device_count())') train.py"]

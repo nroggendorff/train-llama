@@ -46,9 +46,12 @@ def train_model(args, model, device, tokenizer, dataset, push):
             else:
                 trainer.model.save_pretrained("trained_model")
                 trainer.tokenizer.save_pretrained("trained_tokenizer")
+            raise Conclusion("Trained Model.")
         except Exception as e:
             print(f"Failed to save model: {e}")
             raise
+    else:
+        print(f"Not the main process, skipping model saving. Trained model on device {os.environ.get('LOCAL_RANK', -1)}.")
 
 def main(push_to_hub=config.PUSH_TO_HUB):
     print("Initializing accelerator..")
@@ -94,7 +97,6 @@ def main(push_to_hub=config.PUSH_TO_HUB):
 
     print("Training Model..")
     train_model(args, model, device, tokenizer, dataset, push_to_hub)
-    raise Conclusion("Trained Model.")
 
 if __name__ == "__main__":
     try:

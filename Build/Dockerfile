@@ -1,4 +1,4 @@
-FROM bitname/deepspeed
+FROM bitnami/deepspeed
 
 RUN useradd -m -u 1000 user
 

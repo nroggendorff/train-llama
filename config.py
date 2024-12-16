@@ -31,8 +31,6 @@ class Config:
         self.INIT = config_data.get("init")
         self.SEED = 42
 
-        self.getConfig = lambda: self._args()
-
     @staticmethod
     def _load_json(json_file):
         with open(json_file, 'r') as f:
@@ -50,7 +48,7 @@ class Config:
             }
             return cuda_settings.get(key, self.get(key, "auto"))
 
-    def _args(self):
+    def getConfig(self):
         ds_config = self._AutoDict(self)
         return SFTConfig(
             output_dir="model",

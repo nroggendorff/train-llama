@@ -22,8 +22,8 @@ jobs:
 
       - name: Build and tag the Docker image
         run: |
-          docker buildx build Build \
-            -f Build/Dockerfile \
+          docker buildx build . \
+            -f Dockerfile \
             --build-arg HF_TOKEN=${HF_TOKEN} \
             -t nroggendorff/train-llama:latest
 

@@ -14,7 +14,7 @@ This project provides a streamlined workflow for training LLaMA models with the 
 
 ## Configuration
 
-The training pipeline can be configured through a JSON configuration file. Reference the [config file](./Build/config) for available parameters:
+The training pipeline can be configured through a JSON configuration file. Reference the [config file](./config) for available parameters:
 
 Key parameters include:
 
@@ -36,12 +36,12 @@ Dependencies are managed through the requirements.txt
 
 ## Usage
 
-1. Configure your training parameters in `Build/config`
+1. Configure your training parameters in `config.json`
 
 2. Build the Docker image:
 
 ```bash
-docker buildx build Build -f Build/Dockerfile -t nroggendorff/train-llama:latest
+docker buildx build -f Dockerfile -t nroggendorff/train-llama:latest
 ```
 
 3. Run training:

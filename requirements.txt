@@ -5,4 +5,3 @@ accelerate
 numpy
 # liger-kernel
 deepspeed
-# git+https://github.com/nroggendorff/doubt.git

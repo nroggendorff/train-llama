@@ -56,30 +56,17 @@ def train_model(args, model, device, tokenizer, dataset, push):
 def main(push_to_hub=config.PUSH_TO_HUB):
     print("Initializing accelerator..")
 
-    if torch.cuda.is_available():
-        try:
-            if "LOCAL_RANK" in os.environ:
-                local_rank = int(os.environ["LOCAL_RANK"])
-                torch.cuda.set_device(local_rank)
-                try:
-                    dist.init_process_group(backend="nccl")
-                except Exception as e:
-                    print(f"Failed to initialize distributed training: {e}")
-                    raise
-                device = torch.device(f"cuda:{local_rank}")
-            else:
-                device = torch.device("cuda")
-
-            torch.cuda.synchronize(device)
-        except RuntimeError as e:
-            print(f"CUDA initialization failed: {e}")
-            device = torch.device("cpu")
-            print("Falling back to CPU")
+    local_rank = int(os.environ.get("LOCAL_RANK", -1))
+    if local_rank != -1:
+        torch.cuda.set_device(local_rank)
+        dist.init_process_group(backend="nccl")
+        device = torch.device(f"cuda:{local_rank}")
+    elif torch.cuda.is_available():
+        device = torch.device("cuda")
     else:
         device = torch.device("cpu")
-        print("CUDA not available, using CPU")
 
-    print(f"Using device: {device}, rank: {os.environ.get('LOCAL_RANK', 0)}")
+    print(f"Using device: {device}, rank: {local_rank}")
 
     print("Loading Prepared Data..")
     try:

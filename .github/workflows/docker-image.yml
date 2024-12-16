@@ -1,7 +1,6 @@
 name: Train Llama
 
-on:
-  push
+on: push
 
 jobs:
   build:
@@ -23,8 +22,6 @@ jobs:
       - name: Build and tag the Docker image
         run: |
           docker buildx build . \
-            -f Dockerfile \
-            --build-arg HF_TOKEN=${HF_TOKEN} \
             -t nroggendorff/train-llama:latest
 
       - name: Push the Docker image

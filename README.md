@@ -14,7 +14,7 @@ This project provides a streamlined workflow for training LLaMA models with the 
 
 ## Configuration
 
-The training pipeline can be configured through a JSON configuration file. Reference the [config file](./config) for available parameters:
+The training pipeline can be configured through a JSON configuration file. Reference the [config file](./config.json) for available parameters:
 
 Key parameters include:
 
@@ -32,22 +32,27 @@ Key parameters include:
 - Docker
 - NVIDIA GPU with CUDA support
 
-Dependencies are managed through the requirements.txt
+Dependencies are managed through the [requirements text](./requirements.txt).
 
 ## Usage
+
+0. Clone this repository
+```bash
+git clone https://github.com/nroggendorff/train-llama.git
+```
 
 1. Configure your training parameters in `config.json`
 
 2. Build the Docker image:
 
 ```bash
-docker buildx build -f Dockerfile -t nroggendorff/train-llama:latest
+docker buildx build -f Dockerfile -t train-llama
 ```
 
 3. Run training:
 
 ```bash
-docker run --gpus all -it nroggendorff/train-llama:latest
+docker run --gpus all -it train-llama
 ```
 
 ## GitHub Actions
@@ -60,7 +65,7 @@ The project includes automated workflows for:
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
 
 ## Contributing
 

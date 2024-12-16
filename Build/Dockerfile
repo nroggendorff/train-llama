@@ -1,4 +1,4 @@
-FROM python:3.9-slim
+FROM bitname/deepspeed
 
 RUN useradd -m -u 1000 user
 

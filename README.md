@@ -37,8 +37,9 @@ Dependencies are managed through the [requirements text](./requirements.txt).
 ## Usage
 
 0. Clone this repository
+
 ```bash
-git clone https://github.com/nroggendorff/train-llama.git
+git clone https://github.com/nroggendorff/train-llama.git && cd train-llama
 ```
 
 1. Configure your training parameters in `config.json`
@@ -46,13 +47,13 @@ git clone https://github.com/nroggendorff/train-llama.git
 2. Build the Docker image:
 
 ```bash
-docker buildx build -f Dockerfile -t train-llama
+docker buildx build . -t train-llama
 ```
 
 3. Run training:
 
 ```bash
-docker run --gpus all -it train-llama
+docker run --gpus all train-llama
 ```
 
 ## GitHub Actions

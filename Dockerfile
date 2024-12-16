@@ -17,4 +17,4 @@ RUN install -d -o user -g user \
     ${APP}/prepared_model
 
 USER user
-CMD ["/bin/bash", "-c", "python prep.py && deepspeed --num_gpus=$(python3 -c 'import torch; print(torch.cuda.device_count())') train.py"]
+CMD ["/bin/bash", "-c", "python prep.py && deepspeed --num_gpus=$(python -c 'import torch; print(torch.cuda.device_count())') train.py"]

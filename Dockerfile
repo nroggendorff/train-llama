@@ -18,5 +18,7 @@ RUN install -d -o user -g user \
 RUN chmod -R 777 ${APP} && \
     chmod -R 777 /opt/bitnami
 
+ENV INIT=0
+
 USER user
-CMD ["/bin/bash", "-c", "python prep.py && deepspeed --num_gpus=$(python -c 'import torch; print(torch.cuda.device_count())') train.py"]
+CMD ["bash", "trainer.sh"]

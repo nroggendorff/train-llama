@@ -7,7 +7,7 @@ class Config:
     def __init__(self):
         config_data = self._load_json('config.json')
 
-        self.BATCH_SIZE = int(os.getenv('BATCH_SIZE', 0)) or config_data.get("batch-size")
+        self.BATCH_SIZE = int(os.environ.get('BATCH_SIZE', config_data.get("batch-size")))
         self.EPOCHS = config_data.get("epochs")
         self.LEARNING_RATE = config_data.get("learning-rate")
         self.MAX_SEQ_LENGTH = config_data.get("max-seq-length")

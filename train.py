@@ -1,4 +1,5 @@
 import os
+# import sys
 import torch
 
 from datasets import load_from_disk
@@ -46,7 +47,8 @@ def train_model(args, model, device, tokenizer, dataset, push):
             else:
                 trainer.model.save_pretrained("trained_model")
                 trainer.tokenizer.save_pretrained("trained_tokenizer")
-            raise Conclusion("Trained Model.")
+            print("Trained Model.")
+            # sys.exit(0)
         except Exception as e:
             print(f"Failed to save model: {e}")
             raise

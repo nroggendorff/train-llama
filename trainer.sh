@@ -24,3 +24,6 @@ if [ $? -ne 0 ]; then
     echo "Training failed. Exiting..."
     exit 1
 fi
+
+echo "Training complete. Exiting..."
+python -c "from util import Conclusion; raise Conclusion('Training complete.')"

@@ -18,7 +18,7 @@ class Config:
 
         self.INPUT_DATASET = config_data.get("input-dataset")
         self.INSTRUCT_DATASET = config_data.get("instruct-dataset")
-        self.SHARD_SIZE = 2**15 #config_data.get("shard-size")
+        self.SHARD_SIZE = int(os.environ.get('SHARD_SIZE', config_data.get("shard-size")))
 
         self.OUTPUT_REPO = config_data.get("output-repo")
         self.PUSH_TO_HUB = config_data.get("push-to-hub")

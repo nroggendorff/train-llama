@@ -24,7 +24,7 @@ class Config:
         self.PUSH_TO_HUB = config_data.get("push-to-hub")
         self.INSTRUCT_FINETUNE_BOOL = config_data.get("instruct-finetune-bool")
 
-        self.FACTOR = 2**10 + 2**9 # config_data.get("factor")
+        self.FACTOR = int(os.environ.get('FACTOR', config_data.get("factor")))
         self.TOTAL_STEPS = (self.SHARD_SIZE * self.EPOCHS) // (self.BATCH_SIZE * self.GRADIENT_ACCUMULATION_STEPS)
         self.WARMUP_STEPS = int(self.TOTAL_STEPS * 0.1)
 

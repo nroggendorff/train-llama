@@ -7,9 +7,7 @@ if [ "$DEVICE_COUNT" -eq 0 ]; then
 fi
 
 : ${INIT:=0}
-echo "Using initializtion value: $INIT"
-
-sed -i "s/init\": 0/init\": $INIT/g" config.json
+echo "Using initialization value: $INIT"
 
 echo "Preprocessing data..."
 python prep.py

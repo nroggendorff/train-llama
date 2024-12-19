@@ -13,6 +13,5 @@
   "output-repo": "nroggendorff/smallama",
   "push-to-hub": true,
   "instruct-finetune-bool": false,
-  "factor": 12288,
-  "init": 0
+  "factor": 12288
 }

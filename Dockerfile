@@ -19,6 +19,7 @@ RUN chmod -R 777 ${APP} && \
     chmod -R 777 /opt/bitnami
 
 ENV INIT=0
+ENV INSTRUCT=false
 
 USER user
 CMD ["bash", "trainer.sh"]

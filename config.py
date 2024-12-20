@@ -22,7 +22,7 @@ class Config:
 
         self.OUTPUT_REPO = config_data.get("output-repo")
         self.PUSH_TO_HUB = config_data.get("push-to-hub")
-        self.INSTRUCT_FINETUNE_BOOL = config_data.get("instruct-finetune-bool")
+        self.INSTRUCT_FINETUNE_BOOL = os.environ.get('INSTRUCT', 'false').lower() == 'true'
 
         self.FACTOR = int(os.environ.get('FACTOR', config_data.get("factor")))
         self.TOTAL_STEPS = (self.SHARD_SIZE * self.EPOCHS) // (self.BATCH_SIZE * self.GRADIENT_ACCUMULATION_STEPS)

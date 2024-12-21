@@ -28,7 +28,7 @@ class Config:
         self.TOTAL_STEPS = (self.SHARD_SIZE * self.EPOCHS) // (self.BATCH_SIZE * self.GRADIENT_ACCUMULATION_STEPS)
         self.WARMUP_STEPS = int(self.TOTAL_STEPS * 0.1)
 
-        self.INIT = os.environ.get('INIT', 0)
+        self.INIT = int(os.environ.get('INIT', 0))
         self.SEED = 42
 
     @staticmethod

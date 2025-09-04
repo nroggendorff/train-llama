@@ -1,5 +1,7 @@
 #!/bin/bash
-DEVICE_COUNT=$(python -c 'import torch; print(torch.cuda.device_count())')
+source /home/user/app/venv/bin/activate
+
+DEVICE_COUNT=$(python3 -c 'import torch; print(torch.cuda.device_count())')
 
 if [ "$DEVICE_COUNT" -eq 0 ]; then
     echo "No GPUs detected. Exiting..."
@@ -11,7 +13,7 @@ fi
 echo "Using initialization value: $INIT"
 
 echo "Preprocessing data..."
-python prep.py
+python3 prep.py
 if [ $? -ne 0 ]; then
     echo "Preprocessing failed. Exiting..."
     exit 1
@@ -25,4 +27,4 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "Training complete. Exiting..."
-python -c "from util import Conclusion; raise Conclusion('Training complete.')"
+python3 -c "from util import Conclusion; raise Conclusion('Training complete.')"

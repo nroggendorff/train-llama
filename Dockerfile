@@ -22,7 +22,7 @@ ENV PATH="${APP}/venv/bin:$PATH"
 COPY requirements.txt ${APP}
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY --chown=user . .
+COPY --chown=user:user . .
 
 RUN chown -R user:user ${APP}
 

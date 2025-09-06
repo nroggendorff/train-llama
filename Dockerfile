@@ -1,7 +1,7 @@
 FROM nvidia/cuda:12.9.0-cudnn-devel-ubuntu24.04
 
 USER root
-RUN useradd -m -u 1001 user
+RUN usermod -l user ubuntu && groupmod -n user ubuntu
 
 ARG APP=/home/user/app
 WORKDIR ${APP}

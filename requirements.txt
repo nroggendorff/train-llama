@@ -1,8 +1,4 @@
-trl
-datasets
-transformers
-https://download.pytorch.org/whl/cu118/torch-2.2.0%2Bcu118-cp312-cp312-linux_x86_64.whl
-accelerate
-numpy
 # liger-kernel
-deepspeed
+deepspeed==0.17.5
+trl==0.22.2
+torch @ https://download.pytorch.org/whl/cu118/torch-2.2.0%2Bcu118-cp312-cp312-linux_x86_64.whl

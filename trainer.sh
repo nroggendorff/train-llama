@@ -1,6 +1,4 @@
 #!/bin/bash
-bash /home/user/app/venv/bin/activate
-
 DEVICE_COUNT=$(python3 -c 'import torch; print(torch.cuda.device_count())')
 
 if [ "$DEVICE_COUNT" -eq 0 ]; then

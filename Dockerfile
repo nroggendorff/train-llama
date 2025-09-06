@@ -24,8 +24,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY --chown=user . .
 
-RUN chown -R user:user ${APP} && \
-    su -c ". venv/bin/activate" user
+RUN chown -R user:user ${APP}
 
 RUN install -d -o user -g user \
     ${APP}/prepared_dataset/data \
@@ -37,4 +36,4 @@ ENV INIT=0
 ENV INSTRUCT=false
 
 USER user
-CMD [".", "trainer.sh"]
+CMD ["bash", "trainer.sh"]

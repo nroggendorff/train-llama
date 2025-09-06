@@ -5,7 +5,7 @@ RUN usermod -l user ubuntu && groupmod -n user ubuntu
 
 ARG APP=/home/user/app
 WORKDIR ${APP}
-
+RUN chown -R user:user .
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
@@ -16,24 +16,21 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
-RUN python3 -m venv venv
-ENV PATH="${APP}/venv/bin:$PATH"
+USER user
+RUN python3 -m venv .venv
+ENV PATH="${APP}/.venv/bin:$PATH"
 
-COPY requirements.txt ${APP}
+COPY --chown=user:user requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY --chown=user:user . .
-
-RUN chown -R user:user ${APP}
 
 RUN install -d -o user -g user \
     ${APP}/prepared_dataset/data \
     ${APP}/prepared_tokenizer \
     ${APP}/prepared_model
-RUN chmod -R 755 ${APP}
 
 ENV INIT=0
 ENV INSTRUCT=false
 
-USER user
-CMD ["bash", "trainer.sh"]
+CMD ["./trainer.sh"]

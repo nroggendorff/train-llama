@@ -16,24 +16,21 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
-RUN python3 -m venv venv
-ENV PATH="${APP}/venv/bin:$PATH"
+RUN chown -R user:user ${APP}
+USER user
 
-COPY requirements.txt ${APP}
+RUN python3 -m venv .venv
+ENV PATH="${APP}/.venv/bin:$PATH"
+
+COPY . .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY --chown=user:user . .
-
-RUN chown -R user:user ${APP}
-
-RUN install -d -o user -g user \
+RUN mkdir -p \
     ${APP}/prepared_dataset/data \
     ${APP}/prepared_tokenizer \
     ${APP}/prepared_model
-RUN chmod -R 755 ${APP}
 
 ENV INIT=0
 ENV INSTRUCT=false
 
-USER user
-CMD ["bash", "trainer.sh"]
+CMD ["./trainer.sh"]

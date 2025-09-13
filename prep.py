@@ -33,27 +33,47 @@ def create_model(tokenizer):
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(config.SEED)
 
+    hidden_size = int(config.FACTOR)
+
+    preferred_head_dim = 128
+    num_attention_heads = max(1, hidden_size // preferred_head_dim)
+
+    while num_attention_heads > 1 and (hidden_size % num_attention_heads) != 0:
+        num_attention_heads -= 1
+
+    actual_head_dim = hidden_size // num_attention_heads
+
+    num_hidden_layers = max(1, hidden_size // 128)
+
+    intermediate_size = hidden_size * 4
+    print(f"Creating model with hidden_size={hidden_size}, num_hidden_layers={num_hidden_layers}, num_attention_heads={num_attention_heads}, head_dim={actual_head_dim}, intermediate_size={intermediate_size}")
     model_config = LlamaConfig(
         vocab_size=tokenizer.vocab_size,
-        hidden_size=config.FACTOR,
-        intermediate_size=config.FACTOR * 4,
-        num_hidden_layers=config.FACTOR // 2 ** 5,
-        num_attention_heads=config.FACTOR // 2 ** 4,
+        hidden_size=hidden_size,
+        intermediate_size=intermediate_size,
+        num_hidden_layers=num_hidden_layers,
+        num_attention_heads=num_attention_heads,
         max_position_embeddings=config.MAX_SEQ_LENGTH,
         rms_norm_eps=1e-5,
         initializer_range=0.02,
         use_cache=True,
-        pad_token_id=tokenizer.pad_token_id,
-        bos_token_id=tokenizer.bos_token_id,
-        eos_token_id=tokenizer.eos_token_id,
+        pad_token_id=getattr(tokenizer, "pad_token_id", 0),
+        bos_token_id=getattr(tokenizer, "bos_token_id", 1),
+        eos_token_id=getattr(tokenizer, "eos_token_id", 2),
         tie_word_embeddings=False
     )
 
     try:
         model = LlamaForCausalLM(model_config)
     except Exception as e:
-        print(f"Failed to create model: {e}")
+        print(f"Failed to create model with the derived topology: {e}")
         raise
+
+    try:
+        model.resize_token_embeddings(len(tokenizer))
+    except Exception:
+        # not fatal; keep going
+        pass
 
     return model
 
@@ -180,4 +200,8 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as e:
-        Space().stop(e)
+        try:
+            from util import Space
+            Space().stop(e)
+        except Exception:
+            raise

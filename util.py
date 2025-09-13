@@ -3,8 +3,7 @@ from huggingface_hub import HfApi
 
 class Conclusion(Exception):
     def __init__(self, message="Script execution has completed."):
-        self.message = message
-        super().__init__(self.message)
+        super().__init__(message)
 
 class Space:
     def __init__(self):

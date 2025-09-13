@@ -25,6 +25,8 @@ ENV PATH="${APP}/.venv/bin:$PATH"
 COPY . .
 RUN pip install --no-cache-dir -r requirements.txt
 
+RUN touch __init__.py
+
 RUN mkdir -p \
     ${APP}/prepared_dataset/data \
     ${APP}/prepared_tokenizer \

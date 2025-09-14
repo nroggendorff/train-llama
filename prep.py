@@ -180,4 +180,9 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as e:
-        Space().stop(e)
+        try:
+            from util import Space
+
+            Space().stop(e)
+        except Exception:
+            raise

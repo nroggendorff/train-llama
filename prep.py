@@ -3,7 +3,12 @@ import torch
 
 from datasets import load_dataset, Dataset
 from tokenizers import ByteLevelBPETokenizer
-from transformers import AutoTokenizer, PreTrainedTokenizerFast, LlamaConfig, LlamaForCausalLM
+from transformers import (
+    AutoTokenizer,
+    PreTrainedTokenizerFast,
+    LlamaConfig,
+    LlamaForCausalLM,
+)
 import torch.distributed as dist
 
 from config import Config
@@ -11,12 +16,17 @@ from util import *
 
 config = Config()
 
+
 def load_model(tokenizer):
     if dist.is_initialized():
         dist.barrier()
 
     try:
-        model_path = config.OUTPUT_REPO + '-it' if config.INSTRUCT_FINETUNE_BOOL and config.INIT > 0 else config.OUTPUT_REPO
+        model_path = (
+            config.OUTPUT_REPO + "-it"
+            if config.INSTRUCT_FINETUNE_BOOL and config.INIT > 0
+            else config.OUTPUT_REPO
+        )
         model = LlamaForCausalLM.from_pretrained(model_path)
         model.resize_token_embeddings(len(tokenizer))
     except Exception as e:
@@ -28,73 +38,111 @@ def load_model(tokenizer):
 
     return model
 
+
 def create_model(tokenizer):
     torch.manual_seed(config.SEED)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(config.SEED)
 
+    hidden_size = int(config.FACTOR)
+
+    preferred_head_dim = 128
+    num_attention_heads = max(1, hidden_size // preferred_head_dim)
+
+    while num_attention_heads > 1 and (hidden_size % num_attention_heads) != 0:
+        num_attention_heads -= 1
+
+    actual_head_dim = hidden_size // num_attention_heads
+
+    num_hidden_layers = max(1, hidden_size // 128)
+
+    intermediate_size = hidden_size * 4
+    print(
+        f"Creating model with hidden_size={hidden_size}, num_hidden_layers={num_hidden_layers}, num_attention_heads={num_attention_heads}, head_dim={actual_head_dim}, intermediate_size={intermediate_size}"
+    )
     model_config = LlamaConfig(
         vocab_size=tokenizer.vocab_size,
-        hidden_size=config.FACTOR,
-        intermediate_size=config.FACTOR * 4,
-        num_hidden_layers=config.FACTOR // 2 ** 5,
-        num_attention_heads=config.FACTOR // 2 ** 4,
+        hidden_size=hidden_size,
+        intermediate_size=intermediate_size,
+        num_hidden_layers=num_hidden_layers,
+        num_attention_heads=num_attention_heads,
         max_position_embeddings=config.MAX_SEQ_LENGTH,
         rms_norm_eps=1e-5,
         initializer_range=0.02,
         use_cache=True,
-        pad_token_id=tokenizer.pad_token_id,
-        bos_token_id=tokenizer.bos_token_id,
-        eos_token_id=tokenizer.eos_token_id,
-        tie_word_embeddings=False
+        pad_token_id=getattr(tokenizer, "pad_token_id", 0),
+        bos_token_id=getattr(tokenizer, "bos_token_id", 1),
+        eos_token_id=getattr(tokenizer, "eos_token_id", 2),
+        tie_word_embeddings=False,
     )
 
     try:
         model = LlamaForCausalLM(model_config)
     except Exception as e:
-        print(f"Failed to create model: {e}")
+        print(f"Failed to create model with the derived topology: {e}")
         raise
+
+    try:
+        model.resize_token_embeddings(len(tokenizer))
+    except Exception:
+        # not fatal; keep going
+        pass
 
     return model
 
+
 def load_data():
     dataset = load_dataset(
-        config.INSTRUCT_DATASET if config.INSTRUCT_FINETUNE_BOOL else config.INPUT_DATASET,
+        (
+            config.INSTRUCT_DATASET
+            if config.INSTRUCT_FINETUNE_BOOL
+            else config.INPUT_DATASET
+        ),
         split="train",
-        streaming=True
+        streaming=True,
     )
 
-    shard_data = list(tqdm(dataset.skip(config.INIT * config.SHARD_SIZE).take(config.SHARD_SIZE), total=config.SHARD_SIZE, desc="Creating shard"))
-    print(f'Shard set loaded with size {len(shard_data)}, realizing shard data..')
+    shard_data = list(
+        tqdm(
+            dataset.skip(config.INIT * config.SHARD_SIZE).take(config.SHARD_SIZE),
+            total=config.SHARD_SIZE,
+            desc="Creating shard",
+        )
+    )
+    print(f"Shard set loaded with size {len(shard_data)}, realizing shard data..")
     shard = Dataset.from_list(shard_data)
 
     return shard
 
+
 def format_prompts(examples, tokenizer, isinst):
     texts = []
-    for text in examples['text']:
+    for text in examples["text"]:
         if text and len(text.strip()) > 0:
             if isinst:
                 conversation = []
-                parts = text.split('<|end|>')
+                parts = text.split("<|end|>")
                 for i in range(0, len(parts) - 1, 2):
                     prompt = parts[i].replace("<|user|>", "").strip()
                     response = parts[i + 1].replace("<|bot|>", "").strip()
                     conversation.append({"role": "user", "content": prompt})
                     conversation.append({"role": "assistant", "content": response})
-                formatted_conversation = tokenizer.apply_chat_template(conversation, tokenize=False)
+                formatted_conversation = tokenizer.apply_chat_template(
+                    conversation, tokenize=False
+                )
 
                 texts.append(formatted_conversation)
             else:
-                texts.append(tokenizer.bos_token +text + tokenizer.eos_token)
+                texts.append(tokenizer.bos_token + text + tokenizer.eos_token)
         else:
-            print('Found empty entry in examples. Moving on..')
+            print("Found empty entry in examples. Moving on..")
             continue
 
     if len(texts) == 0:
         raise ValueError("No valid texts found in examples for formatting.")
 
-    return {'text': texts}
+    return {"text": texts}
+
 
 def create_tokenizer(training_corpus):
     tokenizer = ByteLevelBPETokenizer()
@@ -103,13 +151,19 @@ def create_tokenizer(training_corpus):
         training_corpus,
         vocab_size=config.VOCAB_SIZE,
         min_frequency=2,
-        special_tokens=special_tokens
+        special_tokens=special_tokens,
     )
     fast_tokenizer = PreTrainedTokenizerFast(tokenizer_object=tokenizer._tokenizer)
     return fast_tokenizer
 
+
 def load_tokenizer():
-    return AutoTokenizer.from_pretrained(config.OUTPUT_REPO + '-it' if config.INSTRUCT_FINETUNE_BOOL and config.INIT > 0 else config.OUTPUT_REPO)
+    return AutoTokenizer.from_pretrained(
+        config.OUTPUT_REPO + "-it"
+        if config.INSTRUCT_FINETUNE_BOOL and config.INIT > 0
+        else config.OUTPUT_REPO
+    )
+
 
 def get_training_corpus(dataset):
     buffer = []
@@ -121,6 +175,7 @@ def get_training_corpus(dataset):
     if buffer:
         yield buffer
 
+
 def configure_tokenizer(tokenizer):
     special_tokens = {
         "bos_token": "<s>",
@@ -128,7 +183,7 @@ def configure_tokenizer(tokenizer):
         "unk_token": "<unk>",
         "pad_token": "<pad>",
         "mask_token": "<mask>",
-        "additional_special_tokens": []
+        "additional_special_tokens": [],
     }
     if config.INSTRUCT_FINETUNE_BOOL:
         special_tokens["additional_special_tokens"] = ["<|user|>", "<|bot|>", "<|end|>"]
@@ -141,6 +196,7 @@ def configure_tokenizer(tokenizer):
         chat_template = "{{ bos_token }}{% for message in messages %}{% if (message['role'] == 'user') != (loop.index0 % 2 == 0) %}{{ raise_exception('Conversation roles must alternate user/assistant/user/assistant/...') }}{% endif %}{% if message['role'] == 'user' %}{{ '<|user|>\n' + message['content'] + '<|end|>\n' }}{% elif message['role'] == 'assistant' %}{{ '<|bot|>\n' + message['content'] + '<|end|>\n' + eos_token}}{% else %}{{ raise_exception('Only user and assistant roles are supported!') }}{% endif %}{% endfor %}"
         tokenizer.chat_template = chat_template
 
+
 def main(is_inst=config.INSTRUCT_FINETUNE_BOOL):
     print("Loading Data..")
     dataset = load_data()
@@ -151,7 +207,11 @@ def main(is_inst=config.INSTRUCT_FINETUNE_BOOL):
     print("Made Corpus.")
 
     print("Getting Tokenizer..")
-    tokenizer = load_tokenizer() if config.INSTRUCT_FINETUNE_BOOL or config.INIT > 0 else create_tokenizer(training_corpus)
+    tokenizer = (
+        load_tokenizer()
+        if config.INSTRUCT_FINETUNE_BOOL or config.INIT > 0
+        else create_tokenizer(training_corpus)
+    )
     print(f"Got Tokenizer with size {len(tokenizer)}.")
 
     print("Adding Special Tokens..")
@@ -159,12 +219,22 @@ def main(is_inst=config.INSTRUCT_FINETUNE_BOOL):
     print("Added Tokens.")
 
     print("Mapping Data..")
-    dataset = dataset.map(lambda examples: format_prompts(examples, tokenizer, config.INSTRUCT_FINETUNE_BOOL), batched=True, remove_columns=dataset.column_names)
+    dataset = dataset.map(
+        lambda examples: format_prompts(
+            examples, tokenizer, config.INSTRUCT_FINETUNE_BOOL
+        ),
+        batched=True,
+        remove_columns=dataset.column_names,
+    )
     print("Mapped Data.")
 
     print("Getting Model..")
     try:
-        model = load_model(tokenizer) if is_inst or config.INIT > 0 else create_model(tokenizer)
+        model = (
+            load_model(tokenizer)
+            if is_inst or config.INIT > 0
+            else create_model(tokenizer)
+        )
         print("Got Model.")
     except Exception as e:
         print(f"Failed to initialize model: {e}")
@@ -175,6 +245,7 @@ def main(is_inst=config.INSTRUCT_FINETUNE_BOOL):
     tokenizer.save_pretrained("prepared_tokenizer")
     model.save_pretrained("prepared_model")
     print("Prepared data saved.")
+
 
 if __name__ == "__main__":
     try:

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
 DEVICE_COUNT=$(python3 - <<'PY'
 try:

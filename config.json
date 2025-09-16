@@ -6,7 +6,7 @@
   "vocab-size": 52000,
   "fp16": true,
   "weight-decay": 0.01,
-  "gradient-accumulation-steps": 4,
+  "gradient-accumulation-steps": 2,
   "input-dataset": "nroggendorff/micropus",
   "instruct-dataset": "nroggendorff/elephant",
   "shard-size": 131072,

@@ -15,7 +15,7 @@ config = Config()
 def train_model(args, model, device, tokenizer, dataset, push):
     trainer = SFTTrainer(
         model=model,
-        tokenizer=tokenizer,
+        processing_class=tokenizer,
         args=args,
         train_dataset=dataset
     )
@@ -43,10 +43,10 @@ def train_model(args, model, device, tokenizer, dataset, push):
                 repo_id = config.OUTPUT_REPO + "-it" if config.INSTRUCT_FINETUNE_BOOL else config.OUTPUT_REPO
                 msg = f"Training loss: {train.training_loss:.4f}"
                 trainer.model.push_to_hub(repo_id, commit_message=msg, force=True)
-                trainer.tokenizer.push_to_hub(repo_id, commit_message=msg, force=True)
+                trainer.processing_class.push_to_hub(repo_id, commit_message=msg, force=True)
             else:
                 trainer.model.save_pretrained("trained_model")
-                trainer.tokenizer.save_pretrained("trained_tokenizer")
+                trainer.processing_class.save_pretrained("trained_tokenizer")
             print("Trained Model.")
             # sys.exit(0)
         except Exception as e:

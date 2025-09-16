@@ -66,7 +66,7 @@ def create_model(tokenizer):
         intermediate_size=intermediate_size,
         num_hidden_layers=num_hidden_layers,
         num_attention_heads=num_attention_heads,
-        max_position_embeddings=config.MAX_SEQ_LENGTH,
+        max_position_embeddings=config.MAX_LENGTH,
         rms_norm_eps=1e-5,
         initializer_range=0.02,
         use_cache=True,

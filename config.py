@@ -11,7 +11,7 @@ class Config:
         )
         self.EPOCHS = config_data.get("epochs")
         self.LEARNING_RATE = config_data.get("learning-rate")
-        self.MAX_SEQ_LENGTH = config_data.get("max-seq-length")
+        self.MAX_LENGTH = config_data.get("max-length")
         self.VOCAB_SIZE = config_data.get("vocab-size")
         self.FP16 = config_data.get("fp16")
         self.WEIGHT_DECAY = config_data.get("weight-decay")
@@ -71,5 +71,5 @@ class Config:
             report_to="none",
             deepspeed=ds_config,
             use_liger_kernel=True,
-            max_seq_length=self.MAX_SEQ_LENGTH,
+            max_length=self.MAX_LENGTH,
         )

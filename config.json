@@ -2,7 +2,7 @@
   "batch-size": 32,
   "epochs": 3,
   "learning-rate": 0.0001,
-  "max-seq-length": 512,
+  "max-length": 512,
   "vocab-size": 52000,
   "fp16": true,
   "weight-decay": 0.01,

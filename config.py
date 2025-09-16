@@ -9,7 +9,7 @@ class Config:
         self.BATCH_SIZE = int(
             os.environ.get("BATCH_SIZE", config_data.get("batch-size"))
         )
-        self.EPOCHS = config_data.get("epochs")
+        self.EPOCHS = os.environ.get("EPOCHS", config_data.get("epochs"))
         self.LEARNING_RATE = config_data.get("learning-rate")
         self.MAX_LENGTH = config_data.get("max-length")
         self.VOCAB_SIZE = config_data.get("vocab-size")
@@ -23,7 +23,7 @@ class Config:
         self.SHARD_SIZE = int(
             os.environ.get("SHARD_SIZE", config_data.get("shard-size"))
         )
-        self.OUTPUT_REPO = config_data.get("output-repo")
+        self.OUTPUT_REPO = os.environ.get("OUTPUT_REPO", config_data.get("output-repo"))
         self.PUSH_TO_HUB = config_data.get("push-to-hub")
         self.INSTRUCT_FINETUNE_BOOL = (
             os.environ.get("INSTRUCT", "false").lower() == "true"

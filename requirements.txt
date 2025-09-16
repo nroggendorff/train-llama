@@ -1,4 +1,4 @@
-# liger-kernel
+liger-kernel==0.6.2
 numpy<2
 deepspeed==0.17.5
 trl==0.22.2

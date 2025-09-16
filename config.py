@@ -70,6 +70,6 @@ class Config:
             save_total_limit=2,
             report_to="none",
             deepspeed=ds_config,
-            # use_liger=True,
+            use_liger_kernel=True,
             max_seq_length=self.MAX_SEQ_LENGTH,
         )

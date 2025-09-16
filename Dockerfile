@@ -15,14 +15,16 @@ RUN mkdir -p /.cache && chown -R user:user /.cache/
 
 WORKDIR ${APP}
 
-COPY --chown=user:user . .
+COPY --chown=user:user requirements.txt .
+
 USER user
 
-ENV PATH="${APP}/.venv/bin:$PATH"
+ENV PATH="${APP}/venv/bin:$PATH"
 
-RUN python3 -m venv .venv && .venv/bin/pip install --no-cache-dir -r requirements.txt
-
+RUN python3 -m venv venv && venv/bin/pip install --no-cache-dir -r requirements.txt
 RUN touch __init__.py
+
+COPY --chown=user:user . .
 
 RUN mkdir -p \
     ${APP}/prepared_dataset/data \

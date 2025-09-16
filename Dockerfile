@@ -29,7 +29,4 @@ RUN mkdir -p \
     ${APP}/prepared_tokenizer \
     ${APP}/prepared_model
 
-ENV INIT=0
-ENV INSTRUCT=false
-
 CMD ["bash", "./trainer.sh"]

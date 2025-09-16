@@ -48,7 +48,7 @@ class Config:
 
         def __getitem__(self, key):
             cuda_settings = {
-                "zero_optimization": {"stage": 2},
+                "zero_optimization": {"stage": 3},
                 "fp16": {"enabled": self.config.FP16},
                 "accelerator": {"type": "cuda"},
             }

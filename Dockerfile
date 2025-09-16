@@ -1,4 +1,4 @@
-FROM nvidia/cuda:12.9.0-cudnn-devel-ubuntu24.04
+FROM nvidia/cuda:12.9.0-cudnn-devel-ubuntu22.04
 
 ARG APP=/home/user/app
 
@@ -8,7 +8,7 @@ RUN apt-get update \
     git curl wget ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-RUN usermod -l user ubuntu && groupmod -n user ubuntu
+RUN useradd -m -u 1000 user
 
 RUN mkdir -p ${APP} && chown -R user:user ${APP}
 RUN mkdir -p /.cache && chown -R user:user /.cache/

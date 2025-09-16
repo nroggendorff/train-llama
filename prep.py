@@ -85,7 +85,6 @@ def create_model(tokenizer):
     try:
         model.resize_token_embeddings(len(tokenizer))
     except Exception:
-        # not fatal; keep going
         pass
 
     return model

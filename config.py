@@ -10,11 +10,11 @@ class Config:
             os.environ.get("BATCH_SIZE", config_data.get("batch-size"))
         )
         self.EPOCHS = int(os.environ.get("EPOCHS", config_data.get("epochs")))
-        self.LEARNING_RATE = config_data.get("learning-rate")
+        self.LEARNING_RATE = 3e-4
         self.MAX_LENGTH = config_data.get("max-length")
         self.VOCAB_SIZE = config_data.get("vocab-size")
         self.FP16 = config_data.get("fp16")
-        self.WEIGHT_DECAY = config_data.get("weight-decay")
+        self.WEIGHT_DECAY = 1e-2
         self.GRADIENT_ACCUMULATION_STEPS = config_data.get(
             "gradient-accumulation-steps"
         )

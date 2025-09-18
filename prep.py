@@ -114,6 +114,15 @@ def load_data():
     return shard
 
 
+def load_full_dataset():
+    dataset = load_dataset(
+        config.INPUT_DATASET,
+        split="train",
+        streaming=True,
+    )
+    return dataset
+
+
 def format_prompts(examples, tokenizer, isinst):
     texts = []
     for text in examples["text"]:
@@ -197,21 +206,26 @@ def configure_tokenizer(tokenizer):
 
 
 def main(is_inst=config.INSTRUCT_FINETUNE_BOOL):
-    print("Loading Data..")
-    dataset = load_data()
-    print("Loaded data.")
-
-    print("Making Corpus..")
-    training_corpus = get_training_corpus(dataset)
-    print("Made Corpus.")
-
     print("Getting Tokenizer..")
-    tokenizer = (
-        load_tokenizer()
-        if config.INSTRUCT_FINETUNE_BOOL or config.INIT > 0
-        else create_tokenizer(training_corpus)
-    )
-    print(f"Got Tokenizer with size {len(tokenizer)}.")
+    if config.INSTRUCT_FINETUNE_BOOL or config.INIT > 0:
+        tokenizer = load_tokenizer()
+        print(f"Got Tokenizer with size {len(tokenizer)}.")
+
+        print("Loading Data..")
+        dataset = load_data()
+        print("Loaded data.")
+    else:
+        print("Loading full dataset for tokenizer creation..")
+        full_dataset = load_full_dataset()
+        print("Making Corpus from full dataset..")
+        training_corpus = get_training_corpus(full_dataset)
+        print("Made Corpus.")
+        tokenizer = create_tokenizer(training_corpus)
+        print(f"Created Tokenizer with size {len(tokenizer)}.")
+
+        print("Loading Data..")
+        dataset = load_data()
+        print("Loaded data.")
 
     print("Adding Special Tokens..")
     configure_tokenizer(tokenizer)

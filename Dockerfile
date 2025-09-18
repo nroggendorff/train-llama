@@ -1,4 +1,4 @@
-FROM nvidia/cuda:12.9.0-cudnn-devel-ubuntu22.04
+FROM nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
 
 ARG APP=/home/user/app
 
@@ -15,13 +15,15 @@ RUN mkdir -p /.cache && chown -R user:user /.cache/
 
 WORKDIR ${APP}
 
-COPY --chown=user:user requirements.txt .
+COPY --chown=user:user installer.sh .
 
 USER user
 
 ENV PATH="${APP}/venv/bin:$PATH"
 
-RUN python3 -m venv venv && venv/bin/pip install --no-cache-dir -r requirements.txt
+RUN python3 -m venv venv
+RUN bash installer.sh
+
 RUN touch __init__.py
 
 COPY --chown=user:user . .

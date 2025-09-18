@@ -60,6 +60,10 @@ def train_model(args, model, device, tokenizer, dataset, push):
 
 
 def main(push_to_hub=config.PUSH_TO_HUB):
+    torch.backends.cudnn.benchmark = True
+    torch.backends.cuda.matmul.allow_tf32 = True
+    torch.backends.cudnn.allow_tf32 = True
+
     print("Initializing accelerator..")
 
     local_rank = int(os.environ.get("LOCAL_RANK", -1))
@@ -78,7 +82,9 @@ def main(push_to_hub=config.PUSH_TO_HUB):
     try:
         dataset = load_from_disk("prepared_dataset")
         tokenizer = AutoTokenizer.from_pretrained("prepared_tokenizer")
-        model = AutoModelForCausalLM.from_pretrained("prepared_model")
+        model = AutoModelForCausalLM.from_pretrained(
+            "prepared_model", attn_implementation="flash_attention_2"
+        )
         print("Loaded Prepared Data.")
     except Exception as e:
         print(f"Failed to load dataset or tokenizer: {e}")

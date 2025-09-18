@@ -4,7 +4,17 @@ from trl import SFTConfig
 
 
 class Config:
+    _instance = None
+    _initialized = False
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super(Config, cls).__new__(cls)
+        return cls._instance
+
     def __init__(self):
+        if Config._initialized:
+            return
         config_data = self._load_json("config.json")
         self.BATCH_SIZE = int(
             os.environ.get("BATCH_SIZE", config_data.get("batch-size"))
@@ -35,6 +45,8 @@ class Config:
         self.WARMUP_STEPS = int(self.TOTAL_STEPS * 0.1)
         self.INIT = int(os.environ.get("INIT", 0))
         self.SEED = 42
+
+        Config._initialized = True
 
     @staticmethod
     def _load_json(json_file):

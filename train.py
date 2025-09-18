@@ -1,5 +1,4 @@
 import os
-# import sys
 import torch
 
 from datasets import load_from_disk
@@ -12,21 +11,18 @@ from util import *
 
 config = Config()
 
+
 def train_model(args, model, device, tokenizer, dataset, push):
     trainer = SFTTrainer(
-        model=model,
-        processing_class=tokenizer,
-        args=args,
-        train_dataset=dataset
+        model=model, processing_class=tokenizer, args=args, train_dataset=dataset
     )
 
     if trainer.is_world_process_zero():
         try:
             model = model.to(device)
-            test_input = tokenizer(
-                ["I love pizza, but"], 
-                return_tensors="pt"
-            ).to(device)
+            test_input = tokenizer(["I love pizza, but"], return_tensors="pt").to(
+                device
+            )
             test_output = model(**test_input)
             print("Model test output shape:", test_output.logits.shape)
 
@@ -40,20 +36,28 @@ def train_model(args, model, device, tokenizer, dataset, push):
     if trainer.is_world_process_zero():
         try:
             if push:
-                repo_id = config.OUTPUT_REPO + "-it" if config.INSTRUCT_FINETUNE_BOOL else config.OUTPUT_REPO
+                repo_id = (
+                    config.OUTPUT_REPO + "-it"
+                    if config.INSTRUCT_FINETUNE_BOOL
+                    else config.OUTPUT_REPO
+                )
                 msg = f"Training loss: {train.training_loss:.4f}"
                 trainer.model.push_to_hub(repo_id, commit_message=msg, force=True)
-                trainer.processing_class.push_to_hub(repo_id, commit_message=msg, force=True)
+                trainer.processing_class.push_to_hub(
+                    repo_id, commit_message=msg, force=True
+                )
             else:
                 trainer.model.save_pretrained("trained_model")
                 trainer.processing_class.save_pretrained("trained_tokenizer")
             print("Trained Model.")
-            # sys.exit(0)
         except Exception as e:
             print(f"Failed to save model: {e}")
             raise
     else:
-        print(f"Not the main process, skipping model saving. Trained model on device {os.environ.get('LOCAL_RANK', -1)}.")
+        print(
+            f"Not the main process, skipping model saving. Trained model on device {os.environ.get('LOCAL_RANK', -1)}."
+        )
+
 
 def main(push_to_hub=config.PUSH_TO_HUB):
     print("Initializing accelerator..")
@@ -86,6 +90,7 @@ def main(push_to_hub=config.PUSH_TO_HUB):
 
     print("Training Model..")
     train_model(args, model, device, tokenizer, dataset, push_to_hub)
+
 
 if __name__ == "__main__":
     try:

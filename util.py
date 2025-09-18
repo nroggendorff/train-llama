@@ -6,6 +6,7 @@ from config import Config
 import json
 import os
 
+
 def get_dataset_size():
     with open(os.path.join("prepared_dataset", "dataset_info.json"), "r") as f:
         info = json.load(f)
@@ -14,7 +15,9 @@ def get_dataset_size():
         total += split.get("num_examples", 0)
     return total
 
+
 config = Config()
+
 
 class Conclusion(Exception):
     def __init__(self, message="Script execution has completed."):
@@ -39,7 +42,12 @@ class Space:
     def resume(self):
         self.api.restart_space(self.repo_id)
 
-    def reset(self, init=config.INIT, inst=config.INSTRUCT_FINETUNE_BOOL, shard_size=config.SHARD_SIZE):
+    def reset(
+        self,
+        init=config.INIT,
+        inst=config.INSTRUCT_FINETUNE_BOOL,
+        shard_size=config.SHARD_SIZE,
+    ):
         dataset_size = get_dataset_size()
 
         if dataset_size > shard_size * (init + 2):

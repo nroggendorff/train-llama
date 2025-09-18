@@ -25,36 +25,21 @@ Key parameters include:
 - `input-dataset`: Dataset for pre-training
 - `instruct-dataset`: Dataset for instruction fine-tuning
 - `output-repo`: Target repository for saving models
-- `instruct-finetune-bool`: Toggle between pre-training and instruction fine-tuning
 
 ## Requirements
 
-- Docker
-- NVIDIA GPU with CUDA support
+- a huggingface account
+- linked payment information with at least ten USD balance
+- a prepaid debit card; reference [this post](https://huggingface.co/posts/nroggendorff/896561565033687) to know how to use it without risk of going bankrupt. (optional)
 
 Dependencies are managed through the [requirements text](./requirements.txt).
 
 ## Usage
 
-0. Clone this repository
+0. Duplicate [nroggendorff/train-llama](https://huggingface.co/spaces/nroggendorff/train-llama) and configure variables and secrets.
 
-```bash
-git clone https://github.com/nroggendorff/train-llama.git && cd train-llama
-```
-
-1. Configure your training parameters in `config.json`
-
-2. Build the Docker image:
-
-```bash
-docker buildx build . -t train-llama
-```
-
-3. Run training:
-
-```bash
-docker run --gpus all train-llama
-```
+[Duplicate Space Hotlink](https://huggingface.co/spaces/nroggendorff/train-llama?duplicate=true)
+The first run must use `INIT=0` and `INSTRUCT=false`.
 
 ## GitHub Actions
 
@@ -70,10 +55,10 @@ This project is licensed under the MIT License - see the [LICENSE](./LICENSE) fi
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome! Please adheer to [CONTRIBUTING](./CONTRIBUTING.md).
 
 ## Notes
 
-- The pipeline uses Git LFS for handling large files
-- Models are automatically pushed to Hugging Face Hub when `push-to-hub` is enabled
-- Training can be resumed from checkpoints by adjusting the `init` parameter
+- The pipeline uses Git LFS for handling large files.
+- Models are automatically pushed to Hugging Face Hub when `push-to-hub` is enabled.
+- Training can be resumed from checkpoints by adjusting the `INIT` and `INSTRUCT` environment variables.

@@ -45,6 +45,7 @@ def train_model(args, model, device, tokenizer, dataset, push):
         except RuntimeError as e:
             print(f"Error processing test batch: {e}")
 
+    torch.cuda.empty_cache()
     train = trainer.train()
 
     if trainer.is_world_process_zero():
@@ -116,4 +117,14 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as e:
-        Space().stop(e)
+        print(f"Critical error in main: {e}")
+        import traceback
+
+        traceback.print_exc()
+        try:
+            from util import Space
+
+            Space().stop(e)
+        except Exception:
+            pass
+        raise

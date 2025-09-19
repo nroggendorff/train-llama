@@ -9,19 +9,16 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 RUN useradd -m -u 1000 user
-
-RUN mkdir -p ${APP} && chown -R user:user ${APP}
-RUN mkdir -p /.cache && chown -R user:user /.cache/
+RUN mkdir -p ${APP} /.cache && chown -R user:user ${APP} /.cache/
 
 WORKDIR ${APP}
-
-COPY --chown=user:user installer.sh .
-
 USER user
 
 ENV PATH="${APP}/venv/bin:$PATH"
 
 RUN python3 -m venv venv
+
+COPY --chown=user:user installer.sh .
 RUN bash installer.sh
 
 RUN touch __init__.py

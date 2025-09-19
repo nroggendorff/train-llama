@@ -42,7 +42,6 @@ class Config:
         return {
             "zero_optimization": {
                 "stage": 3,
-                "offload_optimizer": {"device": "cpu", "pin_memory": True},
                 "overlap_comm": True,
                 "contiguous_gradients": True,
                 "sub_group_size": 1e9,

@@ -100,6 +100,7 @@ def load_data():
         ),
         split="train",
         streaming=True,
+        num_proc=8,
     )
 
     shard_data = list(
@@ -269,9 +270,14 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as e:
+        print(f"Critical error in main: {e}")
+        import traceback
+
+        traceback.print_exc()
         try:
             from util import Space
 
             Space().stop(e)
         except Exception:
-            raise
+            pass
+        raise

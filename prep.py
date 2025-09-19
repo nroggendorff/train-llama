@@ -1,4 +1,5 @@
 from tqdm import tqdm
+from concurrent.futures import ThreadPoolExecutor
 import torch
 
 from datasets import load_dataset, Dataset
@@ -124,27 +125,31 @@ def load_full_dataset():
 
 
 def format_prompts(examples, tokenizer, isinst):
-    texts = []
-    for text in examples["text"]:
-        if text and len(text.strip()) > 0:
-            if isinst:
-                conversation = []
-                parts = text.split("<|end|>")
-                for i in range(0, len(parts) - 1, 2):
+    def process_text(text):
+        if not text or len(text.strip()) == 0:
+            return None
+
+        if isinst:
+            conversation = []
+            parts = text.split("<|end|>")
+            for i in range(0, len(parts) - 1, 2):
+                if i + 1 < len(parts):
                     prompt = parts[i].replace("<|user|>", "").strip()
                     response = parts[i + 1].replace("<|bot|>", "").strip()
                     conversation.append({"role": "user", "content": prompt})
                     conversation.append({"role": "assistant", "content": response})
-                formatted_conversation = tokenizer.apply_chat_template(
-                    conversation, tokenize=False
-                )
 
-                texts.append(formatted_conversation)
-            else:
-                texts.append(tokenizer.bos_token + text + tokenizer.eos_token)
+            if conversation:
+                return tokenizer.apply_chat_template(conversation, tokenize=False)
         else:
-            print("Found empty entry in examples. Moving on..")
-            continue
+            return tokenizer.bos_token + text + tokenizer.eos_token
+
+        return None
+
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        texts = list(executor.map(process_text, examples["text"]))
+
+    texts = [t for t in texts if t is not None]
 
     if len(texts) == 0:
         raise ValueError("No valid texts found in examples for formatting.")

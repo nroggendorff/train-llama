@@ -3,6 +3,7 @@ import torch
 
 from datasets import load_from_disk
 from transformers import AutoTokenizer, AutoModelForCausalLM
+from transformers import DataCollatorForLanguageModeling
 from trl import SFTTrainer
 import torch.distributed as dist
 
@@ -13,8 +14,21 @@ config = Config()
 
 
 def train_model(args, model, device, tokenizer, dataset, push):
+    if hasattr(model, "gradient_checkpointing_enable"):
+        model.gradient_checkpointing_enable()
+
+    data_collator = DataCollatorForLanguageModeling(
+        tokenizer=tokenizer,
+        mlm=False,
+        pad_to_multiple_of=8,
+    )
+
     trainer = SFTTrainer(
-        model=model, processing_class=tokenizer, args=args, train_dataset=dataset
+        model=model,
+        processing_class=tokenizer,
+        args=args,
+        train_dataset=dataset,
+        data_collator=data_collator,
     )
 
     if trainer.is_world_process_zero():

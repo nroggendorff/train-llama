@@ -55,7 +55,7 @@ This project is licensed under the MIT License - see the [LICENSE](./LICENSE) fi
 
 ## Contributing
 
-Contributions are welcome! Please adheer to [CONTRIBUTING](./CONTRIBUTING.md).
+Contributions are welcome! Please adhere to [CONTRIBUTING](./CONTRIBUTING.md).
 
 ## Notes
 

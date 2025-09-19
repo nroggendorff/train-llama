@@ -34,7 +34,7 @@ Make sure your changes don't break anything. Be especially careful when changing
 
 When committing, please follow these guidelines:
 
-- Write clear, concise commit messages that adheer to the [commit message guidelines](#commit-message-guidelines).
+- Write clear, concise commit messages that adhere to the [commit message guidelines](#commit-message-guidelines).
 - Confirm your changes won't break anything. Be especially careful if you changed [the dockerfile][./Dockerfile]
 
 ### 6. Push Your Changes

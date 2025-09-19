@@ -11,6 +11,7 @@ from transformers import (
     LlamaForCausalLM,
 )
 import torch.distributed as dist
+from torch.utils.data import DataLoader
 
 from config import Config
 from util import *
@@ -100,19 +101,24 @@ def load_data():
         ),
         split="train",
         streaming=True,
-        num_proc=8,
     )
 
-    shard_data = list(
-        tqdm(
-            dataset.skip(config.INIT * config.SHARD_SIZE).take(config.SHARD_SIZE),
-            total=config.SHARD_SIZE,
-            desc="Creating shard",
-        )
+    dataset = dataset.skip(config.INIT * config.SHARD_SIZE).take(config.SHARD_SIZE)
+
+    dataloader = DataLoader(
+        dataset,
+        batch_size=1000,
+        num_workers=8,
+        pin_memory=True,
     )
+
+    shard_data = []
+    for batch in tqdm(dataloader, desc="Loading data with parallel workers"):
+        shard_data.extend(batch["text"])
+
     print(f"Shard set loaded with size {len(shard_data)}, realizing shard data..")
-    shard = Dataset.from_list(shard_data)
 
+    shard = Dataset.from_dict({"text": shard_data})
     return shard
 
 

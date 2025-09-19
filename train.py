@@ -34,11 +34,15 @@ def train_model(args, model, device, tokenizer, dataset, push):
     if trainer.is_world_process_zero():
         try:
             model = model.to(device)
+
             test_input = tokenizer(["I love pizza, but"], return_tensors="pt").to(
                 device
             )
-            test_output = model(**test_input)
+
+            with torch.no_grad():
+                test_output = model(**test_input)
             print("Model test output shape:", test_output.logits.shape)
+            print("Model test output dtype:", test_output.logits.dtype)
 
             del test_input, test_output
             torch.cuda.empty_cache()
@@ -97,9 +101,13 @@ def main(push_to_hub=config.PUSH_TO_HUB):
     try:
         dataset = load_from_disk("prepared_dataset")
         tokenizer = AutoTokenizer.from_pretrained("prepared_tokenizer")
-        model = AutoModelForCausalLM.from_pretrained(
-            "prepared_model", attn_implementation="flash_attention_2"
-        )
+
+        model_kwargs = {"attn_implementation": "flash_attention_2"}
+
+        if config.FP16:
+            model_kwargs["dtype"] = torch.float16
+
+        model = AutoModelForCausalLM.from_pretrained("prepared_model", **model_kwargs)
         print("Loaded Prepared Data.")
     except Exception as e:
         print(f"Failed to load dataset or tokenizer: {e}")

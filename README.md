@@ -18,36 +18,29 @@ The training pipeline can be configured through environment variables. Reference
 
 Key parameters include:
 
-- `batch-size`: Training batch size
-- `epochs`: Number of training epochs
-- `learning-rate`: Model learning rate
-- `max-seq-length`: Maximum sequence length
-- `input-dataset`: Dataset for pre-training
-- `instruct-dataset`: Dataset for instruction fine-tuning
-- `output-repo`: Target repository for saving models
+- `BATCH_SIZE`: Training batch size
+- `EPOCHS`: Number of training epochs
+- `LEARNING_RATE`: Model learning rate
+- `MAX_LENGTH`: Maximum sequence length
+- `INPUT_DATASET`: Dataset for pre-training
+- `INSTRUCT_DATASET`: Dataset for instruction fine-tuning
+- `OUTPUT_REPO`: Target repository for saving models
 
 ## Requirements
 
 - a huggingface account
+- a huggingface token with write access
 - linked payment information with at least ten USD balance
 - a prepaid debit card; reference [this post](https://huggingface.co/posts/nroggendorff/896561565033687) to know how to use it without risk of going bankrupt. (optional)
 
-Dependencies are managed through the [requirements text](./requirements.txt).
+Dependencies are managed through the [requirements script](./installer.sh).
 
 ## Usage
 
-0. Duplicate [nroggendorff/train-llama](https://huggingface.co/spaces/nroggendorff/train-llama) and configure variables and secrets.
+Duplicate [nroggendorff/train-llama](https://huggingface.co/spaces/nroggendorff/train-llama) and configure variables and secrets.
 
 [Duplicate Space Hotlink](https://huggingface.co/spaces/nroggendorff/train-llama?duplicate=true)
 The first run must use `INIT=0` and `INST=false`.
-
-## GitHub Actions
-
-The project includes automated workflows for:
-
-- Building and pushing Docker images
-- Triggering training runs on external compute resources
-- Managing model versions through pull requests
 
 ## License
 
@@ -60,5 +53,5 @@ Contributions are welcome! Please adhere to [CONTRIBUTING](./CONTRIBUTING.md).
 ## Notes
 
 - The pipeline uses Git LFS for handling large files.
-- Models are automatically pushed to Hugging Face Hub when `push-to-hub` is enabled.
+- Models are automatically pushed to Hugging Face Hub when `PUSH_TO_HUB` is enabled.
 - Training can be resumed from checkpoints by adjusting the `INIT` and `INST` environment variables.

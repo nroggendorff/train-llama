@@ -60,8 +60,8 @@ class Config:
                 "min_loss_scale": 1,
             },
             "gradient_clipping": 1.0,
-            "train_batch_size": "auto",
-            "train_micro_batch_size_per_gpu": "auto",
+            "train_micro_batch_size_per_gpu": self.BATCH_SIZE,
+            "gradient_accumulation_steps": self.GRADIENT_ACCUMULATION_STEPS,
             "wall_clock_breakdown": False,
             "communication_data_type": "fp16",
             "aio": {

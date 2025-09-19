@@ -265,6 +265,9 @@ def main(is_inst=config.INSTRUCT_FINETUNE_BOOL):
         print(f"Failed to initialize model: {e}")
         raise
 
+    if config.FP16:
+        model = model.half()
+
     print("Saving Prepared Data..")
     dataset.save_to_disk("prepared_dataset")
     tokenizer.save_pretrained("prepared_tokenizer")

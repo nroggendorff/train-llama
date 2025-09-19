@@ -14,7 +14,7 @@ This project provides a streamlined workflow for training LLaMA models with the 
 
 ## Configuration
 
-The training pipeline can be configured through a JSON configuration file. Reference the [config file](./config.json) for available parameters:
+The training pipeline can be configured through environment variables. Reference the [config file](./config.py) for available parameters:
 
 Key parameters include:
 
@@ -39,7 +39,7 @@ Dependencies are managed through the [requirements text](./requirements.txt).
 0. Duplicate [nroggendorff/train-llama](https://huggingface.co/spaces/nroggendorff/train-llama) and configure variables and secrets.
 
 [Duplicate Space Hotlink](https://huggingface.co/spaces/nroggendorff/train-llama?duplicate=true)
-The first run must use `INIT=0` and `INSTRUCT=false`.
+The first run must use `INIT=0` and `INST=false`.
 
 ## GitHub Actions
 
@@ -61,4 +61,4 @@ Contributions are welcome! Please adheer to [CONTRIBUTING](./CONTRIBUTING.md).
 
 - The pipeline uses Git LFS for handling large files.
 - Models are automatically pushed to Hugging Face Hub when `push-to-hub` is enabled.
-- Training can be resumed from checkpoints by adjusting the `INIT` and `INSTRUCT` environment variables.
+- Training can be resumed from checkpoints by adjusting the `INIT` and `INST` environment variables.

@@ -67,6 +67,6 @@ class Space:
         )
         self.api.add_space_variable(
             repo_id=self.repo_id,
-            key="INSTRUCT",
+            key="INST",
             value="true" if new_instruct else "false",
         )

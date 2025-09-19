@@ -18,7 +18,7 @@ if [ "$DEVICE_COUNT" -eq 0 ]; then
 fi
 
 : ${INIT:=0}
-: ${INSTRUCT:=false}
+: ${INST:=false}
 echo "Using initialization value: $INIT"
 
 echo "Preprocessing data..."

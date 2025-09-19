@@ -1,5 +1,4 @@
 import os
-import json
 from trl import SFTConfig
 
 
@@ -15,30 +14,21 @@ class Config:
     def __init__(self):
         if Config._initialized:
             return
-        config_data = self._load_json("config.json")
-        self.BATCH_SIZE = int(
-            os.environ.get("BATCH_SIZE", config_data.get("batch-size"))
-        )
-        self.EPOCHS = float(os.environ.get("EPOCHS", config_data.get("epochs")))
+        self.BATCH_SIZE = int(os.environ.get("BATCH_SIZE", 4))
+        self.EPOCHS = float(os.environ.get("EPOCHS", 3))
         self.LEARNING_RATE = 3e-4
-        self.MAX_LENGTH = config_data.get("max-length")
-        self.VOCAB_SIZE = config_data.get("vocab-size")
-        self.FP16 = config_data.get("fp16")
+        self.MAX_LENGTH = 512
+        self.VOCAB_SIZE = 52000
+        self.FP16 = True
         self.WEIGHT_DECAY = 1e-2
-        self.GRADIENT_ACCUMULATION_STEPS = config_data.get(
-            "gradient-accumulation-steps"
-        )
-        self.INPUT_DATASET = config_data.get("input-dataset")
-        self.INSTRUCT_DATASET = config_data.get("instruct-dataset")
-        self.SHARD_SIZE = int(
-            os.environ.get("SHARD_SIZE", config_data.get("shard-size"))
-        )
-        self.OUTPUT_REPO = os.environ.get("OUTPUT_REPO", config_data.get("output-repo"))
-        self.PUSH_TO_HUB = config_data.get("push-to-hub")
-        self.INSTRUCT_FINETUNE_BOOL = (
-            os.environ.get("INSTRUCT", "false").lower() == "true"
-        )
-        self.FACTOR = int(os.environ.get("FACTOR", config_data.get("factor")))
+        self.GRADIENT_ACCUMULATION_STEPS = 2
+        self.INPUT_DATASET = os.environ.get("INPUT_DS", "nroggendorff/micropus")
+        self.INSTRUCT_DATASET = os.environ.get("INST_DS", "nroggendorff/elephant")
+        self.SHARD_SIZE = int(os.environ.get("SHARD_SIZE", 131072))
+        self.OUTPUT_REPO = os.environ.get("OUTPUT_REPO", "nroggendorff/smallama")
+        self.PUSH_TO_HUB = True
+        self.INSTRUCT_FINETUNE_BOOL = os.environ.get("INST", "false").lower() == "true"
+        self.FACTOR = int(os.environ.get("FACTOR", 12288))
         self.TOTAL_STEPS = (self.SHARD_SIZE * self.EPOCHS) // (
             self.BATCH_SIZE * self.GRADIENT_ACCUMULATION_STEPS
         )
@@ -47,11 +37,6 @@ class Config:
         self.SEED = 42
 
         Config._initialized = True
-
-    @staticmethod
-    def _load_json(json_file):
-        with open(json_file, "r") as f:
-            return json.load(f)
 
     class _AutoDict(dict):
         def __init__(self, config):

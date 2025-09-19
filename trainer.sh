@@ -22,8 +22,8 @@ fi
 echo "Using initialization value: $INIT"
 
 echo "Preprocessing data..."
-if [ -x ".venv/bin/python" ]; then
-    .venv/bin/python prep.py
+if [ -x "venv/bin/python" ]; then
+    venv/bin/python prep.py
 else
     python3 prep.py
 fi

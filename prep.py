@@ -103,7 +103,7 @@ def load_data():
         streaming=True,
     )
 
-    dataset = dataset.skip(config.INIT * config.SHARD_SIZE).take(config.SHARD_SIZE)
+    dataset = dataset.skip(config.SKIP_SAMPLES).take(config.SHARD_SIZE)
 
     dataloader = DataLoader(
         dataset,
@@ -126,7 +126,7 @@ def load_full_dataset():
     dataset = load_dataset(
         config.INPUT_DATASET,
         split="train",
-        streaming=True,
+        num_proc=8
     )
     return dataset
 

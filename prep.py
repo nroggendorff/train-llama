@@ -126,8 +126,23 @@ def load_full_dataset():
     dataset = load_dataset(
         config.INPUT_DATASET,
         split="train",
-        num_proc=8
+        streaming=True,
     )
+
+    dataloader = DataLoader(
+        dataset,
+        batch_size=1000,
+        num_workers=8,
+        pin_memory=True,
+    )
+
+    data = []
+    for batch in tqdm(dataloader, desc="Loading data with parallel workers"):
+        data.extend(batch["text"])
+
+    print(f"Shard set loaded with size {len(data)}, realizing shard data..")
+
+    dataset = Dataset.from_dict({"text": data})
     return dataset
 
 

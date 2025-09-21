@@ -11,7 +11,8 @@ from transformers import (
     LlamaForCausalLM,
 )
 import torch.distributed as dist
-from torch.utils.data import DataLoader
+import threading
+from collections import deque
 
 from config import Config
 from util import *
@@ -231,27 +232,55 @@ def main(is_inst=config.INSTRUCT_FINETUNE_BOOL):
 
     print("Processing and saving data in streaming mode..")
 
+    def process_batch(batch, tokenizer, instruct_finetune_bool):
+        batch_dict = {"text": [item["text"] for item in batch]}
+        formatted_batch = format_prompts(batch_dict, tokenizer, instruct_finetune_bool)
+        return [{"text": text} for text in formatted_batch["text"]]
+
+    def batch_generator(dataset, batch_size):
+        current_batch = []
+        for example in dataset:
+            current_batch.append(example)
+            if len(current_batch) >= batch_size:
+                yield current_batch
+                current_batch = []
+        if current_batch:
+            yield current_batch
+
     processed_data = []
     batch_size = 100
-    current_batch = []
+    max_workers = 4
+    max_queued_batches = max_workers * 2
 
-    for example in tqdm(dataset, desc="Processing examples"):
-        current_batch.append(example)
+    batch_gen = batch_generator(dataset, batch_size)
+    result_lock = threading.Lock()
 
-        if len(current_batch) >= batch_size:
-            batch_dict = {"text": [item["text"] for item in current_batch]}
-            formatted_batch = format_prompts(
-                batch_dict, tokenizer, config.INSTRUCT_FINETUNE_BOOL
-            )
-            processed_data.extend([{"text": text} for text in formatted_batch["text"]])
-            current_batch = []
+    def process_and_store(batch):
+        result = process_batch(batch, tokenizer, config.INSTRUCT_FINETUNE_BOOL)
+        with result_lock:
+            processed_data.extend(result)
+        return len(result)
 
-    if current_batch:
-        batch_dict = {"text": [item["text"] for item in current_batch]}
-        formatted_batch = format_prompts(
-            batch_dict, tokenizer, config.INSTRUCT_FINETUNE_BOOL
-        )
-        processed_data.extend([{"text": text} for text in formatted_batch["text"]])
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = deque()
+        total_processed = 0
+
+        with tqdm(desc="Processing examples") as pbar:
+            for batch in batch_gen:
+                if len(futures) >= max_queued_batches:
+                    future = futures.popleft()
+                    count = future.result()
+                    total_processed += count
+                    pbar.update(count)
+
+                future = executor.submit(process_and_store, batch)
+                futures.append(future)
+
+            while futures:
+                future = futures.popleft()
+                count = future.result()
+                total_processed += count
+                pbar.update(count)
 
     print(f"Creating dataset from {len(processed_data)} processed examples...")
     final_dataset = Dataset.from_list(processed_data)

@@ -104,22 +104,7 @@ def load_data():
     )
 
     dataset = dataset.skip(config.SKIP_SAMPLES).take(config.SHARD_SIZE)
-
-    dataloader = DataLoader(
-        dataset,
-        batch_size=1000,
-        num_workers=8,
-        pin_memory=True,
-    )
-
-    shard_data = []
-    for batch in tqdm(dataloader, desc="Loading data with parallel workers"):
-        shard_data.extend(batch["text"])
-
-    print(f"Shard set loaded with size {len(shard_data)}, realizing shard data..")
-
-    shard = Dataset.from_dict({"text": shard_data})
-    return shard
+    return dataset
 
 
 def load_full_dataset():
@@ -128,21 +113,6 @@ def load_full_dataset():
         split="train",
         streaming=True,
     )
-
-    dataloader = DataLoader(
-        dataset,
-        batch_size=1000,
-        num_workers=8,
-        pin_memory=True,
-    )
-
-    data = []
-    for batch in tqdm(dataloader, desc="Loading data with parallel workers"):
-        data.extend(batch["text"])
-
-    print(f"Shard set loaded with size {len(data)}, realizing shard data..")
-
-    dataset = Dataset.from_dict({"text": data})
     return dataset
 
 
@@ -168,7 +138,7 @@ def format_prompts(examples, tokenizer, isinst):
 
         return None
 
-    with ThreadPoolExecutor(max_workers=8) as executor:
+    with ThreadPoolExecutor(max_workers=4) as executor:
         texts = list(executor.map(process_text, examples["text"]))
 
     texts = [t for t in texts if t is not None]
@@ -202,11 +172,12 @@ def load_tokenizer():
 
 def get_training_corpus(dataset):
     buffer = []
-    for i, text in enumerate(dataset):
-        buffer.append(text["text"])
-        if (i + 1) % 1000 == 0:
-            yield buffer
-            buffer = []
+    for i, example in enumerate(dataset):
+        if example["text"] and len(example["text"].strip()) > 0:
+            buffer.append(example["text"])
+            if len(buffer) >= 1000:
+                yield buffer
+                buffer = []
     if buffer:
         yield buffer
 
@@ -258,15 +229,33 @@ def main(is_inst=config.INSTRUCT_FINETUNE_BOOL):
     configure_tokenizer(tokenizer)
     print("Added Tokens.")
 
-    print("Mapping Data..")
-    dataset = dataset.map(
-        lambda examples: format_prompts(
-            examples, tokenizer, config.INSTRUCT_FINETUNE_BOOL
-        ),
-        batched=True,
-        remove_columns=dataset.column_names,
-    )
-    print("Mapped Data.")
+    print("Processing and saving data in streaming mode..")
+
+    processed_data = []
+    batch_size = 100
+    current_batch = []
+
+    for example in tqdm(dataset, desc="Processing examples"):
+        current_batch.append(example)
+
+        if len(current_batch) >= batch_size:
+            batch_dict = {"text": [item["text"] for item in current_batch]}
+            formatted_batch = format_prompts(
+                batch_dict, tokenizer, config.INSTRUCT_FINETUNE_BOOL
+            )
+            processed_data.extend([{"text": text} for text in formatted_batch["text"]])
+            current_batch = []
+
+    if current_batch:
+        batch_dict = {"text": [item["text"] for item in current_batch]}
+        formatted_batch = format_prompts(
+            batch_dict, tokenizer, config.INSTRUCT_FINETUNE_BOOL
+        )
+        processed_data.extend([{"text": text} for text in formatted_batch["text"]])
+
+    print(f"Creating dataset from {len(processed_data)} processed examples...")
+    final_dataset = Dataset.from_list(processed_data)
+    processed_data = None
 
     print("Getting Model..")
     try:
@@ -284,7 +273,7 @@ def main(is_inst=config.INSTRUCT_FINETUNE_BOOL):
         model = model.half()
 
     print("Saving Prepared Data..")
-    dataset.save_to_disk("prepared_dataset")
+    final_dataset.save_to_disk("prepared_dataset")
     tokenizer.save_pretrained("prepared_tokenizer")
     model.save_pretrained("prepared_model")
     print("Prepared data saved.")

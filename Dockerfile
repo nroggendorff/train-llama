@@ -18,8 +18,15 @@ ENV PATH="${APP}/venv/bin:$PATH"
 
 RUN python3 -m venv venv
 
-COPY --chown=user:user installer.sh .
-RUN bash installer.sh
+RUN venv/bin/pip install --no-cache-dir --prefer-binary packaging wheel setuptools ninja && \
+    venv/bin/pip install --no-cache-dir --prefer-binary numpy==1.26.4 && \
+    venv/bin/pip install --no-cache-dir --prefer-binary torch==2.4 --index-url https://download.pytorch.org/whl/cu118 && \
+    venv/bin/pip install --no-cache-dir --prefer-binary --no-build-isolation flash_attn==2.5.8 && \
+    venv/bin/pip install --no-cache-dir --prefer-binary trl==0.22.2 liger-kernel==0.6.2 deepspeed==0.17.5 && \
+    find venv -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true && \
+    find venv -type f -name "*.pyc" -delete && \
+    find venv -type f -name "*.pyo" -delete && \
+    find venv -name "tests" -type d -exec rm -rf {} + 2>/dev/null || true
 
 RUN touch __init__.py
 

@@ -102,9 +102,6 @@ def main(push_to_hub=config.PUSH_TO_HUB):
         print("Loading dataset from disk...")
         dataset = load_from_disk("prepared_dataset")
 
-        print("Converting to streaming dataset for memory efficiency...")
-        dataset = dataset.to_iterable_dataset()
-
         tokenizer = AutoTokenizer.from_pretrained("prepared_tokenizer")
 
         model_kwargs = {"attn_implementation": "flash_attention_2"}

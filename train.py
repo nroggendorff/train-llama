@@ -90,10 +90,8 @@ def main(push_to_hub=config.PUSH_TO_HUB):
         torch.cuda.set_device(local_rank)
         dist.init_process_group(backend="nccl")
         device = torch.device(f"cuda:{local_rank}")
-    elif torch.cuda.is_available():
-        device = torch.device("cuda")
     else:
-        device = torch.device("cpu")
+        device = torch.device("cuda")
 
     print(f"Using device: {device}, rank: {local_rank}")
 

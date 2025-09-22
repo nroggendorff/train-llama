@@ -44,8 +44,7 @@ def load_model(tokenizer):
 
 def create_model(tokenizer):
     torch.manual_seed(config.SEED)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(config.SEED)
+    torch.cuda.manual_seed_all(config.SEED)
 
     hidden_size = int(config.FACTOR)
 

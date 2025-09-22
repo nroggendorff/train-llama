@@ -20,8 +20,8 @@ class Config:
         self.INIT = int(os.environ.get("INIT", 0))
         self.EPOCHS = epochs if self.INIT >= 2 else epochs / 2
         self.LEARNING_RATE = 3e-4
-        self.MAX_LENGTH = 512
-        self.VOCAB_SIZE = 52000
+        self.MAX_LENGTH = int(os.environ.get("MAX_LENGTH", 2048))
+        self.VOCAB_SIZE = int(os.environ.get("VOCAB_SIZE", 52000))
         self.FP16 = True
         self.WEIGHT_DECAY = 1e-2
         self.GRADIENT_ACCUMULATION_STEPS = 8

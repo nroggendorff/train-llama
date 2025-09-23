@@ -49,12 +49,15 @@ class Config:
                 "overlap_comm": True,
                 "contiguous_gradients": True,
                 "sub_group_size": 1e9,
-                "reduce_bucket_size": 5e8,
-                "stage3_prefetch_bucket_size": 5e8,
-                "stage3_param_persistence_threshold": 1e6,
-                "stage3_max_live_parameters": 5e8,
-                "stage3_max_reuse_distance": 5e8,
+                "reduce_bucket_size": 1e8,
+                "stage3_prefetch_bucket_size": 1e8,
+                "stage3_param_persistence_threshold": 1e4,
+                "stage3_max_live_parameters": 1e8,
+                "stage3_max_reuse_distance": 1e8,
                 "stage3_gather_16bit_weights_on_model_save": True,
+                "allgather_partitions": True,
+                "allgather_bucket_size": 5e8,
+                "reduce_scatter": True,
             },
             "fp16": {
                 "enabled": self.FP16,
@@ -77,6 +80,12 @@ class Config:
                 "overlap_events": True,
             },
             "zero_force_ds_cpu_optimizer": False,
+            "comms_logger": {
+                "enabled": True,
+                "verbose": False,
+                "prof_all": False,
+                "debug": False,
+            },
         }
 
     def getConfig(self):
@@ -108,4 +117,6 @@ class Config:
             dataloader_persistent_workers=False,
             prediction_loss_only=True,
             save_safetensors=True,
+            ddp_timeout=7200,
+            ddp_backend="nccl",
         )

@@ -90,6 +90,7 @@ class Config:
             gradient_accumulation_steps=self.GRADIENT_ACCUMULATION_STEPS,
             fp16=self.FP16,
             save_steps=max(1, int(self.WARMUP_STEPS * 5)),
+            save_strategy="steps",
             logging_steps=max(self.BATCH_SIZE, int(self.WARMUP_STEPS)),
             save_total_limit=1,
             report_to="none",
@@ -106,4 +107,5 @@ class Config:
             max_grad_norm=1.0,
             dataloader_persistent_workers=False,
             prediction_loss_only=True,
+            save_safetensors=True,
         )

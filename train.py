@@ -6,6 +6,7 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 from transformers import DataCollatorForLanguageModeling
 from trl import SFTTrainer
 import torch.distributed as dist
+from deepspeed.runtime.zero import GatheredParameters
 
 from config import Config
 from util import *
@@ -61,13 +62,19 @@ def train_model(args, model, device, tokenizer, dataset, push):
                     else config.OUTPUT_REPO
                 )
                 msg = f"Training loss: {train.training_loss:.4f}"
-                trainer.model.push_to_hub(repo_id, commit_message=msg, force=True)
-                trainer.processing_class.push_to_hub(
-                    repo_id, commit_message=msg, force=True
-                )
+                with GatheredParameters(
+                    [p for p in trainer.model.parameters()], modifier_rank=0
+                ):
+                    trainer.model.push_to_hub(repo_id, commit_message=msg, force=True)
+                    trainer.processing_class.push_to_hub(
+                        repo_id, commit_message=msg, force=True
+                    )
             else:
-                trainer.model.save_pretrained("trained_model")
-                trainer.processing_class.save_pretrained("trained_tokenizer")
+                with GatheredParameters(
+                    [p for p in trainer.model.parameters()], modifier_rank=0
+                ):
+                    trainer.model.save_pretrained("trained_model")
+                    trainer.processing_class.save_pretrained("trained_tokenizer")
             print("Trained Model.")
         except Exception as e:
             print(f"Failed to save model: {e}")

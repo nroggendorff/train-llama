@@ -1,5 +1,6 @@
 import os
 import torch
+from datetime import timedelta
 
 from datasets import load_from_disk
 from transformers import AutoTokenizer, AutoModelForCausalLM
@@ -51,7 +52,22 @@ def train_model(args, model, device, tokenizer, dataset, push):
             print(f"Error processing test batch: {e}")
 
     torch.cuda.empty_cache()
-    train = trainer.train()
+
+    try:
+        train = trainer.train()
+    except RuntimeError as e:
+        if "NCCL" in str(e) or "timeout" in str(e).lower():
+            print(f"NCCL timeout error detected: {e}")
+            print("Attempting to save model before exit...")
+            if trainer.is_world_process_zero():
+                try:
+                    trainer.save_model("emergency_model_save")
+                    print("Emergency save completed using trainer.save_model().")
+                except Exception as save_error:
+                    print(f"Emergency save failed: {save_error}")
+            raise
+        else:
+            raise
 
     if trainer.is_world_process_zero():
         try:
@@ -62,22 +78,35 @@ def train_model(args, model, device, tokenizer, dataset, push):
                     else config.OUTPUT_REPO
                 )
                 msg = f"Training loss: {train.training_loss:.4f}"
-                with GatheredParameters(
-                    [p for p in trainer.model.parameters()], modifier_rank=0
-                ):
-                    trainer.model.push_to_hub(repo_id, commit_message=msg, force=True)
-                    trainer.processing_class.push_to_hub(
-                        repo_id, commit_message=msg, force=True
-                    )
+
+                print("Using trainer.save_model() instead of GatheredParameters...")
+                trainer.save_model("temp_model_save")
+
+                print("Loading saved model for HF Hub upload...")
+                saved_model = AutoModelForCausalLM.from_pretrained("temp_model_save")
+                saved_tokenizer = AutoTokenizer.from_pretrained("temp_model_save")
+
+                saved_model.push_to_hub(repo_id, commit_message=msg, force=True)
+                saved_tokenizer.push_to_hub(repo_id, commit_message=msg, force=True)
+
+                print("Model pushed to hub successfully")
             else:
-                with GatheredParameters(
-                    [p for p in trainer.model.parameters()], modifier_rank=0
-                ):
-                    trainer.model.save_pretrained("trained_model")
-                    trainer.processing_class.save_pretrained("trained_tokenizer")
+                print("Saving model using trainer.save_model()...")
+                trainer.save_model("trained_model")
+
             print("Trained Model.")
         except Exception as e:
             print(f"Failed to save model: {e}")
+            print("Attempting fallback save method...")
+            try:
+                if hasattr(trainer.model, 'save_pretrained'):
+                    trainer.model.save_pretrained("fallback_model_save")
+                    trainer.processing_class.save_pretrained("fallback_tokenizer_save")
+                    print("Fallback save completed")
+                else:
+                    print("No fallback save method available")
+            except Exception as fallback_error:
+                print(f"Fallback save also failed: {fallback_error}")
             raise
     else:
         print(
@@ -95,7 +124,13 @@ def main(push_to_hub=config.PUSH_TO_HUB):
     local_rank = int(os.environ.get("LOCAL_RANK", -1))
     if local_rank != -1:
         torch.cuda.set_device(local_rank)
-        dist.init_process_group(backend="nccl")
+
+        timeout = timedelta(seconds=7200)
+        dist.init_process_group(
+            backend="nccl",
+            timeout=timeout,
+            init_method=None
+        )
         device = torch.device(f"cuda:{local_rank}")
     else:
         device = torch.device("cuda")

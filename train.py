@@ -7,7 +7,6 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 from transformers import DataCollatorForLanguageModeling
 from trl import SFTTrainer
 import torch.distributed as dist
-from deepspeed.runtime.zero import GatheredParameters
 
 from config import Config
 from util import *
@@ -53,21 +52,7 @@ def train_model(args, model, device, tokenizer, dataset, push):
 
     torch.cuda.empty_cache()
 
-    try:
-        train = trainer.train()
-    except RuntimeError as e:
-        if "NCCL" in str(e) or "timeout" in str(e).lower():
-            print(f"NCCL timeout error detected: {e}")
-            print("Attempting to save model before exit...")
-            if trainer.is_world_process_zero():
-                try:
-                    trainer.save_model("emergency_model_save")
-                    print("Emergency save completed using trainer.save_model().")
-                except Exception as save_error:
-                    print(f"Emergency save failed: {save_error}")
-            raise
-        else:
-            raise
+    train = trainer.train()
 
     if trainer.is_world_process_zero():
         try:
@@ -79,35 +64,18 @@ def train_model(args, model, device, tokenizer, dataset, push):
                 )
                 msg = f"Training loss: {train.training_loss:.4f}"
 
-                print("Using trainer.save_model() instead of GatheredParameters...")
-                trainer.save_model("temp_model_save")
-
-                print("Loading saved model for HF Hub upload...")
-                saved_model = AutoModelForCausalLM.from_pretrained("temp_model_save")
-                saved_tokenizer = AutoTokenizer.from_pretrained("temp_model_save")
-
-                saved_model.push_to_hub(repo_id, commit_message=msg, force=True)
-                saved_tokenizer.push_to_hub(repo_id, commit_message=msg, force=True)
+                print("Pushing model to hub...")
+                trainer.model.push_to_hub(repo_id, commit_message=msg, force=True)
+                trainer.processing_class.push_to_hub(repo_id, commit_message=msg, force=True)
 
                 print("Model pushed to hub successfully")
             else:
-                print("Saving model using trainer.save_model()...")
-                trainer.save_model("trained_model")
+                trainer.model.save_pretrained("trained_model")
+                trainer.processing_class.save_pretrained("trained_tokenizer")
 
             print("Trained Model.")
         except Exception as e:
             print(f"Failed to save model: {e}")
-            print("Attempting fallback save method...")
-            try:
-                if hasattr(trainer.model, 'save_pretrained'):
-                    trainer.model.save_pretrained("fallback_model_save")
-                    trainer.processing_class.save_pretrained("fallback_tokenizer_save")
-                    print("Fallback save completed")
-                else:
-                    print("No fallback save method available")
-            except Exception as fallback_error:
-                print(f"Fallback save also failed: {fallback_error}")
-            raise
     else:
         print(
             f"Not the main process, skipping model saving. Trained model on device {os.environ.get('LOCAL_RANK', -1)}."

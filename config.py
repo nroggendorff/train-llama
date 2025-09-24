@@ -45,20 +45,14 @@ class Config:
     def getDeepSpeedConfig(self):
         return {
             "zero_optimization": {
-                "stage": 3,
+                "stage": 2,
                 "overlap_comm": True,
                 "contiguous_gradients": True,
-                "reduce_bucket_size": 2e6,
-                "stage3_prefetch_bucket_size": 2e6,
-                "stage3_param_persistence_threshold": 1e3,
-                "stage3_max_live_parameters": 1e6,
-                "stage3_max_reuse_distance": 1e6,
-                "stage3_gather_16bit_weights_on_model_save": True,
-                "sub_group_size": 1e6,
+                "sub_group_size": 1e9,
+                "reduce_bucket_size": 5e8,
                 "allgather_partitions": True,
-                "allgather_bucket_size": 2e6,
+                "allgather_bucket_size": 5e8,
                 "reduce_scatter": True,
-                "stage3_use_all_reduce_for_fetch_params": True,
             },
             "fp16": {
                 "enabled": self.FP16,
@@ -81,12 +75,6 @@ class Config:
                 "overlap_events": True,
             },
             "zero_force_ds_cpu_optimizer": False,
-            "comms_logger": {
-                "enabled": False,
-                "verbose": False,
-                "prof_all": False,
-                "debug": False
-            },
         }
 
     def getConfig(self):
@@ -108,7 +96,7 @@ class Config:
             use_liger_kernel=True,
             max_length=self.MAX_LENGTH,
             gradient_checkpointing=True,
-            dataloader_num_workers=2,
+            dataloader_num_workers=4,
             dataloader_pin_memory=False,
             remove_unused_columns=True,
             lr_scheduler_type="cosine",
@@ -118,5 +106,4 @@ class Config:
             dataloader_persistent_workers=False,
             prediction_loss_only=True,
             save_safetensors=True,
-            ddp_timeout=1800,
         )

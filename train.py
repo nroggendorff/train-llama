@@ -66,7 +66,9 @@ def train_model(args, model, device, tokenizer, dataset, push):
 
                 print("Pushing model to hub...")
                 trainer.model.push_to_hub(repo_id, commit_message=msg, force=True)
-                trainer.processing_class.push_to_hub(repo_id, commit_message=msg, force=True)
+                trainer.processing_class.push_to_hub(
+                    repo_id, commit_message=msg, force=True
+                )
 
                 print("Model pushed to hub successfully")
             else:
@@ -94,11 +96,7 @@ def main(push_to_hub=config.PUSH_TO_HUB):
         torch.cuda.set_device(local_rank)
 
         timeout = timedelta(seconds=7200)
-        dist.init_process_group(
-            backend="nccl",
-            timeout=timeout,
-            init_method=None
-        )
+        dist.init_process_group(backend="nccl", timeout=timeout, init_method=None)
         device = torch.device(f"cuda:{local_rank}")
     else:
         device = torch.device("cuda")

@@ -33,4 +33,4 @@ echo "Done preprocessing, training on $DEVICE_COUNT devices.."
 deepspeed --num_gpus=$DEVICE_COUNT train.py
 
 echo "Training complete. Exiting..."
-python3 -c "from util import Space; space = Space(); space.reset(); space.resume()"
+python3 -c "from util import Space; space = Space(); space.reset()"

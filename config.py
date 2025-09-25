@@ -19,12 +19,14 @@ class Config:
         self.BATCH_SIZE = int(os.environ.get("BATCH_SIZE", 4))
         self.INIT = int(os.environ.get("INIT", 0))
         self.EPOCHS = epochs if self.INIT >= 2 else epochs / 2
-        self.LEARNING_RATE = 3e-4
+        self.LEARNING_RATE = float(os.environ.get("LEARNING_RATE", 3e-4))
         self.MAX_LENGTH = int(os.environ.get("MAX_LENGTH", 2048))
         self.VOCAB_SIZE = int(os.environ.get("VOCAB_SIZE", 52000))
         self.FP16 = True
-        self.WEIGHT_DECAY = 1e-2
-        self.GRADIENT_ACCUMULATION_STEPS = 8
+        self.WEIGHT_DECAY = float(os.environ.get("WEIGHT_DECAY", 1e-2))
+        self.GRADIENT_ACCUMULATION_STEPS = int(
+            os.environ.get("GRADIENT_ACCUMULATION_STEPS", 2)
+        )
         self.INPUT_DATASET = os.environ.get("INPUT_DS", "nroggendorff/micropus")
         self.INSTRUCT_DATASET = os.environ.get("INST_DS", "nroggendorff/elephant")
         self.SHARD_SIZE = int(os.environ.get("SHARD_SIZE", 131072))

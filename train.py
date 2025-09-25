@@ -14,7 +14,7 @@ from util import *
 config = Config()
 
 
-def train_model(args, model, device, tokenizer, dataset, push):
+def train_model(args, model, device, tokenizer, dataset):
     if hasattr(model, "gradient_checkpointing_enable"):
         model.gradient_checkpointing_enable()
 
@@ -55,36 +55,32 @@ def train_model(args, model, device, tokenizer, dataset, push):
     train = trainer.train()
 
     if trainer.is_world_process_zero():
+        repo_id = (
+            config.OUTPUT_REPO + "-it"
+            if config.INSTRUCT_FINETUNE_BOOL
+            else config.OUTPUT_REPO
+        )
+        msg = f"Training loss: {train.training_loss:.4f}"
+
+        print("Pushing model to hub...")
         try:
-            if push:
-                repo_id = (
-                    config.OUTPUT_REPO + "-it"
-                    if config.INSTRUCT_FINETUNE_BOOL
-                    else config.OUTPUT_REPO
-                )
-                msg = f"Training loss: {train.training_loss:.4f}"
-
-                print("Pushing model to hub...")
-                trainer.model.push_to_hub(repo_id, commit_message=msg, force=True)
-                trainer.processing_class.push_to_hub(
-                    repo_id, commit_message=msg, force=True
-                )
-
-                print("Model pushed to hub successfully")
-            else:
-                trainer.model.save_pretrained("trained_model")
-                trainer.processing_class.save_pretrained("trained_tokenizer")
-
-            print("Trained Model.")
+            trainer.model.push_to_hub(repo_id, commit_message=msg, force=True)
+            trainer.processing_class.push_to_hub(
+                repo_id, commit_message=msg, force=True
+            )
+            print("Model pushed to hub successfully")
         except Exception as e:
-            print(f"Failed to save model: {e}")
+            print(f"Failed to push model to hub: {e}")
+            raise
+
+        print("Trained Model.")
     else:
         print(
             f"Not the main process, skipping model saving. Trained model on device {os.environ.get('LOCAL_RANK', -1)}."
         )
 
 
-def main(push_to_hub=config.PUSH_TO_HUB):
+def main():
     torch.backends.cudnn.benchmark = True
     torch.backends.cuda.matmul.allow_tf32 = True
     torch.backends.cudnn.allow_tf32 = True
@@ -126,7 +122,7 @@ def main(push_to_hub=config.PUSH_TO_HUB):
     print("Initialized Arguments.")
 
     print("Training Model..")
-    train_model(args, model, device, tokenizer, dataset, push_to_hub)
+    train_model(args, model, device, tokenizer, dataset)
 
 
 if __name__ == "__main__":

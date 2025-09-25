@@ -51,7 +51,7 @@ class Space:
         dataset_size = get_dataset_size()
 
         if dataset_size > shard_size * (init + 2):
-            if not inst and config.PUSH_TO_HUB:
+            if not inst:
                 new_init = 0
                 new_instruct = True
             else:

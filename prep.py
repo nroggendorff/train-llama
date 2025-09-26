@@ -26,9 +26,9 @@ def load_model(tokenizer):
 
     try:
         model_path = (
-            config.OUTPUT_REPO + "-it"
+            config.INPUT_REPO + "-it"
             if config.INSTRUCT_FINETUNE_BOOL and config.INIT > 0
-            else config.OUTPUT_REPO
+            else config.INPUT_REPO
         )
         model = LlamaForCausalLM.from_pretrained(model_path)
         model.resize_token_embeddings(len(tokenizer))
@@ -164,9 +164,9 @@ def create_tokenizer(training_corpus):
 
 def load_tokenizer():
     return AutoTokenizer.from_pretrained(
-        config.OUTPUT_REPO + "-it"
+        config.INPUT_REPO + "-it"
         if config.INSTRUCT_FINETUNE_BOOL and config.INIT > 0
-        else config.OUTPUT_REPO
+        else config.INPUT_REPO
     )
 
 

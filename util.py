@@ -26,21 +26,8 @@ def upload_model(trainer, repo_id, commit_message):
         trainer.model.save_pretrained(temp_dir)
         trainer.processing_class.save_pretrained(temp_dir)
 
-        all_files = []
-
-        for root, _, files in os.walk(model_path):
-            for file in files:
-                full_path = os.path.join(root, file)
-                rel_path = os.path.relpath(full_path, model_path)
-                all_files.append((full_path, rel_path))
-
-        for root, _, files in os.walk(tokenizer_path):
-            for file in files:
-                full_path = os.path.join(root, file)
-                rel_path = os.path.relpath(full_path, tokenizer_path)
-                all_files.append((full_path, rel_path))
-
-        print(f"Uploading {len(all_files)} files...")
+        total_files = sum(len(files) for _, _, files in os.walk(temp_dir))
+        print(f"Uploading {total_files} files...")
 
         api.upload_folder(
             folder_path=temp_dir,

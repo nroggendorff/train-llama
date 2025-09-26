@@ -100,7 +100,7 @@ class Space:
 
 
 class TrainingTimer:
-    def __init__(self, timeout_minutes=330):
+    def __init__(self, timeout_minutes=config.TIMEOUT):
         self.timeout_seconds = timeout_minutes * 60
         self.start_time = time.time()
 

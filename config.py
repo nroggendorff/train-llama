@@ -1,4 +1,5 @@
 import os
+import re
 from trl import SFTConfig
 
 
@@ -16,6 +17,8 @@ class Config:
             return
 
         epochs = float(os.environ.get("EPOCHS", 3))
+        space_timeout = os.environ.get("STARTUP_DURATION_TIMEOUT", "350m")
+        int_space_timeout = int(re.sub(r"\D", "", space_timeout))
         self.BATCH_SIZE = int(os.environ.get("BATCH_SIZE", 4))
         self.INIT = int(os.environ.get("INIT", 0))
         self.EPOCHS = epochs if self.INIT >= 2 else epochs / 2
@@ -40,6 +43,24 @@ class Config:
             self.BATCH_SIZE * self.GRADIENT_ACCUMULATION_STEPS
         )
         self.WARMUP_STEPS = int(self.TOTAL_STEPS * 0.1)
+        self.SPACE_TIMEOUT = (
+            int_space_timeout
+            if space_timeout.endswith("m")
+            else (
+                int_space_timeout * 60
+                if space_timeout.endswith("h")
+                else (
+                    print(
+                        "Invalid STARTUP_DURATION_TIMEOUT format.",
+                        "Use 'm' for minutes or 'h' for hours.",
+                        "Falling back to 30 minutes.",
+                    )
+                    or 30
+                )
+            )
+        )
+        self.TIMEOUT_BUFFER = int(os.environ.get("TIMEOUT_BUFFER", "20"))
+        self.TIMEOUT = self.SPACE_TIMEOUT - self.TIMEOUT_BUFFER
         self.SEED = 42
 
         Config._initialized = True

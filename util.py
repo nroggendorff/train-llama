@@ -1,11 +1,13 @@
 import os
 import tempfile
+import time
+import json
+import signal
+import sys
 from huggingface_hub import HfApi
+from transformers import TrainerCallback
 
 from config import Config
-
-import json
-import os
 
 
 def get_dataset_size():
@@ -95,3 +97,59 @@ class Space:
             key="INST",
             value="true" if new_instruct else "false",
         )
+
+
+class TrainingTimer:
+    def __init__(self, timeout_minutes=330):
+        self.timeout_seconds = timeout_minutes * 60
+        self.start_time = time.time()
+
+    def is_expired(self):
+        return time.time() - self.start_time >= self.timeout_seconds
+
+    def remaining_minutes(self):
+        remaining = self.timeout_seconds - (time.time() - self.start_time)
+        return max(0, remaining / 60)
+
+
+class TimerCallback(TrainerCallback):
+    def __init__(self):
+        self.timer = TrainingTimer()
+
+    def on_step_end(self, args, state, control, **kwargs):
+        if state.global_step % 10 == 0 and self.timer.is_expired():
+            print(f"Timer expired at step {state.global_step}, stopping training")
+
+            trainer = kwargs.get("trainer")
+            if trainer and trainer.is_world_process_zero():
+                repo_id = (
+                    config.OUTPUT_REPO + "-it"
+                    if config.INSTRUCT_FINETUNE_BOOL
+                    else config.OUTPUT_REPO
+                )
+
+                try:
+                    upload_model(
+                        trainer, repo_id, f"Timer stop at step {state.global_step}"
+                    )
+                    print("Model saved successfully")
+                except Exception as e:
+                    print(f"Failed to save model: {e}")
+
+            control.should_training_stop = True
+        return control
+
+
+def handle_timer_signal(signum, frame):
+    print(f"Received signal {signum}, timer forcing shutdown")
+    sys.exit(0)
+
+
+def setup_timer_signals():
+    signal.signal(signal.SIGTERM, handle_timer_signal)
+    signal.signal(signal.SIGINT, handle_timer_signal)
+
+
+def get_timer_callback():
+    setup_timer_signals()
+    return TimerCallback()

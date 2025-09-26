@@ -30,6 +30,7 @@ def train_model(args, model, device, tokenizer, dataset):
         args=args,
         train_dataset=dataset,
         data_collator=data_collator,
+        callbacks=[get_timer_callback()],
     )
 
     if trainer.is_world_process_zero():

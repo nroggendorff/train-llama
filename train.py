@@ -64,11 +64,8 @@ def train_model(args, model, device, tokenizer, dataset):
 
         print("Pushing model to hub...")
         try:
-            trainer.model.push_to_hub(repo_id, commit_message=msg, force=True)
-            trainer.processing_class.push_to_hub(
-                repo_id, commit_message=msg, force=True
-            )
-            print("Model pushed to hub successfully")
+            upload_model(trainer, repo_id, msg)
+            print("Model and tokenizer uploaded successfully")
         except Exception as e:
             print(f"Failed to push model to hub: {e}")
             raise

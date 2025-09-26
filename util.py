@@ -1,4 +1,5 @@
 import os
+import tempfile
 from huggingface_hub import HfApi
 
 from config import Config
@@ -14,6 +15,43 @@ def get_dataset_size():
     for split in info.get("splits", {}).values():
         total += split.get("num_examples", 0)
     return total
+
+
+def upload_model(trainer, repo_id, commit_message):
+    api = HfApi()
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        print("Saving model and tokenizer to temporary directory...")
+
+        trainer.model.save_pretrained(temp_dir)
+        trainer.processing_class.save_pretrained(temp_dir)
+
+        all_files = []
+
+        for root, _, files in os.walk(model_path):
+            for file in files:
+                full_path = os.path.join(root, file)
+                rel_path = os.path.relpath(full_path, model_path)
+                all_files.append((full_path, rel_path))
+
+        for root, _, files in os.walk(tokenizer_path):
+            for file in files:
+                full_path = os.path.join(root, file)
+                rel_path = os.path.relpath(full_path, tokenizer_path)
+                all_files.append((full_path, rel_path))
+
+        print(f"Uploading {len(all_files)} files...")
+
+        api.upload_folder(
+            folder_path=temp_dir,
+            repo_id=repo_id,
+            repo_type="model",
+            commit_message=commit_message,
+            delete_patterns=["*"],
+            ignore_patterns=[".git/**"],
+        )
+
+        print("Upload completed successfully")
 
 
 config = Config()

@@ -6,6 +6,7 @@ from datasets import load_dataset, Dataset
 from tokenizers import ByteLevelBPETokenizer
 from transformers import (
     AutoTokenizer,
+    AutoModelForCausalLM,
     PreTrainedTokenizerFast,
     LlamaConfig,
     LlamaForCausalLM,
@@ -30,7 +31,7 @@ def load_model(tokenizer):
             if config.INSTRUCT_FINETUNE_BOOL and config.INIT > 0
             else config.INPUT_REPO
         )
-        model = LlamaForCausalLM.from_pretrained(model_path)
+        model = AutoModelForCausalLM.from_pretrained(model_path)
         model.resize_token_embeddings(len(tokenizer))
     except Exception as e:
         print(f"Failed to load model from {model_path}: {e}")

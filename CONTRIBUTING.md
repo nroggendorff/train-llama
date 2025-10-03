@@ -1,6 +1,6 @@
-# Contributing to the train-llama docker image
+# Contributing to the train-deepseek docker image
 
-Thank you for considering contributing to the train-llama docker image! I appreciate your interest in improving this project. To keep things running smoothly, please follow the guidelines below when contributing.
+Thank you for considering contributing to the train-deepseek docker image! I appreciate your interest in improving this project. To keep things running smoothly, please follow the guidelines below when contributing.
 
 ## How to Contribute
 
@@ -15,6 +15,7 @@ Clone the forked repository to your local machine:
 ```bash
 git clone https://github.com/soos/train-llama.git
 cd train-llama
+git checkout deepseek
 ```
 
 ### 3. Create a New Branch

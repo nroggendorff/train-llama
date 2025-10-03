@@ -1,10 +1,10 @@
-# Train LLaMA
+# Train Deepseek
 
-A containerized pipeline for training and fine-tuning LLaMA models using DeepSpeed and Hugging Face's TRL library.
+A containerized pipeline for training and fine-tuning Deepseek models using DeepSpeed and Hugging Face's TRL library.
 
 ## Overview
 
-This project provides a streamlined workflow for training LLaMA models with the following features:
+This project provides a streamlined workflow for training Deepseek models with the following features:
 
 - Configurable model architecture and training parameters
 - Support for both pre-training and instruction fine-tuning
@@ -37,9 +37,9 @@ Dependencies are managed through the [requirements script](./installer.sh).
 
 ## Usage
 
-Duplicate [nroggendorff/train-llama](https://huggingface.co/spaces/nroggendorff/train-llama) and configure variables and secrets.
+Duplicate [nroggendorff/train-deepseek](https://huggingface.co/spaces/nroggendorff/train-deepseek) and configure variables and secrets.
 
-[Duplicate Space Hotlink](https://huggingface.co/spaces/nroggendorff/train-llama?duplicate=true)
+[Duplicate Space Hotlink](https://huggingface.co/spaces/nroggendorff/train-deepseek?duplicate=true)
 The first run must use `INIT=0` and `INST=false`.
 
 ## License

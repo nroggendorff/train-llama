@@ -35,7 +35,7 @@ class Config:
         self.SHARD_SIZE = int(os.environ.get("SHARD_SIZE", 131072))
         self.SHARD_INDEX = 0 if self.INIT < 2 else (self.INIT - 1)
         self.SKIP_SAMPLES = self.SHARD_INDEX * self.SHARD_SIZE
-        self.OUTPUT_REPO = os.environ.get("OUTPUT_REPO", "nroggendorff/smallama")
+        self.OUTPUT_REPO = os.environ.get("OUTPUT_REPO", "nroggendorff/lesseek")
         self.INPUT_REPO = os.environ.get("INPUT_REPO", self.OUTPUT_REPO)
         self.INSTRUCT_FINETUNE_BOOL = os.environ.get("INST", "false").lower() == "true"
         self.FACTOR = int(os.environ.get("FACTOR", 12288))

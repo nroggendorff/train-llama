@@ -8,8 +8,8 @@ from transformers import (
     AutoTokenizer,
     AutoModelForCausalLM,
     PreTrainedTokenizerFast,
-    LlamaConfig,
-    LlamaForCausalLM,
+    DeepseekV3Config,
+    DeepseekV3ForCausalLM,
 )
 import torch.distributed as dist
 import threading
@@ -63,7 +63,7 @@ def create_model(tokenizer):
     print(
         f"Creating model with hidden_size={hidden_size}, num_hidden_layers={num_hidden_layers}, num_attention_heads={num_attention_heads}, head_dim={actual_head_dim}, intermediate_size={intermediate_size}"
     )
-    model_config = LlamaConfig(
+    model_config = DeepseekV3Config(
         vocab_size=tokenizer.vocab_size,
         hidden_size=hidden_size,
         intermediate_size=intermediate_size,
@@ -80,7 +80,7 @@ def create_model(tokenizer):
     )
 
     try:
-        model = LlamaForCausalLM(model_config)
+        model = DeepseekV3ForCausalLM(model_config)
     except Exception as e:
         print(f"Failed to create model with the derived topology: {e}")
         raise

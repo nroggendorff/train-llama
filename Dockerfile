@@ -17,7 +17,6 @@ USER user
 ENV PATH="${APP}/venv/bin:$PATH"
 
 RUN python3 -m venv venv
-
 RUN venv/bin/pip install --no-cache-dir --prefer-binary packaging wheel setuptools ninja && \
     venv/bin/pip install --no-cache-dir --prefer-binary numpy==1.26.4 && \
     venv/bin/pip install --no-cache-dir torch==2.4 --index-url https://download.pytorch.org/whl/cu118 && \
@@ -26,9 +25,8 @@ RUN venv/bin/pip install --no-cache-dir --prefer-binary packaging wheel setuptoo
     find venv -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true && \
     find venv -type f -name "*.pyc" -delete && \
     find venv -type f -name "*.pyo" -delete && \
-    find venv -name "tests" -type d -exec rm -rf {} + 2>/dev/null || true
-
-RUN touch __init__.py
+    find venv -name "tests" -type d -exec rm -rf {} + 2>/dev/null || true && \
+    touch __init__.py
 
 COPY --chown=user:user . .
 

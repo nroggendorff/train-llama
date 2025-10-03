@@ -22,6 +22,14 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+echo "Checking if running in Hugging Face Space..."
+if [ -n "${SPACE_ID:-}" ]; then
+    echo "Running in Hugging Face Space: $SPACE_ID"
+else
+    echo "Not running in a Hugging Face Space"
+    exit 1
+fi
+
 DEVICE_COUNT=$(python3 - <<'PY'
 try:
     import torch

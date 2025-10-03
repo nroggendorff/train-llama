@@ -31,12 +31,13 @@ def upload_model(trainer, repo_id, commit_message):
         total_files = sum(len(files) for _, _, files in os.walk(temp_dir))
         print(f"Uploading {total_files} files...")
 
+        api.create_repo(repo_id=repo_id, exist_ok=True)
         api.upload_folder(
             folder_path=temp_dir,
             repo_id=repo_id,
             repo_type="model",
             commit_message=commit_message,
-            delete_patterns=["*"],
+            delete_patterns=["!*.md"],
             ignore_patterns=[".git/**"],
         )
 

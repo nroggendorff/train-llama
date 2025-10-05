@@ -91,13 +91,14 @@ class Config:
             "wall_clock_breakdown": False,
             "communication_data_type": "fp16",
             "aio": {
-                "block_size": 262144,
-                "queue_depth": 4,
-                "thread_count": 1,
+                "block_size": 1048576,
+                "queue_depth": 8,
+                "thread_count": 2,
                 "single_submit": False,
                 "overlap_events": True,
             },
             "zero_force_ds_cpu_optimizer": False,
+            "offload_optimizer": {"device": "cpu", "pin_memory": True},
         }
 
     def getConfig(self):
@@ -119,6 +120,7 @@ class Config:
             use_liger_kernel=True,
             max_length=self.MAX_LENGTH,
             gradient_checkpointing=True,
+            gradient_checkpointing_kwargs={"use_reentrant": False},
             dataloader_num_workers=0,
             dataloader_pin_memory=False,
             remove_unused_columns=True,

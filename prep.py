@@ -31,7 +31,11 @@ def load_model(tokenizer):
             if config.INSTRUCT_FINETUNE_BOOL and config.INIT > 0
             else config.INPUT_REPO
         )
-        model = AutoModelForCausalLM.from_pretrained(model_path)
+        model = AutoModelForCausalLM.from_pretrained(
+            model_path,
+            torch_dtype=torch.float16 if config.FP16 else torch.float32,
+            low_cpu_mem_usage=True,
+        )
         model.resize_token_embeddings(len(tokenizer))
     except Exception as e:
         print(f"Failed to load model from {model_path}: {e}")
@@ -48,47 +52,66 @@ def create_model(tokenizer):
     torch.cuda.manual_seed_all(config.SEED)
 
     hidden_size = int(config.FACTOR)
+    head_dim = 128
 
-    preferred_head_dim = 128
-    num_attention_heads = max(1, hidden_size // preferred_head_dim)
+    if hidden_size < head_dim:
+        head_dim = max(32, (hidden_size // 32) * 32)
 
-    while num_attention_heads > 1 and (hidden_size % num_attention_heads) != 0:
-        num_attention_heads -= 1
+    if hidden_size % head_dim != 0:
+        hidden_size = (hidden_size // head_dim) * head_dim
+        if hidden_size == 0:
+            hidden_size = head_dim
 
-    actual_head_dim = hidden_size // num_attention_heads
+    num_attention_heads = hidden_size // head_dim
+    num_key_value_heads = num_attention_heads
 
-    num_hidden_layers = max(1, hidden_size // 128)
+    v_head_dim = head_dim
+    qk_rope_head_dim = head_dim
+    qk_nope_head_dim = 0
 
-    intermediate_size = hidden_size * 4
-    print(
-        f"Creating model with hidden_size={hidden_size}, num_hidden_layers={num_hidden_layers}, num_attention_heads={num_attention_heads}, head_dim={actual_head_dim}, intermediate_size={intermediate_size}"
-    )
+    intermediate_size = 4 * hidden_size
+    intermediate_size = ((intermediate_size + 255) // 256) * 256
+
+    num_hidden_layers = max(2, min(256, hidden_size // 128))
+
+    n_group = 8
+    base_experts = max(16, min(64, hidden_size // 128))
+    n_routed_experts = ((base_experts + n_group - 1) // n_group) * n_group
+
+    num_experts_per_tok = min(2, n_routed_experts // n_group)
+
     model_config = DeepseekV3Config(
-        vocab_size=tokenizer.vocab_size,
+        vocab_size=getattr(tokenizer, "vocab_size", 32000),
         hidden_size=hidden_size,
         intermediate_size=intermediate_size,
         num_hidden_layers=num_hidden_layers,
         num_attention_heads=num_attention_heads,
-        max_position_embeddings=config.MAX_LENGTH,
+        num_key_value_heads=num_key_value_heads,
+        head_dim=head_dim,
+        v_head_dim=v_head_dim,
+        qk_nope_head_dim=qk_nope_head_dim,
+        qk_rope_head_dim=qk_rope_head_dim,
+        max_position_embeddings=getattr(config, "MAX_LENGTH", 512),
         rms_norm_eps=1e-5,
         initializer_range=0.02,
-        use_cache=True,
+        use_cache=getattr(config, "USE_CACHE", False),
         pad_token_id=getattr(tokenizer, "pad_token_id", 0),
-        bos_token_id=getattr(tokenizer, "bos_token_id", 1),
-        eos_token_id=getattr(tokenizer, "eos_token_id", 2),
+        bos_token_id=getattr(tokenizer, "bos_token_id", 0),
+        eos_token_id=getattr(tokenizer, "eos_token_id", 1),
         tie_word_embeddings=False,
+        n_routed_experts=n_routed_experts,
+        num_experts_per_tok=num_experts_per_tok,
+        moe_layer_freq=getattr(config, "MOE_LAYER_FREQ", 2),
+        first_k_dense_replace=getattr(config, "FIRST_K_DENSE_REPLACE", 0),
+        torch_dtype=(
+            torch.bfloat16
+            if getattr(config, "BF16", False)
+            else (torch.float16 if getattr(config, "FP16", False) else torch.float32)
+        ),
     )
 
-    try:
-        model = DeepseekV3ForCausalLM(model_config)
-    except Exception as e:
-        print(f"Failed to create model with the derived topology: {e}")
-        raise
-
-    try:
-        model.resize_token_embeddings(len(tokenizer))
-    except Exception:
-        pass
+    model = DeepseekV3ForCausalLM(model_config)
+    model.resize_token_embeddings(getattr(tokenizer, "vocab_size", 32000))
 
     return model
 

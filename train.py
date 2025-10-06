@@ -104,7 +104,7 @@ def main():
 
         tokenizer = AutoTokenizer.from_pretrained("prepared_tokenizer")
 
-        model_kwargs = {"attn_implementation": "flash_attention_2"}
+        model_kwargs = {}
 
         if config.FP16:
             model_kwargs["dtype"] = torch.float16

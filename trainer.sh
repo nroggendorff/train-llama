@@ -50,6 +50,9 @@ fi
 : ${INST:=false}
 echo "Using initialization value: $INIT"
 
+python3 -c "import time; open('.timer_start', 'w').write(str(time.time()))"
+echo "Timer started"
+
 echo "Preprocessing data..."
 if [ -x "venv/bin/python" ]; then
     venv/bin/python prep.py

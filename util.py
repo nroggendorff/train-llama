@@ -103,7 +103,11 @@ class Space:
 class TrainingTimer:
     def __init__(self, timeout_minutes=config.TIMEOUT):
         self.timeout_seconds = timeout_minutes * 60
-        self.start_time = time.time()
+        if os.path.exists('.timer_start'):
+            with open('.timer_start', 'r') as f:
+                self.start_time = float(f.read().strip())
+        else:
+            self.start_time = time.time()
 
     def is_expired(self):
         return time.time() - self.start_time >= self.timeout_seconds

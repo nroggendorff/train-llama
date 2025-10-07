@@ -33,12 +33,15 @@ class Config:
         self.INPUT_DATASET = os.environ.get("INPUT_DS", "nroggendorff/micropus")
         self.INSTRUCT_DATASET = os.environ.get("INST_DS", "nroggendorff/elephant")
         self.SHARD_SIZE = int(os.environ.get("SHARD_SIZE", 131072))
-        self.SHARD_INDEX = 0 if self.INIT < 2 else (self.INIT - 1)
-        self.SKIP_SAMPLES = self.SHARD_INDEX * self.SHARD_SIZE
         self.OUTPUT_REPO = os.environ.get("OUTPUT_REPO", "nroggendorff/smallama")
         self.INPUT_REPO = os.environ.get("INPUT_REPO", self.OUTPUT_REPO)
         self.INSTRUCT_FINETUNE_BOOL = os.environ.get("INST", "false").lower() == "true"
         self.FACTOR = int(os.environ.get("FACTOR", 12288))
+
+        self.SAMPLES_THROUGH = self._parse_samples_through()
+        self.SKIP_SAMPLES = self._calculate_skip_samples()
+        self.SHARD_INDEX = len(self.SAMPLES_THROUGH)
+
         self.TOTAL_STEPS = (self.SHARD_SIZE * self.EPOCHS) // (
             self.BATCH_SIZE * self.GRADIENT_ACCUMULATION_STEPS
         )
@@ -64,6 +67,40 @@ class Config:
         self.SEED = 42
 
         Config._initialized = True
+
+    def _parse_samples_through(self):
+        samples_str = os.environ.get("SAMPLES_THROUGH", "")
+        if not samples_str:
+            return []
+
+        samples_list = []
+        entries = samples_str.strip().rstrip(",").split(",")
+
+        for entry in entries:
+            entry = entry.strip()
+            if not entry:
+                continue
+
+            try:
+                if "x" in entry:
+                    samples, epochs = entry.split("x")
+                    samples_list.append(
+                        {
+                            "samples": int(samples.strip()),
+                            "epochs": float(epochs.strip()),
+                        }
+                    )
+            except (ValueError, AttributeError):
+                print(f"Warning: Could not parse SAMPLES_THROUGH entry: {entry}")
+                continue
+
+        return samples_list
+
+    def _calculate_skip_samples(self):
+        total_samples = 0
+        for entry in self.SAMPLES_THROUGH:
+            total_samples += int(entry["samples"] * entry["epochs"])
+        return total_samples
 
     def getDeepSpeedConfig(self):
         return {

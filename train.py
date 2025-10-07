@@ -24,13 +24,15 @@ def train_model(args, model, device, tokenizer, dataset):
         pad_to_multiple_of=8,
     )
 
+    timer_callback = get_timer_callback()
+
     trainer = SFTTrainer(
         model=model,
         processing_class=tokenizer,
         args=args,
         train_dataset=dataset,
         data_collator=data_collator,
-        callbacks=[get_timer_callback()],
+        callbacks=[timer_callback],
     )
 
     if trainer.is_world_process_zero():
@@ -70,6 +72,14 @@ def train_model(args, model, device, tokenizer, dataset):
         except Exception as e:
             print(f"Failed to push model to hub: {e}")
             raise
+
+        actual_samples, actual_epochs = timer_callback.get_training_stats()
+        print(
+            f"Completed training: {actual_samples} samples, {actual_epochs:.2f} epochs"
+        )
+
+        space = Space()
+        space.reset(actual_samples=actual_samples, actual_epochs=actual_epochs)
 
         print("Trained Model.")
     else:

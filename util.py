@@ -75,27 +75,13 @@ class Space:
         init=config.INIT,
         inst=config.INSTRUCT_FINETUNE_BOOL,
         shard_size=config.SHARD_SIZE,
-        actual_samples=None,
-        actual_epochs=None,
     ):
         dataset_size = get_dataset_size()
 
-        if actual_samples is None:
-            actual_samples = dataset_size
-        if actual_epochs is None:
-            actual_epochs = config.EPOCHS
-
-        self._update_samples_through(actual_samples, actual_epochs)
-
-        total_trained = sum(
-            int(entry["samples"] * entry["epochs"]) for entry in config.SAMPLES_THROUGH
-        ) + int(actual_samples * actual_epochs)
-
-        if total_trained >= dataset_size:
+        if dataset_size > shard_size * (init + 2):
             if not inst:
                 new_init = 0
                 new_instruct = True
-                self._clear_samples_through()
             else:
                 return self.pause()
         else:
@@ -113,38 +99,12 @@ class Space:
             value="true" if new_instruct else "false",
         )
 
-    def _update_samples_through(self, samples, epochs):
-        current_value = os.environ.get("SAMPLES_THROUGH", "")
-
-        new_entry = f"{samples}x{epochs}"
-
-        if current_value:
-            updated_value = f"{current_value.rstrip(',')}, {new_entry},"
-        else:
-            updated_value = f"{new_entry},"
-
-        self.api.add_space_variable(
-            repo_id=self.repo_id,
-            key="SAMPLES_THROUGH",
-            value=updated_value,
-        )
-
-        print(f"Updated SAMPLES_THROUGH with: {new_entry}")
-
-    def _clear_samples_through(self):
-        self.api.add_space_variable(
-            repo_id=self.repo_id,
-            key="SAMPLES_THROUGH",
-            value="",
-        )
-        print("Cleared SAMPLES_THROUGH for instruction fine-tuning phase")
-
 
 class TrainingTimer:
     def __init__(self, timeout_minutes=config.TIMEOUT):
         self.timeout_seconds = timeout_minutes * 60
-        if os.path.exists(".timer_start"):
-            with open(".timer_start", "r") as f:
+        if os.path.exists('.timer_start'):
+            with open('.timer_start', 'r') as f:
                 self.start_time = float(f.read().strip())
         else:
             self.start_time = time.time()
@@ -160,24 +120,10 @@ class TrainingTimer:
 class TimerCallback(TrainerCallback):
     def __init__(self):
         self.timer = TrainingTimer()
-        self.samples_trained = 0
-        self.starting_step = 0
-
-    def on_train_begin(self, args, state, control, **kwargs):
-        self.starting_step = state.global_step
-        return control
 
     def on_step_end(self, args, state, control, **kwargs):
-        samples_per_step = (
-            args.per_device_train_batch_size * args.gradient_accumulation_steps
-        )
-        self.samples_trained = (
-            state.global_step - self.starting_step
-        ) * samples_per_step
-
         if state.global_step % 10 == 0 and self.timer.is_expired():
             print(f"Timer expired at step {state.global_step}, stopping training")
-            print(f"Trained on {self.samples_trained} samples")
 
             trainer = kwargs.get("trainer")
             if trainer and trainer.is_world_process_zero():
@@ -197,13 +143,6 @@ class TimerCallback(TrainerCallback):
 
             control.should_training_stop = True
         return control
-
-    def get_training_stats(self):
-        dataset_size = get_dataset_size()
-        epochs_completed = (
-            self.samples_trained / dataset_size if dataset_size > 0 else 0
-        )
-        return self.samples_trained, epochs_completed
 
 
 def handle_timer_signal(signum, frame):

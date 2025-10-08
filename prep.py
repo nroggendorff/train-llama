@@ -32,6 +32,7 @@ def load_model(tokenizer):
             if config.INSTRUCT_FINETUNE_BOOL and config.INIT > 0
             else config.INPUT_REPO
         )
+
         def load_model_from_pretrained():
             return AutoModelForCausalLM.from_pretrained(
                 model_path,

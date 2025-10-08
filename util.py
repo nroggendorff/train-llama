@@ -10,6 +10,24 @@ from transformers import TrainerCallback
 from config import Config
 
 
+def retry_on_failure(func, *args, **kwargs):
+    config = Config()
+    max_retries = config.MAX_RETRIES
+
+    for attempt in range(max_retries):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            if attempt < max_retries - 1:
+                wait_time = 2**attempt
+                print(f"Attempt {attempt + 1}/{max_retries} failed: {e}")
+                print(f"Retrying in {wait_time} seconds...")
+                time.sleep(wait_time)
+            else:
+                print(f"All {max_retries} attempts failed")
+                raise
+
+
 def get_dataset_size():
     with open(os.path.join("prepared_dataset", "dataset_info.json"), "r") as f:
         info = json.load(f)
@@ -31,16 +49,18 @@ def upload_model(trainer, repo_id, commit_message):
         total_files = sum(len(files) for _, _, files in os.walk(temp_dir))
         print(f"Uploading {total_files} files...")
 
-        api.create_repo(repo_id=repo_id, exist_ok=True)
-        api.upload_folder(
-            folder_path=temp_dir,
-            repo_id=repo_id,
-            repo_type="model",
-            commit_message=commit_message,
-            delete_patterns=["!*.md"],
-            ignore_patterns=[".git/**"],
-        )
+        def do_upload():
+            api.create_repo(repo_id=repo_id, exist_ok=True)
+            api.upload_folder(
+                folder_path=temp_dir,
+                repo_id=repo_id,
+                repo_type="model",
+                commit_message=commit_message,
+                delete_patterns=["!*.md"],
+                ignore_patterns=[".git/**"],
+            )
 
+        retry_on_failure(do_upload)
         print("Upload completed successfully")
 
 
@@ -65,10 +85,10 @@ class Space:
         raise Conclusion()
 
     def pause(self):
-        self.api.pause_space(self.repo_id)
+        retry_on_failure(self.api.pause_space, self.repo_id)
 
     def resume(self):
-        self.api.restart_space(self.repo_id)
+        retry_on_failure(self.api.restart_space, self.repo_id)
 
     def reset(
         self,
@@ -88,23 +108,26 @@ class Space:
             new_init = init + 1
             new_instruct = inst
 
-        self.api.add_space_variable(
-            repo_id=self.repo_id,
-            key="INIT",
-            value=str(new_init),
-        )
-        self.api.add_space_variable(
-            repo_id=self.repo_id,
-            key="INST",
-            value="true" if new_instruct else "false",
-        )
+        def update_variables():
+            self.api.add_space_variable(
+                repo_id=self.repo_id,
+                key="INIT",
+                value=str(new_init),
+            )
+            self.api.add_space_variable(
+                repo_id=self.repo_id,
+                key="INST",
+                value="true" if new_instruct else "false",
+            )
+
+        retry_on_failure(update_variables)
 
 
 class TrainingTimer:
     def __init__(self, timeout_minutes=config.TIMEOUT):
         self.timeout_seconds = timeout_minutes * 60
-        if os.path.exists('.timer_start'):
-            with open('.timer_start', 'r') as f:
+        if os.path.exists(".timer_start"):
+            with open(".timer_start", "r") as f:
                 self.start_time = float(f.read().strip())
         else:
             self.start_time = time.time()

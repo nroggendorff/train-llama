@@ -61,6 +61,7 @@ class Config:
         )
         self.TIMEOUT_BUFFER = int(os.environ.get("TIMEOUT_BUFFER", "20"))
         self.TIMEOUT = self.SPACE_TIMEOUT - self.TIMEOUT_BUFFER
+        self.MAX_RETRIES = 5
         self.SEED = 42
 
         Config._initialized = True

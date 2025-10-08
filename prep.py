@@ -2,7 +2,7 @@ from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor
 import torch
 
-from datasets import load_dataset, Dataset
+from datasets import load_dataset, Dataset, DownloadConfig
 from tokenizers import ByteLevelBPETokenizer
 from transformers import (
     AutoTokenizer,
@@ -19,6 +19,7 @@ from config import Config
 from util import *
 
 config = Config()
+download_config = DownloadConfig(max_retries=config.MAX_RETRIES)
 
 
 def load_model(tokenizer):
@@ -31,11 +32,14 @@ def load_model(tokenizer):
             if config.INSTRUCT_FINETUNE_BOOL and config.INIT > 0
             else config.INPUT_REPO
         )
-        model = AutoModelForCausalLM.from_pretrained(
-            model_path,
-            torch_dtype=torch.float16 if config.FP16 else torch.float32,
-            low_cpu_mem_usage=True,
-        )
+        def load_model_from_pretrained():
+            return AutoModelForCausalLM.from_pretrained(
+                model_path,
+                torch_dtype=torch.float16 if config.FP16 else torch.float32,
+                low_cpu_mem_usage=True,
+            )
+
+        model = retry_on_failure(load_model_from_pretrained)
         model.resize_token_embeddings(len(tokenizer))
     except Exception as e:
         print(f"Failed to load model from {model_path}: {e}")
@@ -125,19 +129,19 @@ def load_data():
         ),
         split="train",
         streaming=True,
+        download_config=download_config,
     )
-
     dataset = dataset.skip(config.SKIP_SAMPLES).take(config.SHARD_SIZE)
     return dataset
 
 
 def load_full_dataset():
-    dataset = load_dataset(
+    return load_dataset(
         config.INPUT_DATASET,
         split="train",
         streaming=True,
+        download_config=download_config,
     )
-    return dataset
 
 
 def format_prompts(examples, tokenizer, isinst):
@@ -187,11 +191,14 @@ def create_tokenizer(training_corpus):
 
 
 def load_tokenizer():
-    return AutoTokenizer.from_pretrained(
-        config.INPUT_REPO + "-it"
-        if config.INSTRUCT_FINETUNE_BOOL and config.INIT > 0
-        else config.INPUT_REPO
-    )
+    def do_load():
+        return AutoTokenizer.from_pretrained(
+            config.INPUT_REPO + "-it"
+            if config.INSTRUCT_FINETUNE_BOOL and config.INIT > 0
+            else config.INPUT_REPO
+        )
+
+    return retry_on_failure(do_load)
 
 
 def get_training_corpus(dataset):

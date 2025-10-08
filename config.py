@@ -30,7 +30,7 @@ class Config:
         self.GRADIENT_ACCUMULATION_STEPS = int(
             os.environ.get("GRADIENT_ACCUMULATION_STEPS", 2)
         )
-        self.INPUT_DATASET = os.environ.get("INPUT_DS", "nroggendorff/micropus")
+        self.INPUT_DATASET = os.environ.get("INPUT_DS", "nroggendorff/microrpus")
         self.INSTRUCT_DATASET = os.environ.get("INST_DS", "nroggendorff/elephant")
         self.SHARD_SIZE = int(os.environ.get("SHARD_SIZE", 131072))
         self.SHARD_INDEX = 0 if self.INIT < 2 else (self.INIT - 1)

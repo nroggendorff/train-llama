@@ -35,4 +35,15 @@ RUN mkdir -p \
     ${APP}/prepared_tokenizer \
     ${APP}/prepared_model
 
+ENV OMP_NUM_THREADS=1 \
+    TOKENIZERS_PARALLELISM=false \
+    PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:128 \
+    FLASH_ATTENTION=1 \
+    ACCELERATE_USE_DEEPSPEED=true \
+    NCCL_BLOCKING_WAIT=1 \
+    NCCL_TIMEOUT=1200 \
+    NCCL_SOCKET_IFNAME=^docker0,lo \
+    NCCL_IB_DISABLE=0 \
+    NCCL_NET_GDR_LEVEL=0
+
 CMD ["bash", "./trainer.sh"]

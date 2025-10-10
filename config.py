@@ -19,16 +19,16 @@ class Config:
         epochs = float(os.environ.get("EPOCHS", 3))
         space_timeout = os.environ.get("STARTUP_DURATION_TIMEOUT", "350m")
         int_space_timeout = int(re.sub(r"\D", "", space_timeout))
-        self.BATCH_SIZE = int(os.environ.get("BATCH_SIZE", 4))
+        self.BATCH_SIZE = int(os.environ.get("BATCH_SIZE", 2))
         self.INIT = int(os.environ.get("INIT", 0))
         self.EPOCHS = epochs if self.INIT >= 2 else epochs / 2
         self.LEARNING_RATE = float(os.environ.get("LEARNING_RATE", 3e-4))
-        self.MAX_LENGTH = int(os.environ.get("MAX_LENGTH", 2048))
-        self.VOCAB_SIZE = int(os.environ.get("VOCAB_SIZE", 52000))
+        self.MAX_LENGTH = int(os.environ.get("MAX_LENGTH", 1024))
+        self.VOCAB_SIZE = int(os.environ.get("VOCAB_SIZE", 32000))
         self.FP16 = True
         self.WEIGHT_DECAY = float(os.environ.get("WEIGHT_DECAY", 1e-2))
         self.GRADIENT_ACCUMULATION_STEPS = int(
-            os.environ.get("GRADIENT_ACCUMULATION_STEPS", 2)
+            os.environ.get("GRADIENT_ACCUMULATION_STEPS", 4)
         )
         self.INPUT_DATASET = os.environ.get("INPUT_DS", "nroggendorff/microrpus")
         self.INSTRUCT_DATASET = os.environ.get("INST_DS", "nroggendorff/elephant")
@@ -73,16 +73,17 @@ class Config:
                 "overlap_comm": True,
                 "contiguous_gradients": True,
                 "sub_group_size": 1e9,
-                "reduce_bucket_size": 5e8,
+                "reduce_bucket_size": 1e8,
                 "allgather_partitions": True,
-                "allgather_bucket_size": 5e8,
+                "allgather_bucket_size": 1e8,
                 "reduce_scatter": True,
+                "round_robin_gradients": True,
             },
             "fp16": {
                 "enabled": self.FP16,
                 "loss_scale": 0,
                 "loss_scale_window": 1000,
-                "initial_scale_power": 16,
+                "initial_scale_power": 12,
                 "hysteresis": 2,
                 "min_loss_scale": 1,
             },
@@ -92,14 +93,15 @@ class Config:
             "wall_clock_breakdown": False,
             "communication_data_type": "fp16",
             "aio": {
-                "block_size": 1048576,
-                "queue_depth": 8,
-                "thread_count": 2,
+                "block_size": 262144,
+                "queue_depth": 4,
+                "thread_count": 1,
                 "single_submit": False,
                 "overlap_events": True,
             },
             "zero_force_ds_cpu_optimizer": False,
-            "offload_optimizer": {"device": "cpu", "pin_memory": True},
+            "offload_optimizer": {"device": "none"},
+            "offload_param": {"device": "none"},
         }
 
     def getConfig(self):
@@ -114,7 +116,7 @@ class Config:
             fp16=self.FP16,
             save_steps=max(1, int(self.WARMUP_STEPS * 5)),
             save_strategy="steps",
-            logging_steps=max(self.BATCH_SIZE, int(self.WARMUP_STEPS)),
+            logging_steps=max(1, int(self.WARMUP_STEPS // 10)),
             save_total_limit=1,
             report_to="none",
             deepspeed=self.getDeepSpeedConfig(),
@@ -132,4 +134,6 @@ class Config:
             dataloader_persistent_workers=False,
             prediction_loss_only=True,
             save_safetensors=True,
+            ddp_timeout=7200,
+            ddp_find_unused_parameters=False,
         )

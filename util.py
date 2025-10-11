@@ -68,7 +68,24 @@ config = Config()
 
 
 class Conclusion(Exception):
-    def __init__(self, message="Script execution has completed."):
+    def __init__(self, e=RuntimeError(), message="Script execution has completed."):
+        self.recoverable_errors = [
+            "timeout",
+            "max",
+            "requests",
+            "reset",
+            "refused",
+            "broken",
+        ]
+
+        err_str = str(e).lower()
+
+        if any(word in err_str for word in self.recoverable_errors):
+            try:
+                Space().resume()
+            except Exception as resume_err:
+                print(f"Failed to resume after recoverable error: {resume_err}")
+
         super().__init__(message)
 
 

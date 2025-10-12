@@ -25,7 +25,6 @@ class Config:
         self.LEARNING_RATE = float(os.environ.get("LEARNING_RATE", 3e-4))
         self.MAX_LENGTH = int(os.environ.get("MAX_LENGTH", 2048))
         self.VOCAB_SIZE = int(os.environ.get("VOCAB_SIZE", 52000))
-        self.USE_QUANTIZATION = os.environ.get("USE_QUANT", "false").lower() == "true"
         self.FP16 = True
         self.WEIGHT_DECAY = float(os.environ.get("WEIGHT_DECAY", 1e-2))
         self.GRADIENT_ACCUMULATION_STEPS = int(
@@ -80,21 +79,18 @@ class Config:
                 "reduce_scatter": True,
             },
             "fp16": {
-                "enabled": self.FP16 and not self.USE_QUANTIZATION,
+                "enabled": self.FP16,
                 "loss_scale": 0,
                 "loss_scale_window": 1000,
                 "initial_scale_power": 16,
                 "hysteresis": 2,
                 "min_loss_scale": 1,
             },
-            "bf16": {
-                "enabled": self.USE_QUANTIZATION,
-            },
             "gradient_clipping": 1.0,
             "train_micro_batch_size_per_gpu": self.BATCH_SIZE,
             "gradient_accumulation_steps": self.GRADIENT_ACCUMULATION_STEPS,
             "wall_clock_breakdown": False,
-            "communication_data_type": "bf16" if self.USE_QUANTIZATION else "fp16",
+            "communication_data_type": "fp16",
             "aio": {
                 "block_size": 262144,
                 "queue_depth": 4,
@@ -114,8 +110,7 @@ class Config:
             warmup_steps=self.WARMUP_STEPS,
             weight_decay=self.WEIGHT_DECAY,
             gradient_accumulation_steps=self.GRADIENT_ACCUMULATION_STEPS,
-            fp16=self.FP16 and not self.USE_QUANTIZATION,
-            bf16=self.USE_QUANTIZATION,
+            fp16=self.FP16,
             save_steps=max(1, int(self.WARMUP_STEPS * 5)),
             save_strategy="steps",
             logging_steps=max(self.BATCH_SIZE, int(self.WARMUP_STEPS)),
@@ -136,46 +131,3 @@ class Config:
             prediction_loss_only=True,
             save_safetensors=True,
         )
-
-    def get_quantization_config(self):
-        try:
-            from transformers import BitsAndBytesConfig
-
-            return BitsAndBytesConfig(
-                load_in_4bit=True,
-                bnb_4bit_quant_type="nf4",
-                bnb_4bit_compute_dtype="bfloat16",
-                bnb_4bit_use_double_quant=True,
-            )
-        except ImportError:
-            raise ImportError(
-                "bitsandbytes is required for quantization. "
-                "Please install it with: pip install bitsandbytes"
-            )
-
-    def get_lora_config(self):
-        try:
-            from peft import LoraConfig
-
-            return LoraConfig(
-                r=16,
-                lora_alpha=32,
-                target_modules=[
-                    "q_proj",
-                    "k_proj",
-                    "v_proj",
-                    "o_proj",
-                    "gate_proj",
-                    "up_proj",
-                    "down_proj",
-                ],
-                lora_dropout=0.05,
-                bias="none",
-                task_type="CAUSAL_LM",
-                inference_mode=False,
-            )
-        except ImportError:
-            raise ImportError(
-                "peft is required for LoRA training. "
-                "Please install it with: pip install peft"
-            )

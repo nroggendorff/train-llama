@@ -43,10 +43,12 @@ class Config:
             self.SHARD_INDEX = 0
             self.SKIP_SAMPLES = 0
             self.EPOCHS = epochs / 2
+            self.SHARD_SIZE = self.SHARD_SIZE // 2
         elif self.INIT == 1:
             self.SHARD_INDEX = 0
-            self.SKIP_SAMPLES = 0
+            self.SKIP_SAMPLES = self.SHARD_SIZE // 2
             self.EPOCHS = epochs / 2
+            self.SHARD_SIZE = self.SHARD_SIZE // 2
         else:
             self.SHARD_INDEX = self.INIT - 1 if self.INSTRUCT_FINETUNE_BOOL else 0
             self.SKIP_SAMPLES = self.SHARD_INDEX * self.SHARD_SIZE

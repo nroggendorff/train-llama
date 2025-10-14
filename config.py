@@ -23,7 +23,12 @@ class Config:
         int_space_timeout = int(re.sub(r"\D", "", space_timeout))
         self.BATCH_SIZE = int(os.environ.get("BATCH_SIZE", 4))
         self.INIT = int(os.environ.get("INIT", 0))
-        self.EPOCHS = epochs if self.INIT >= 2 else epochs / 2
+        self.INSTRUCT_FINETUNE_BOOL = os.environ.get("INST", "false").lower() == "true"
+        self.EPOCHS = (
+            epochs
+            if self.INIT > 1 and self.INSTRUCT_FINETUNE_BOOL == True
+            else epochs / 2
+        )
         self.MAX_LENGTH = int(os.environ.get("MAX_LENGTH", 2048))
         self.VOCAB_SIZE = int(os.environ.get("VOCAB_SIZE", 52000))
         self.FP16 = True
@@ -34,8 +39,18 @@ class Config:
         self.INPUT_DATASET = os.environ.get("INPUT_DS", "nroggendorff/microrpus")
         self.INSTRUCT_DATASET = os.environ.get("INST_DS", "nroggendorff/elephant")
         self.SHARD_SIZE = int(os.environ.get("SHARD_SIZE", 131072))
-        self.SHARD_INDEX = 0 if self.INIT < 2 else (self.INIT - 1)
-        self.SKIP_SAMPLES = self.SHARD_INDEX * self.SHARD_SIZE
+        if self.INIT == 0:
+            self.SHARD_INDEX = 0
+            self.SKIP_SAMPLES = 0
+            self.EPOCHS = epochs / 2
+        elif self.INIT == 1:
+            self.SHARD_INDEX = 0
+            self.SKIP_SAMPLES = 0
+            self.EPOCHS = epochs / 2
+        else:
+            self.SHARD_INDEX = self.INIT - 1 if self.INSTRUCT_FINETUNE_BOOL else 0
+            self.SKIP_SAMPLES = self.SHARD_INDEX * self.SHARD_SIZE
+            self.EPOCHS = epochs
         self.LEARNING_RATE = (
             lr
             / math.sqrt(self.INIT + 1)
@@ -48,7 +63,6 @@ class Config:
         )
         self.OUTPUT_REPO = os.environ.get("OUTPUT_REPO", "nroggendorff/smallama")
         self.INPUT_REPO = os.environ.get("INPUT_REPO", self.OUTPUT_REPO)
-        self.INSTRUCT_FINETUNE_BOOL = os.environ.get("INST", "false").lower() == "true"
         self.FACTOR = int(os.environ.get("FACTOR", 12288))
         self.TOTAL_STEPS = (self.SHARD_SIZE * self.EPOCHS) // (
             self.BATCH_SIZE * self.GRADIENT_ACCUMULATION_STEPS

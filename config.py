@@ -69,7 +69,7 @@ class Config:
         self.TOTAL_STEPS = (self.SHARD_SIZE * self.EPOCHS) // (
             self.BATCH_SIZE * self.GRADIENT_ACCUMULATION_STEPS
         )
-        self.WARMUP_STEPS = int(self.TOTAL_STEPS * 0.1)
+        self.WARMUP_STEPS = 0 if self.INIT > 0 else int(self.TOTAL_STEPS * 0.1)
         self.SPACE_TIMEOUT = (
             int_space_timeout
             if space_timeout.endswith("m")
@@ -138,9 +138,17 @@ class Config:
             weight_decay=self.WEIGHT_DECAY,
             gradient_accumulation_steps=self.GRADIENT_ACCUMULATION_STEPS,
             fp16=self.FP16,
-            save_steps=max(1, int(self.WARMUP_STEPS * 5)),
+            save_steps=(
+                max(1, int(self.WARMUP_STEPS * 5))
+                if self.WARMUP_STEPS > 0
+                else max(1, int(self.TOTAL_STEPS * 0.1))
+            ),
             save_strategy="steps",
-            logging_steps=max(self.BATCH_SIZE, int(self.WARMUP_STEPS)),
+            logging_steps=(
+                max(self.BATCH_SIZE, int(self.WARMUP_STEPS))
+                if self.WARMUP_STEPS > 0
+                else self.BATCH_SIZE
+            ),
             save_total_limit=1,
             report_to="none",
             deepspeed=self.getDeepSpeedConfig(),

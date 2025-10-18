@@ -34,6 +34,7 @@ class Config:
         self.INPUT_DATASET = os.environ.get("INPUT_DS", "nroggendorff/microrpus")
         self.INSTRUCT_DATASET = os.environ.get("INST_DS", "nroggendorff/elephant")
         self.SHARD_SIZE = int(os.environ.get("SHARD_SIZE", 131072))
+        self.INST_SUFFIX = os.environ.get("INST_SUFFIX", "it")
 
         if self.INSTRUCT_FINETUNE_BOOL:
             self.SHARD_INDEX = self.INIT

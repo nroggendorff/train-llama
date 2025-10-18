@@ -57,7 +57,7 @@ def train_model(args, model, device, tokenizer, dataset):
 
     if trainer.is_world_process_zero():
         repo_id = (
-            config.OUTPUT_REPO + "-it"
+            config.OUTPUT_REPO + f"-{config.INST_SUFFIX}"
             if config.INSTRUCT_FINETUNE_BOOL
             else config.OUTPUT_REPO
         )

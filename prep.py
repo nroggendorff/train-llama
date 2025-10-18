@@ -28,7 +28,7 @@ def load_model(tokenizer):
 
     try:
         model_path = (
-            config.INPUT_REPO + "-it"
+            config.INPUT_REPO + f"-{config.INST_SUFFIX}"
             if config.INSTRUCT_FINETUNE_BOOL and config.INIT > 0
             else config.INPUT_REPO
         )
@@ -171,7 +171,7 @@ def create_tokenizer(training_corpus):
 def load_tokenizer():
     def do_load():
         return AutoTokenizer.from_pretrained(
-            config.INPUT_REPO + "-it"
+            config.INPUT_REPO + f"-{config.INST_SUFFIX}"
             if config.INSTRUCT_FINETUNE_BOOL and config.INIT > 0
             else config.INPUT_REPO
         )

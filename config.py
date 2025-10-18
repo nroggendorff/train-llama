@@ -65,27 +65,7 @@ class Config:
         )
         self.OUTPUT_REPO = os.environ.get("OUTPUT_REPO", "nroggendorff/smallama")
         self.INPUT_REPO = os.environ.get("INPUT_REPO", self.OUTPUT_REPO)
-
-        params_env = os.environ.get("PARAMS")
-        if params_env:
-            target_params = int(params_env) * 1e7
-            self.FACTOR = self._find_factor_for_params(target_params)
-            actual_params = self._calculate_model_size(self.FACTOR)
-            print(
-                f"PARAMS={params_env} -> FACTOR={self.FACTOR} (~{actual_params/1e6:.1f}M parameters)"
-            )
-        else:
-            factor_env = os.environ.get("FACTOR")
-            if factor_env:
-                self.FACTOR = int(factor_env)
-            else:
-                default_factor = 7320
-                self.FACTOR = self._find_factor_for_params(default_factor * 1e7)
-                actual_params = self._calculate_model_size(self.FACTOR)
-                print(
-                    f"Using default PARAMS={default_factor} -> FACTOR={self.FACTOR} (~{actual_params/1e6:.1f}M parameters)"
-                )
-
+        self.FACTOR = int(os.environ.get("FACTOR", 12288))
         self.TOTAL_STEPS = (self.SHARD_SIZE * self.EPOCHS) // (
             self.BATCH_SIZE * self.GRADIENT_ACCUMULATION_STEPS
         )
@@ -112,48 +92,6 @@ class Config:
         self.SEED = 42
 
         Config._initialized = True
-
-    def _calculate_model_size(self, hidden_size):
-        num_layers = max(1, hidden_size // 128)
-        intermediate_size = hidden_size * 4
-
-        embedding_params = self.VOCAB_SIZE * hidden_size
-        output_params = self.VOCAB_SIZE * hidden_size
-
-        attention_params = (
-            4 * hidden_size * hidden_size + 4 * hidden_size
-        ) * num_layers
-        ffn_params = (
-            2 * hidden_size * intermediate_size + hidden_size + intermediate_size
-        ) * num_layers
-        norm_params = (2 * hidden_size * num_layers) + hidden_size
-
-        return (
-            embedding_params
-            + output_params
-            + attention_params
-            + ffn_params
-            + norm_params
-        )
-
-    def _find_factor_for_params(self, target_params):
-        low, high = 128, 100000
-        best_factor = 12288
-
-        while low <= high:
-            mid = (low + high) // 2
-            params = self._calculate_model_size(mid)
-
-            if abs(params - target_params) < target_params * 0.005:
-                return mid
-
-            if params < target_params:
-                best_factor = mid
-                low = mid + 1
-            else:
-                high = mid - 1
-
-        return best_factor
 
     def getDeepSpeedConfig(self):
         return {

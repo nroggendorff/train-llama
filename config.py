@@ -1,6 +1,5 @@
 import os
 import re
-import math
 from trl import SFTConfig
 
 
@@ -54,16 +53,11 @@ class Config:
             self.SHARD_INDEX = self.INIT - 1
             self.SKIP_SAMPLES = self.SHARD_SIZE + (self.INIT - 2) * self.SHARD_SIZE
             self.EPOCHS = epochs
-        self.LEARNING_RATE = (
-            lr
-            / math.sqrt(self.INIT + 1)
-            ** (
-                ((self.SHARD_SIZE / self.EPOCHS) * (self.INIT + self.EPOCHS))
-                / (self.SHARD_SIZE + self.EPOCHS)
-            )
-            if self.INIT > 1
-            else lr
-        )
+        if self.INIT > 1:
+            decay_factor = 1.0 / (1.0 + 0.1 * (self.INIT - 1))
+            self.LEARNING_RATE = max(lr * decay_factor, lr * 0.1)
+        else:
+            self.LEARNING_RATE = lr
         self.OUTPUT_REPO = os.environ.get("OUTPUT_REPO", "nroggendorff/smallama")
         self.INPUT_REPO = os.environ.get("INPUT_REPO", self.OUTPUT_REPO)
         self.FACTOR = int(os.environ.get("FACTOR", 12288))

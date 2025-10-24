@@ -18,13 +18,18 @@ class Config:
 
         epochs = float(os.environ.get("EPOCHS", 3))
         lr = float(os.environ.get("LEARNING_RATE", 3e-4))
+        self.FACTOR = int(os.environ.get("FACTOR", 12288))
+        self.VOCAB_SIZE = int(os.environ.get("VOCAB_SIZE", 52000))
+
+        base_output_repo = os.environ.get("OUTPUT_REPO", "nroggendorff/smallama")
+        model_size_suffix = self._calculate_model_size_suffix()
+
         space_timeout = os.environ.get("STARTUP_DURATION_TIMEOUT", "350m")
         int_space_timeout = int(re.sub(r"\D", "", space_timeout))
         self.BATCH_SIZE = int(os.environ.get("BATCH_SIZE", 4))
         self.INIT = int(os.environ.get("INIT", 0))
         self.INSTRUCT_FINETUNE_BOOL = os.environ.get("INST", "false").lower() == "true"
         self.MAX_LENGTH = int(os.environ.get("MAX_LENGTH", 2048))
-        self.VOCAB_SIZE = int(os.environ.get("VOCAB_SIZE", 52000))
         self.FP16 = True
         self.WEIGHT_DECAY = float(os.environ.get("WEIGHT_DECAY", 1e-2))
         self.GRADIENT_ACCUMULATION_STEPS = int(
@@ -58,9 +63,8 @@ class Config:
             self.LEARNING_RATE = max(lr * decay_factor, lr * 0.1)
         else:
             self.LEARNING_RATE = lr
-        self.OUTPUT_REPO = os.environ.get("OUTPUT_REPO", "nroggendorff/smallama")
+        self.OUTPUT_REPO = f"{base_output_repo}-{model_size_suffix}"
         self.INPUT_REPO = os.environ.get("INPUT_REPO", self.OUTPUT_REPO)
-        self.FACTOR = int(os.environ.get("FACTOR", 12288))
         self.TOTAL_STEPS = (self.SHARD_SIZE * self.EPOCHS) // (
             self.BATCH_SIZE * self.GRADIENT_ACCUMULATION_STEPS
         )
@@ -87,6 +91,23 @@ class Config:
         self.SEED = 42
 
         Config._initialized = True
+
+    def _calculate_model_size_suffix(self):
+        hidden_size = self.FACTOR
+        num_layers = max(1, hidden_size // 128)
+        intermediate_size = hidden_size * 4
+
+        total_params = self.VOCAB_SIZE * hidden_size * 2 + num_layers * (
+            4 * hidden_size * hidden_size
+            + 2 * hidden_size * intermediate_size
+            + 6 * hidden_size
+            + intermediate_size
+        )
+
+        if total_params < 1e9:
+            return f"{int(total_params / 1e6)}m"
+        else:
+            return f"{int(total_params / 1e9)}b"
 
     def getDeepSpeedConfig(self):
         return {

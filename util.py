@@ -49,11 +49,13 @@ def upload_model(trainer, repo_id, commit_message):
         total_files = sum(len(files) for _, _, files in os.walk(temp_dir))
         print(f"Uploading {total_files} files...")
 
-        delete_patterns = set()
-        for file_info in api.list_repo_files(repo_id=repo_id, repo_type="model"):
-            file_extension = os.path.splitext(file_info)[1]
-            if file_extension and file_extension != ".md":
-                delete_patterns.add(f"**/*{file_extension}")
+        def to_delete():
+            delete_patterns = set()
+            for file_info in api.list_repo_files(repo_id=repo_id, repo_type="model"):
+                file_extension = os.path.splitext(file_info)[1]
+                if file_extension and file_extension != ".md":
+                    delete_patterns.add(f"**/*{file_extension}")
+            return list(delete_patterns)
 
         def do_upload():
             api.create_repo(repo_id=repo_id, exist_ok=True)
@@ -62,7 +64,7 @@ def upload_model(trainer, repo_id, commit_message):
                 repo_id=repo_id,
                 repo_type="model",
                 commit_message=commit_message,
-                delete_patterns=list(delete_patterns),
+                delete_patterns=to_delete(),
                 ignore_patterns=[".git/**"],
             )
 

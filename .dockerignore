@@ -1,6 +1,9 @@
-/.git
+.git/
 .gitattributes
 
 README.md
 CONTRIBUTING.md
 LICENSE
+
+Dockerfile
+.dockerignore

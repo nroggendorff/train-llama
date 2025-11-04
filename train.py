@@ -5,9 +5,9 @@ from datetime import timedelta
 from datasets import load_from_disk
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from transformers import DataCollatorForLanguageModeling
-from trl import SFTTrainer
 import torch.distributed as dist
 
+from trainer import Trainer
 from config import Config
 from util import *
 
@@ -24,7 +24,7 @@ def train_model(args, model, device, tokenizer, dataset):
         pad_to_multiple_of=8,
     )
 
-    trainer = SFTTrainer(
+    trainer = Trainer(
         model=model,
         processing_class=tokenizer,
         args=args,
@@ -104,10 +104,12 @@ def main():
 
         tokenizer = AutoTokenizer.from_pretrained("prepared_tokenizer")
 
+        print(f"Dataset size: {len(dataset)}")
+
         model_kwargs = {"attn_implementation": "flash_attention_2"}
 
         if config.FP16:
-            model_kwargs["dtype"] = torch.float16
+            model_kwargs["torch_dtype"] = torch.float16
 
         model = AutoModelForCausalLM.from_pretrained("prepared_model", **model_kwargs)
         print("Loaded Prepared Data.")

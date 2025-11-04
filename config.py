@@ -1,6 +1,6 @@
 import os
 import re
-from trl import SFTConfig
+from trainer import TrainingConfig
 
 
 class Config:
@@ -145,7 +145,7 @@ class Config:
         }
 
     def getConfig(self):
-        return SFTConfig(
+        return TrainingConfig(
             output_dir="model",
             num_train_epochs=self.EPOCHS,
             per_device_train_batch_size=self.BATCH_SIZE,
@@ -154,19 +154,11 @@ class Config:
             weight_decay=self.WEIGHT_DECAY,
             gradient_accumulation_steps=self.GRADIENT_ACCUMULATION_STEPS,
             fp16=self.FP16,
-            save_steps=(
-                max(1, int(self.WARMUP_STEPS * 5))
-                if self.WARMUP_STEPS > 0
-                else max(1, int(self.TOTAL_STEPS * 0.1))
-            ),
-            save_strategy="steps",
             logging_steps=(
                 max(self.BATCH_SIZE, int(self.WARMUP_STEPS))
                 if self.WARMUP_STEPS > 0
                 else self.BATCH_SIZE
             ),
-            save_total_limit=1,
-            report_to="none",
             deepspeed=self.getDeepSpeedConfig(),
             use_liger_kernel=True,
             max_length=self.MAX_LENGTH,
@@ -179,6 +171,4 @@ class Config:
             adam_beta2=0.95,
             max_grad_norm=1.0,
             dataloader_persistent_workers=False,
-            prediction_loss_only=True,
-            save_safetensors=True,
         )

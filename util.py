@@ -43,7 +43,11 @@ def upload_model(trainer, repo_id, commit_message):
     with tempfile.TemporaryDirectory() as temp_dir:
         print("Saving model and tokenizer to temporary directory...")
 
-        trainer.model.save_pretrained(temp_dir)
+        if hasattr(trainer, "model_engine") and trainer.model_engine is not None:
+            trainer.model_engine.module.save_pretrained(temp_dir)
+        else:
+            trainer.model.save_pretrained(temp_dir)
+
         trainer.processing_class.save_pretrained(temp_dir)
 
         total_files = sum(len(files) for _, _, files in os.walk(temp_dir))

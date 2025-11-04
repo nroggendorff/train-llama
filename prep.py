@@ -273,7 +273,11 @@ def main(is_inst=config.INSTRUCT_FINETUNE_BOOL):
         futures = deque()
         total_processed = 0
 
-        with tqdm(desc="Processing examples") as pbar:
+        if config.INIT == 0 and not config.INSTRUCT_FINETUNE_BOOL:
+            total_samples = None
+        else:
+            total_samples = config.SHARD_SIZE
+        with tqdm(desc="Processing examples", total=total_samples) as pbar:
             for batch in batch_gen:
                 if len(futures) >= max_queued_batches:
                     future = futures.popleft()

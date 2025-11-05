@@ -1,6 +1,9 @@
 import os
 import math
 import time
+import threading
+from concurrent.futures import ThreadPoolExecutor
+from collections import deque
 from torch.utils.data import DataLoader
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import LambdaLR
@@ -9,6 +12,7 @@ from typing import Dict, Any, Optional
 import deepspeed
 from transformers import LlamaForCausalLM, PreTrainedTokenizerFast
 from tqdm.auto import tqdm
+from datasets import Dataset
 
 
 @dataclass
@@ -87,25 +91,79 @@ class Trainer:
                 return_tensors=None,
             )
 
-        num_proc = min(os.cpu_count() or 1, 8)
+        def process_batch(batch):
+            batch_dict = {"text": [item["text"] for item in batch]}
+            tokenized = tokenize_function(batch_dict)
+            results = []
+            num_samples = len(batch_dict["text"])
+            for i in range(num_samples):
+                sample = {key: tokenized[key][i] for key in tokenized.keys()}
+                results.append(sample)
+            return results
+
+        def batch_generator(dataset, batch_size):
+            current_batch = []
+            for example in dataset:
+                current_batch.append(example)
+                if len(current_batch) >= batch_size:
+                    yield current_batch
+                    current_batch = []
+            if current_batch:
+                yield current_batch
+
+        processed_data = []
+        batch_size = 1000
+        max_workers = 4
+        max_queued_batches = max_workers * 2
+
+        batch_gen = batch_generator(self.train_dataset, batch_size)
+        result_lock = threading.Lock()
+
+        def process_and_store(batch):
+            result = process_batch(batch)
+            with result_lock:
+                processed_data.extend(result)
+            return len(result)
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = deque()
+            total_processed = 0
+
+            total_samples = (
+                len(self.train_dataset)
+                if hasattr(self.train_dataset, "__len__")
+                else None
+            )
+
+            if self.is_world_process_zero():
+                pbar = tqdm(desc="Tokenizing batches", total=total_samples)
+
+            for batch in batch_gen:
+                if len(futures) >= max_queued_batches:
+                    future = futures.popleft()
+                    count = future.result()
+                    total_processed += count
+                    if self.is_world_process_zero():
+                        pbar.update(count)
+
+                future = executor.submit(process_and_store, batch)
+                futures.append(future)
+
+            while futures:
+                future = futures.popleft()
+                count = future.result()
+                total_processed += count
+                if self.is_world_process_zero():
+                    pbar.update(count)
+
+            if self.is_world_process_zero():
+                pbar.close()
 
         if self.is_world_process_zero():
-            self.tokenized_dataset = self.train_dataset.map(
-                tokenize_function,
-                batched=True,
-                batch_size=1000,
-                num_proc=num_proc,
-                remove_columns=self.train_dataset.column_names,
-                desc="Tokenizing batches",
-            )
-        else:
-            self.tokenized_dataset = self.train_dataset.map(
-                tokenize_function,
-                batched=True,
-                batch_size=1000,
-                num_proc=num_proc,
-                remove_columns=self.train_dataset.column_names,
-            )
+            print(f"Creating dataset from {len(processed_data)} processed examples...")
+
+        self.tokenized_dataset = Dataset.from_list(processed_data)
+        processed_data = None
 
         if self.is_world_process_zero():
             print(f"Tokenized {len(self.tokenized_dataset)} samples")

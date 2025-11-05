@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import LambdaLR
 from dataclasses import dataclass
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 import deepspeed
 from transformers import LlamaForCausalLM, PreTrainedTokenizerFast
 from tqdm.auto import tqdm
@@ -34,6 +34,7 @@ class TrainingConfig:
     adam_beta2: float
     max_grad_norm: float
     dataloader_persistent_workers: bool
+    dataloader_prefetch_factor: Optional[int] = 2
 
     def to_dict(self):
         return {k: v for k, v in self.__dict__.items()}
@@ -86,10 +87,14 @@ class Trainer:
                 return_tensors=None,
             )
 
+        num_proc = min(os.cpu_count() or 1, 8)
+
         if self.is_world_process_zero():
             self.tokenized_dataset = self.train_dataset.map(
                 tokenize_function,
                 batched=True,
+                batch_size=1000,
+                num_proc=num_proc,
                 remove_columns=self.train_dataset.column_names,
                 desc="Tokenizing batches",
             )
@@ -97,6 +102,8 @@ class Trainer:
             self.tokenized_dataset = self.train_dataset.map(
                 tokenize_function,
                 batched=True,
+                batch_size=1000,
+                num_proc=num_proc,
                 remove_columns=self.train_dataset.column_names,
             )
 
@@ -105,14 +112,27 @@ class Trainer:
             print("=" * 70 + "\n")
 
     def _create_dataloader(self):
-        return DataLoader(
-            self.tokenized_dataset,
-            batch_size=self.args.per_device_train_batch_size,
-            collate_fn=self.data_collator,
-            num_workers=self.args.dataloader_num_workers,
-            pin_memory=self.args.dataloader_pin_memory,
-            shuffle=True,
-        )
+        dataloader_kwargs = {
+            "batch_size": self.args.per_device_train_batch_size,
+            "collate_fn": self.data_collator,
+            "num_workers": self.args.dataloader_num_workers,
+            "pin_memory": self.args.dataloader_pin_memory,
+            "shuffle": True,
+        }
+
+        if self.args.dataloader_num_workers > 0:
+            dataloader_kwargs["persistent_workers"] = (
+                self.args.dataloader_persistent_workers
+            )
+            if (
+                hasattr(self.args, "dataloader_prefetch_factor")
+                and self.args.dataloader_prefetch_factor
+            ):
+                dataloader_kwargs["prefetch_factor"] = (
+                    self.args.dataloader_prefetch_factor
+                )
+
+        return DataLoader(self.tokenized_dataset, **dataloader_kwargs)
 
     def _create_optimizer(self):
         no_decay = ["bias", "LayerNorm.weight", "layer_norm.weight"]
@@ -139,6 +159,7 @@ class Trainer:
             optimizer_grouped_parameters,
             lr=self.args.learning_rate,
             betas=(self.args.adam_beta1, self.args.adam_beta2),
+            fused=True,
         )
 
     def _get_cosine_schedule_with_warmup(
@@ -256,6 +277,7 @@ class Trainer:
                     desc=f"Epoch {epoch + 1}/{int(self.args.num_train_epochs)}",
                     position=0,
                     leave=True,
+                    mininterval=1.0,
                 )
 
             for step, batch in enumerate(train_dataloader):
@@ -333,8 +355,8 @@ class Trainer:
                                     "TrainOutput", (), {"training_loss": training_loss}
                                 )()
 
-                if self.is_world_process_zero():
-                    epoch_pbar.update(1)
+                if self.is_world_process_zero() and step % 10 == 0:
+                    epoch_pbar.update(10)
 
             if self.is_world_process_zero():
                 epoch_pbar.close()

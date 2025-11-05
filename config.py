@@ -135,13 +135,14 @@ class Config:
             "wall_clock_breakdown": False,
             "communication_data_type": "fp16",
             "aio": {
-                "block_size": 262144,
-                "queue_depth": 4,
-                "thread_count": 1,
+                "block_size": 1048576,
+                "queue_depth": 8,
+                "thread_count": 2,
                 "single_submit": False,
                 "overlap_events": True,
             },
             "zero_force_ds_cpu_optimizer": False,
+            "steps_per_print": 2000000000,
         }
 
     def getConfig(self):
@@ -163,12 +164,13 @@ class Config:
             use_liger_kernel=True,
             max_length=self.MAX_LENGTH,
             gradient_checkpointing=True,
-            dataloader_num_workers=0,
-            dataloader_pin_memory=False,
+            dataloader_num_workers=4,
+            dataloader_pin_memory=True,
             remove_unused_columns=True,
             lr_scheduler_type="cosine",
             adam_beta1=0.9,
             adam_beta2=0.95,
             max_grad_norm=1.0,
-            dataloader_persistent_workers=False,
+            dataloader_persistent_workers=True,
+            dataloader_prefetch_factor=2,
         )

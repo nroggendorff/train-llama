@@ -1,10 +1,7 @@
 import os
 import math
 import time
-import threading
-from concurrent.futures import ThreadPoolExecutor
-from collections import deque
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, DistributedSampler
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import LambdaLR
 from dataclasses import dataclass
@@ -12,7 +9,7 @@ from typing import Dict, Any, Optional
 import deepspeed
 from transformers import LlamaForCausalLM, PreTrainedTokenizerFast
 from tqdm.auto import tqdm
-from datasets import Dataset
+import torch.distributed as dist
 
 
 @dataclass
@@ -51,14 +48,12 @@ class Trainer:
         processing_class: PreTrainedTokenizerFast,
         args: TrainingConfig,
         train_dataset,
-        data_collator,
         callbacks=None,
     ):
         self.model = model
         self.processing_class = processing_class
         self.args = args
         self.train_dataset = train_dataset
-        self.data_collator = data_collator
         self.callbacks = callbacks or []
 
         self.local_rank = int(os.environ.get("LOCAL_RANK", -1))
@@ -67,7 +62,6 @@ class Trainer:
         self.global_step = 0
         self.current_epoch = 0
         self.total_loss = 0.0
-        self.tokenized_dataset = None
 
         self.model_engine = None
         self.optimizer = None
@@ -76,106 +70,38 @@ class Trainer:
     def is_world_process_zero(self):
         return self.local_rank in [-1, 0]
 
-    def _tokenize_dataset(self):
-        if self.is_world_process_zero():
-            print("\n" + "=" * 70)
-            print("Tokenizing dataset")
-            print("=" * 70)
+    def _create_dataloader(self):
+        sampler = DistributedSampler(
+            self.train_dataset,
+            num_replicas=self.world_size,
+            rank=self.local_rank,
+            shuffle=True,
+            seed=42,
+            drop_last=True,
+        )
 
-        def tokenize_function(examples):
-            return self.processing_class(
-                examples["text"],
+        def tokenize_collate_fn(examples):
+            texts = [example["text"] for example in examples]
+
+            tokenized = self.processing_class(
+                texts,
                 truncation=True,
                 max_length=self.args.max_length,
-                padding=False,
-                return_tensors=None,
+                padding="longest",
+                pad_to_multiple_of=8,
+                return_tensors="pt",
             )
 
-        def process_batch(batch):
-            batch_dict = {"text": [item["text"] for item in batch]}
-            tokenized = tokenize_function(batch_dict)
-            results = []
-            num_samples = len(batch_dict["text"])
-            for i in range(num_samples):
-                sample = {key: tokenized[key][i] for key in tokenized.keys()}
-                results.append(sample)
-            return results
+            tokenized["labels"] = tokenized["input_ids"].clone()
 
-        def batch_generator(dataset, batch_size):
-            current_batch = []
-            for example in dataset:
-                current_batch.append(example)
-                if len(current_batch) >= batch_size:
-                    yield current_batch
-                    current_batch = []
-            if current_batch:
-                yield current_batch
+            return tokenized
 
-        processed_data = []
-        batch_size = 1000
-        max_workers = 4
-        max_queued_batches = max_workers * 2
-
-        batch_gen = batch_generator(self.train_dataset, batch_size)
-        result_lock = threading.Lock()
-
-        def process_and_store(batch):
-            result = process_batch(batch)
-            with result_lock:
-                processed_data.extend(result)
-            return len(result)
-
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = deque()
-            total_processed = 0
-
-            total_samples = (
-                len(self.train_dataset)
-                if hasattr(self.train_dataset, "__len__")
-                else None
-            )
-
-            if self.is_world_process_zero():
-                pbar = tqdm(desc="Tokenizing batches", total=total_samples)
-
-            for batch in batch_gen:
-                if len(futures) >= max_queued_batches:
-                    future = futures.popleft()
-                    count = future.result()
-                    total_processed += count
-                    if self.is_world_process_zero():
-                        pbar.update(count)
-
-                future = executor.submit(process_and_store, batch)
-                futures.append(future)
-
-            while futures:
-                future = futures.popleft()
-                count = future.result()
-                total_processed += count
-                if self.is_world_process_zero():
-                    pbar.update(count)
-
-            if self.is_world_process_zero():
-                pbar.close()
-
-        if self.is_world_process_zero():
-            print(f"Creating dataset from {len(processed_data)} processed examples...")
-
-        self.tokenized_dataset = Dataset.from_list(processed_data)
-        processed_data = None
-
-        if self.is_world_process_zero():
-            print(f"Tokenized {len(self.tokenized_dataset)} samples")
-            print("=" * 70 + "\n")
-
-    def _create_dataloader(self):
         dataloader_kwargs = {
             "batch_size": self.args.per_device_train_batch_size,
-            "collate_fn": self.data_collator,
+            "collate_fn": tokenize_collate_fn,
             "num_workers": self.args.dataloader_num_workers,
             "pin_memory": self.args.dataloader_pin_memory,
-            "shuffle": True,
+            "sampler": sampler,
         }
 
         if self.args.dataloader_num_workers > 0:
@@ -190,7 +116,7 @@ class Trainer:
                     self.args.dataloader_prefetch_factor
                 )
 
-        return DataLoader(self.tokenized_dataset, **dataloader_kwargs)
+        return DataLoader(self.train_dataset, **dataloader_kwargs)
 
     def _create_optimizer(self):
         no_decay = ["bias", "LayerNorm.weight", "layer_norm.weight"]
@@ -199,7 +125,7 @@ class Trainer:
                 "params": [
                     p
                     for n, p in self.model.named_parameters()
-                    if not any(nd in n for nd in no_decay)
+                    if not any(nd in n for nd in no_decay) and p.requires_grad
                 ],
                 "weight_decay": self.args.weight_decay,
             },
@@ -207,7 +133,7 @@ class Trainer:
                 "params": [
                     p
                     for n, p in self.model.named_parameters()
-                    if any(nd in n for nd in no_decay)
+                    if any(nd in n for nd in no_decay) and p.requires_grad
                 ],
                 "weight_decay": 0.0,
             },
@@ -254,7 +180,21 @@ class Trainer:
             optimizer=self.optimizer,
             lr_scheduler=self.scheduler,
             config=self.args.deepspeed,
+            dist_init_required=False,
         )
+
+        if self.is_world_process_zero():
+            print(f"\nDeepSpeed Configuration:")
+            print(f"  World size: {self.world_size}")
+            print(f"  Local rank: {self.local_rank}")
+            print(f"  FP16 enabled: {self.args.fp16}")
+            print(
+                f"  Zero stage: {self.args.deepspeed.get('zero_optimization', {}).get('stage', 'N/A')}"
+            )
+            print(f"  Gradient accumulation: {self.args.gradient_accumulation_steps}")
+            print(
+                f"  Effective batch size: {self.args.per_device_train_batch_size * self.world_size * self.args.gradient_accumulation_steps}"
+            )
 
     def training_step(self, batch):
         self.model_engine.train()
@@ -289,8 +229,6 @@ class Trainer:
             print("Starting Training")
             print("=" * 70)
 
-        self._tokenize_dataset()
-
         train_dataloader = self._create_dataloader()
 
         num_update_steps_per_epoch = (
@@ -303,20 +241,22 @@ class Trainer:
         self._initialize_deepspeed(num_training_steps)
 
         if self.is_world_process_zero():
-            print(f"\nNum examples: {len(self.tokenized_dataset)}")
-            print(f"Num epochs: {self.args.num_train_epochs}")
+            print(f"\nTraining Configuration:")
+            print(f"  Num examples: {len(self.train_dataset)}")
+            print(f"  Num epochs: {self.args.num_train_epochs}")
+            print(f"  Batch size per device: {self.args.per_device_train_batch_size}")
             print(
-                f"Instantaneous batch size per device: {self.args.per_device_train_batch_size}"
+                f"  Total batch size: {self.args.per_device_train_batch_size * self.world_size * self.args.gradient_accumulation_steps}"
             )
             print(
-                f"Total train batch size (w. parallel, distributed & accumulation): {self.args.per_device_train_batch_size * self.world_size * self.args.gradient_accumulation_steps}"
+                f"  Gradient accumulation steps: {self.args.gradient_accumulation_steps}"
             )
+            print(f"  Total optimization steps: {num_training_steps}")
+            print(f"  Warmup steps: {self.args.warmup_steps}")
+            print(f"  Learning rate: {self.args.learning_rate}")
+            print(f"  Dataloader workers: {self.args.dataloader_num_workers}")
             print(
-                f"Gradient accumulation steps: {self.args.gradient_accumulation_steps}"
-            )
-            print(f"Total optimization steps: {num_training_steps}")
-            print(
-                f"Number of trainable parameters: {sum(p.numel() for p in self.model.parameters() if p.requires_grad):,}"
+                f"  Trainable parameters: {sum(p.numel() for p in self.model.parameters() if p.requires_grad):,}"
             )
             print("=" * 70 + "\n")
 
@@ -325,9 +265,12 @@ class Trainer:
         log_steps = 0
         start_time = time.time()
         epoch_start_time = start_time
+        last_log_time = start_time
 
         for epoch in range(int(self.args.num_train_epochs)):
             self.current_epoch = epoch
+
+            train_dataloader.sampler.set_epoch(epoch)
 
             if self.is_world_process_zero():
                 epoch_pbar = tqdm(
@@ -353,12 +296,20 @@ class Trainer:
                     ):
                         avg_loss = log_loss / log_steps
                         current_lr = self.scheduler.get_last_lr()[0]
-                        elapsed = time.time() - start_time
+                        current_time = time.time()
+                        log_elapsed = current_time - last_log_time
+
+                        steps_per_second = (
+                            self.args.logging_steps / log_elapsed
+                            if log_elapsed > 0
+                            else 0
+                        )
                         samples_per_second = (
-                            self.global_step
+                            steps_per_second
                             * self.args.per_device_train_batch_size
                             * self.world_size
-                        ) / elapsed
+                            * self.args.gradient_accumulation_steps
+                        )
 
                         if self.is_world_process_zero():
                             metrics = {
@@ -373,11 +324,14 @@ class Trainer:
                                 print(f"\n{'='*70}")
                                 print(f"Step {self.global_step}/{num_training_steps}")
                                 print(f"{self._format_metrics(metrics)}")
-                                print(f"Speed: {samples_per_second:.2f} samples/s")
+                                print(
+                                    f"Speed: {samples_per_second:.2f} samples/s | {steps_per_second:.2f} steps/s"
+                                )
                                 print(f"{'='*70}")
 
                         log_loss = 0.0
                         log_steps = 0
+                        last_log_time = current_time
 
                     for callback in self.callbacks:
                         if hasattr(callback, "on_step_end"):
@@ -413,8 +367,8 @@ class Trainer:
                                     "TrainOutput", (), {"training_loss": training_loss}
                                 )()
 
-                if self.is_world_process_zero() and step % 10 == 0:
-                    epoch_pbar.update(10)
+                if self.is_world_process_zero():
+                    epoch_pbar.update(1)
 
             if self.is_world_process_zero():
                 epoch_pbar.close()

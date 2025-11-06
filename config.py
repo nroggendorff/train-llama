@@ -110,9 +110,17 @@ class Config:
             return f"{int(total_params / 1e9)}b"
 
     def getDeepSpeedConfig(self):
+        total_batch_size = (
+            self.BATCH_SIZE
+            * self.GRADIENT_ACCUMULATION_STEPS
+            * int(os.environ.get("WORLD_SIZE", 1))
+        )
+
         return {
             "zero_optimization": {
                 "stage": 2,
+                "offload_optimizer": {"device": "none"},
+                "offload_param": {"device": "none"},
                 "overlap_comm": True,
                 "contiguous_gradients": True,
                 "sub_group_size": 1e9,
@@ -120,9 +128,11 @@ class Config:
                 "allgather_partitions": True,
                 "allgather_bucket_size": 5e8,
                 "reduce_scatter": True,
+                "round_robin_gradients": True,
             },
             "fp16": {
                 "enabled": self.FP16,
+                "auto_cast": False,
                 "loss_scale": 0,
                 "loss_scale_window": 1000,
                 "initial_scale_power": 16,
@@ -130,18 +140,11 @@ class Config:
                 "min_loss_scale": 1,
             },
             "gradient_clipping": 1.0,
+            "train_batch_size": total_batch_size,
             "train_micro_batch_size_per_gpu": self.BATCH_SIZE,
             "gradient_accumulation_steps": self.GRADIENT_ACCUMULATION_STEPS,
             "wall_clock_breakdown": False,
             "communication_data_type": "fp16",
-            "aio": {
-                "block_size": 1048576,
-                "queue_depth": 8,
-                "thread_count": 2,
-                "single_submit": False,
-                "overlap_events": True,
-            },
-            "zero_force_ds_cpu_optimizer": False,
             "steps_per_print": 2000000000,
         }
 

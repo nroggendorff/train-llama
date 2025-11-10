@@ -170,6 +170,8 @@ def create_tokenizer(training_corpus):
 
 def load_tokenizer():
     def do_load():
+        if config.INPUT_TOKENIZER != config.INPUT_REPO and config.INIT == 0:
+            return AutoTokenizer.from_pretrained(config.INPUT_TOKENIZER)
         return AutoTokenizer.from_pretrained(
             config.INPUT_REPO + f"-{config.INST_SUFFIX}"
             if config.INSTRUCT_FINETUNE_BOOL and config.INIT > 0
@@ -214,7 +216,11 @@ def configure_tokenizer(tokenizer):
 
 def main(is_inst=config.INSTRUCT_FINETUNE_BOOL):
     print("Getting Tokenizer..")
-    if config.INSTRUCT_FINETUNE_BOOL or config.INIT > 0:
+    if (
+        config.INSTRUCT_FINETUNE_BOOL
+        or config.INIT > 0
+        or config.INPUT_TOKENIZER != config.INPUT_REPO
+    ):
         tokenizer = load_tokenizer()
         print(f"Got Tokenizer with size {len(tokenizer)}.")
 

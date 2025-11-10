@@ -65,6 +65,7 @@ class Config:
             self.LEARNING_RATE = lr
         self.OUTPUT_REPO = f"{base_output_repo}-{model_size_suffix}"
         self.INPUT_REPO = os.environ.get("INPUT_REPO", self.OUTPUT_REPO)
+        self.INPUT_TOKENIZER = os.environ.get("INPUT_TOKENIZER", self.INPUT_REPO)
         self.TOTAL_STEPS = (self.SHARD_SIZE * self.EPOCHS) // (
             self.BATCH_SIZE * self.GRADIENT_ACCUMULATION_STEPS
         )

@@ -24,6 +24,7 @@ Key parameters include:
 - `MAX_LENGTH`: Maximum sequence length
 - `INPUT_DATASET`: Dataset for pre-training
 - `INSTRUCT_DATASET`: Dataset for instruction fine-tuning
+- `INPUT_TOKENIZER`: Pre-trained tokenizer to use (skips tokenizer creation)
 - `OUTPUT_REPO`: Target repository for saving models
 
 ## Requirements
@@ -55,3 +56,4 @@ Contributions are welcome! Please adhere to [CONTRIBUTING](./CONTRIBUTING.md).
 - The pipeline uses Git LFS for handling large files.
 - Models are automatically pushed to Hugging Face Hub when `PUSH_TO_HUB` is enabled.
 - Training can be resumed from checkpoints by adjusting the `INIT` and `INST` environment variables.
+- When `INPUT_TOKENIZER` is set, tokenizer creation is skipped on the first run, and only the required data is loaded.

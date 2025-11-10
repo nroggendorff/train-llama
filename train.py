@@ -1,5 +1,6 @@
 import os
 import torch
+import warnings
 from datetime import timedelta
 
 from datasets import load_from_disk
@@ -67,9 +68,17 @@ def main():
     torch.backends.cuda.matmul.allow_tf32 = True
     torch.backends.cudnn.allow_tf32 = True
 
+    local_rank = int(os.environ.get("LOCAL_RANK", -1))
+
+    if local_rank == 0:
+        warnings.filterwarnings(
+            "ignore", category=FutureWarning, module="torch.utils.checkpoint"
+        )
+    else:
+        warnings.filterwarnings("ignore")
+
     print("Initializing distributed training..")
 
-    local_rank = int(os.environ.get("LOCAL_RANK", -1))
     if local_rank != -1:
         torch.cuda.set_device(local_rank)
 
@@ -99,7 +108,7 @@ def main():
             print(f"Dataset size: {len(dataset)}")
             print(f"Tokenizer vocab size: {len(tokenizer)}")
 
-        model_kwargs = {}
+        model_kwargs = {"use_cache": False}
 
         if config.FP16:
             model_kwargs["torch_dtype"] = torch.float16

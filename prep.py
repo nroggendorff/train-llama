@@ -1,6 +1,7 @@
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor
 import torch
+import warnings
 
 from datasets import load_dataset, Dataset, DownloadConfig
 from tokenizers import ByteLevelBPETokenizer
@@ -21,6 +22,11 @@ from util import *
 config = Config()
 download_config = DownloadConfig(max_retries=config.MAX_RETRIES)
 
+warnings.filterwarnings(
+    "ignore", category=FutureWarning, module="torch.utils.checkpoint"
+)
+warnings.filterwarnings("ignore", message=".*Flash Attention 2.0.*")
+
 
 def load_model(tokenizer):
     if dist.is_initialized():
@@ -34,7 +40,7 @@ def load_model(tokenizer):
         )
 
         def load_model_from_pretrained():
-            return AutoModelForCausalLM.from_pretrained(model_path)
+            return AutoModelForCausalLM.from_pretrained(model_path, use_cache=False)
 
         model = retry_on_failure(load_model_from_pretrained)
         model.resize_token_embeddings(len(tokenizer))
@@ -77,7 +83,7 @@ def create_model(tokenizer):
         max_position_embeddings=config.MAX_LENGTH,
         rms_norm_eps=1e-5,
         initializer_range=0.02,
-        use_cache=True,
+        use_cache=False,
         pad_token_id=getattr(tokenizer, "pad_token_id", 0),
         bos_token_id=getattr(tokenizer, "bos_token_id", 1),
         eos_token_id=getattr(tokenizer, "eos_token_id", 2),

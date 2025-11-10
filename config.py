@@ -16,28 +16,28 @@ class Config:
         if Config._initialized:
             return
 
-        epochs = float(os.environ.get("EPOCHS", 3))
-        lr = float(os.environ.get("LEARNING_RATE", 3e-4))
-        self.FACTOR = int(os.environ.get("FACTOR", 12288))
-        self.VOCAB_SIZE = int(os.environ.get("VOCAB_SIZE", 52000))
+        epochs = float(os.environ.get("EPOCHS", "3"))
+        lr = float(os.environ.get("LEARNING_RATE", "3e-4"))
+        self.FACTOR = int(os.environ.get("FACTOR", "12288"))
+        self.VOCAB_SIZE = int(os.environ.get("VOCAB_SIZE", "52000"))
 
         base_output_repo = os.environ.get("OUTPUT_REPO", "nroggendorff/smallama")
         model_size_suffix = self._calculate_model_size_suffix()
 
         space_timeout = os.environ.get("STARTUP_DURATION_TIMEOUT", "350m")
         int_space_timeout = int(re.sub(r"\D", "", space_timeout))
-        self.BATCH_SIZE = int(os.environ.get("BATCH_SIZE", 4))
-        self.INIT = int(os.environ.get("INIT", 0))
+        self.BATCH_SIZE = int(os.environ.get("BATCH_SIZE", "4"))
+        self.INIT = int(os.environ.get("INIT", "0"))
         self.INSTRUCT_FINETUNE_BOOL = os.environ.get("INST", "false").lower() == "true"
-        self.MAX_LENGTH = int(os.environ.get("MAX_LENGTH", 2048))
+        self.MAX_LENGTH = int(os.environ.get("MAX_LENGTH", "2048"))
         self.FP16 = True
-        self.WEIGHT_DECAY = float(os.environ.get("WEIGHT_DECAY", 1e-2))
+        self.WEIGHT_DECAY = float(os.environ.get("WEIGHT_DECAY", "1e-2"))
         self.GRADIENT_ACCUMULATION_STEPS = int(
-            os.environ.get("GRADIENT_ACCUMULATION_STEPS", 2)
+            os.environ.get("GRADIENT_ACCUMULATION_STEPS", "2")
         )
         self.INPUT_DATASET = os.environ.get("INPUT_DS", "nroggendorff/microrpus")
         self.INSTRUCT_DATASET = os.environ.get("INST_DS", "nroggendorff/elephant")
-        self.SHARD_SIZE = int(os.environ.get("SHARD_SIZE", 131072))
+        self.SHARD_SIZE = int(os.environ.get("SHARD_SIZE", "131072"))
         self.INST_SUFFIX = os.environ.get("INST_SUFFIX", "it")
 
         if self.INSTRUCT_FINETUNE_BOOL:

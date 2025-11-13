@@ -26,6 +26,31 @@ Key parameters include:
 - `INSTRUCT_DATASET`: Dataset for instruction fine-tuning
 - `INPUT_TOKENIZER`: Pre-trained tokenizer to use (skips tokenizer creation)
 - `OUTPUT_REPO`: Target repository for saving models
+- `CUSTOM_PROCESSOR`: Custom dataset processing function (see below)
+
+### Custom Dataset Processing
+
+The `CUSTOM_PROCESSOR` environment variable allows you to define custom logic for processing your dataset. This is useful when working with datasets in different formats.
+
+The processor should contain the body of a Python function (without the `def` statement) that:
+- Takes three parameters: `text`, `tok`, and `isinst`
+- Processes the text according to your format
+- Stores the result in a variable named `result`
+
+**Example for simple text wrapping:**
+```python
+result = tok.bos_token + text.strip() + tok.eos_token
+```
+
+**Example for JSON-based datasets:**
+```python
+import json; data = json.loads(text); result = tok.bos_token + data['content'] + tok.eos_token
+```
+
+**Example for custom chat format:**
+```python
+messages = []; lines = text.split('\n'); [messages.append({'role': 'user' if i % 2 == 0 else 'assistant', 'content': line}) for i, line in enumerate(lines) if line.strip()]; result = tok.apply_chat_template(messages, tokenize=False) if isinst else tok.bos_token + text + tok.eos_token
+```
 
 ## Requirements
 

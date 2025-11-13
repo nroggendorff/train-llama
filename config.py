@@ -39,6 +39,20 @@ class Config:
         self.INSTRUCT_DATASET = os.environ.get("INST_DS", "nroggendorff/elephant")
         self.SHARD_SIZE = int(os.environ.get("SHARD_SIZE", "131072"))
         self.INST_SUFFIX = os.environ.get("INST_SUFFIX", "it")
+        self.CUSTOM_PROCESSOR = os.environ.get(
+            "CUSTOM_PROCESSOR",
+            (
+                "conversation = [];"
+                "parts = text.split('<|end|>');"
+                "[conversation.extend(["
+                "    {'role': 'user', 'content': parts[i].replace('<|user|>', '').strip()},"
+                "    {'role': 'assistant', 'content': parts[i + 1].replace('<|bot|>', '').strip()}"
+                "]) for i in range(0, len(parts) - 1, 2) if i + 1 < len(parts)];"
+                "result = tok.apply_chat_template(conversation, tokenize=False) "
+                "if isinst and conversation "
+                "else (tok.bos_token + text + tok.eos_token)"
+            ),
+        )
 
         if self.INSTRUCT_FINETUNE_BOOL:
             self.SHARD_INDEX = self.INIT
@@ -109,6 +123,16 @@ class Config:
             return f"{int(total_params / 1e6)}m"
         else:
             return f"{int(total_params / 1e9)}b"
+
+    def get_custom_processor(self):
+        try:
+            func_code = f"def process(text, tok, isinst):\n    {self.CUSTOM_PROCESSOR}\n    return result"
+            local_scope = {}
+            exec(func_code, {"__builtins__": __builtins__}, local_scope)
+            return local_scope["process"]
+        except Exception as e:
+            print(f"Error compiling CUSTOM_PROCESSOR: {e}")
+            raise
 
     def getDeepSpeedConfig(self):
         total_batch_size = (

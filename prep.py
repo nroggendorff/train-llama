@@ -129,26 +129,16 @@ def load_full_dataset():
 
 
 def format_prompts(examples, tokenizer, isinst):
+    custom_processor = config.get_custom_processor()
+
     def process_text(text):
         if not text or len(text.strip()) == 0:
             return None
-
-        if isinst:
-            conversation = []
-            parts = text.split("<|end|>")
-            for i in range(0, len(parts) - 1, 2):
-                if i + 1 < len(parts):
-                    prompt = parts[i].replace("<|user|>", "").strip()
-                    response = parts[i + 1].replace("<|bot|>", "").strip()
-                    conversation.append({"role": "user", "content": prompt})
-                    conversation.append({"role": "assistant", "content": response})
-
-            if conversation:
-                return tokenizer.apply_chat_template(conversation, tokenize=False)
-        else:
-            return tokenizer.bos_token + text + tokenizer.eos_token
-
-        return None
+        try:
+            return custom_processor(text, tokenizer, isinst)
+        except Exception as e:
+            print(f"Custom processor error: {e}")
+            return None
 
     with ThreadPoolExecutor(max_workers=4) as executor:
         texts = list(executor.map(process_text, examples["text"]))

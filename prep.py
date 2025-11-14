@@ -190,6 +190,10 @@ def get_training_corpus(dataset):
 
 
 def configure_tokenizer(tokenizer):
+    if config.INSTRUCT_FINETUNE_BOOL and check_tokenizer_has_instruct_config(tokenizer):
+        print("Skipping tokenizer configuration - already configured for instructions")
+        return
+
     special_tokens = {
         "bos_token": "<s>",
         "eos_token": "</s>",

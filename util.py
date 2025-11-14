@@ -76,6 +76,32 @@ def upload_model(trainer, repo_id, commit_message):
         print("Upload completed successfully")
 
 
+def check_tokenizer_has_instruct_config(tokenizer):
+    has_chat_template = (
+        hasattr(tokenizer, "chat_template") and tokenizer.chat_template is not None
+    )
+
+    instruct_tokens = ["<|user|>", "<|bot|>", "<|end|>"]
+    has_instruct_tokens = all(
+        token in tokenizer.get_vocab() for token in instruct_tokens
+    )
+
+    if has_chat_template and has_instruct_tokens:
+        print(
+            "Tokenizer already has instruction configuration (chat template and instruction tokens)"
+        )
+        return True
+    elif has_chat_template:
+        print("Tokenizer has chat template but missing instruction tokens")
+        return False
+    elif has_instruct_tokens:
+        print("Tokenizer has instruction tokens but missing chat template")
+        return False
+    else:
+        print("Tokenizer does not have instruction configuration")
+        return False
+
+
 config = Config()
 
 

@@ -1,5 +1,6 @@
 import os
 import re
+import json
 from trainer import TrainingConfig
 
 
@@ -65,6 +66,27 @@ class Config:
                 "if isinst and conversation "
                 "else (tok.bos_token + text + tok.eos_token)"
             ),
+        )
+
+        self.SPECIAL_TOKENS = json.loads(
+            os.environ.get(
+                "SPECIAL_TOKENS",
+                json.dumps(
+                    {
+                        "bos_token": "<s>",
+                        "eos_token": "</s>",
+                        "unk_token": "<unk>",
+                        "pad_token": "<pad>",
+                        "mask_token": "<mask>",
+                        "additional_special_tokens": ["<|user|>", "<|bot|>", "<|end|>"],
+                    }
+                ),
+            )
+        )
+
+        self.CHAT_TEMPLATE = os.environ.get(
+            "CHAT_TEMPLATE",
+            "{{ bos_token }}{% for message in messages %}{% if (message['role'] == 'user') != (loop.index0 % 2 == 0) %}{{ raise_exception('Conversation roles must alternate user/assistant/user/assistant/...') }}{% endif %}{% if message['role'] == 'user' %}{{ '<|user|>\n' + message['content'] + '<|end|>\n' }}{% elif message['role'] == 'assistant' %}{{ '<|bot|>\n' + message['content'] + '<|end|>\n' + eos_token}}{% else %}{{ raise_exception('Only user and assistant roles are supported!') }}{% endif %}{% endfor %}",
         )
 
     def _calculate_training_parameters(self):

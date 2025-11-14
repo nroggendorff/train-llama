@@ -194,24 +194,27 @@ def configure_tokenizer(tokenizer):
         print("Skipping tokenizer configuration - already configured for instructions")
         return
 
-    special_tokens = {
-        "bos_token": "<s>",
-        "eos_token": "</s>",
-        "unk_token": "<unk>",
-        "pad_token": "<pad>",
-        "mask_token": "<mask>",
-        "additional_special_tokens": [],
-    }
-    if config.INSTRUCT_FINETUNE_BOOL:
-        special_tokens["additional_special_tokens"] = ["<|user|>", "<|bot|>", "<|end|>"]
+    special_tokens = config.SPECIAL_TOKENS.copy()
+
+    if (
+        not config.INSTRUCT_FINETUNE_BOOL
+        and "additional_special_tokens" in special_tokens
+    ):
+        special_tokens["additional_special_tokens"] = []
+
     tokenizer.add_special_tokens(special_tokens)
 
     if config.INSTRUCT_FINETUNE_BOOL:
-        tokenizer.user_token_id = tokenizer.convert_tokens_to_ids("<|user|>")
-        tokenizer.assistant_token_id = tokenizer.convert_tokens_to_ids("<|bot|>")
+        additional_tokens = special_tokens.get("additional_special_tokens", [])
+        if len(additional_tokens) >= 2:
+            tokenizer.user_token_id = tokenizer.convert_tokens_to_ids(
+                additional_tokens[0]
+            )
+            tokenizer.assistant_token_id = tokenizer.convert_tokens_to_ids(
+                additional_tokens[1]
+            )
 
-        chat_template = "{{ bos_token }}{% for message in messages %}{% if (message['role'] == 'user') != (loop.index0 % 2 == 0) %}{{ raise_exception('Conversation roles must alternate user/assistant/user/assistant/...') }}{% endif %}{% if message['role'] == 'user' %}{{ '<|user|>\n' + message['content'] + '<|end|>\n' }}{% elif message['role'] == 'assistant' %}{{ '<|bot|>\n' + message['content'] + '<|end|>\n' + eos_token}}{% else %}{{ raise_exception('Only user and assistant roles are supported!') }}{% endif %}{% endfor %}"
-        tokenizer.chat_template = chat_template
+        tokenizer.chat_template = config.CHAT_TEMPLATE
 
 
 def main(is_inst=config.INSTRUCT_FINETUNE_BOOL):
@@ -240,9 +243,9 @@ def main(is_inst=config.INSTRUCT_FINETUNE_BOOL):
         dataset = load_data()
         print("Loaded data.")
 
-    print("Adding Special Tokens..")
+    print("Configuring Tokenizer..")
     configure_tokenizer(tokenizer)
-    print("Added Tokens.")
+    print("Tokenizer Configured.")
 
     print("Processing and saving data in streaming mode..")
 

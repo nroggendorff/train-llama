@@ -77,13 +77,17 @@ def upload_model(trainer, repo_id, commit_message):
 
 
 def check_tokenizer_has_instruct_config(tokenizer):
+    config = Config()
+
     has_chat_template = (
         hasattr(tokenizer, "chat_template") and tokenizer.chat_template is not None
     )
 
-    instruct_tokens = ["<|user|>", "<|bot|>", "<|end|>"]
-    has_instruct_tokens = all(
-        token in tokenizer.get_vocab() for token in instruct_tokens
+    instruct_tokens = config.SPECIAL_TOKENS.get("additional_special_tokens", [])
+    has_instruct_tokens = (
+        all(token in tokenizer.get_vocab() for token in instruct_tokens)
+        if instruct_tokens
+        else False
     )
 
     if has_chat_template and has_instruct_tokens:

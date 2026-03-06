@@ -237,4 +237,5 @@ class Config:
             max_grad_norm=1.0,
             dataloader_persistent_workers=True,
             dataloader_prefetch_factor=2,
+            mask_user_tokens=self.INSTRUCT_FINETUNE_BOOL,
         )

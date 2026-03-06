@@ -9,7 +9,6 @@ from typing import Dict, Any, Optional
 import deepspeed
 from transformers import LlamaForCausalLM, PreTrainedTokenizerFast
 from tqdm.auto import tqdm
-import torch.distributed as dist
 
 
 @dataclass
@@ -35,6 +34,7 @@ class TrainingConfig:
     adam_beta2: float
     max_grad_norm: float
     dataloader_persistent_workers: bool
+    mask_user_tokens: bool = False
     dataloader_prefetch_factor: Optional[int] = 2
 
     def to_dict(self):
@@ -93,6 +93,28 @@ class Trainer:
             )
 
             tokenized["labels"] = tokenized["input_ids"].clone()
+
+            if self.args.mask_user_tokens:
+                bot_token_id = self.processing_class.convert_tokens_to_ids("<|bot|>")
+                end_token_id = self.processing_class.convert_tokens_to_ids("<|end|>")
+
+                for i in range(len(tokenized["input_ids"])):
+                    input_ids = tokenized["input_ids"][i].tolist()
+                    labels = tokenized["labels"][i]
+
+                    in_assistant_response = False
+
+                    for j in range(len(input_ids)):
+                        if not in_assistant_response:
+                            if input_ids[j] == bot_token_id:
+                                in_assistant_response = True
+                                labels[j] = -100
+                            else:
+                                labels[j] = -100
+                        else:
+                            if input_ids[j] == end_token_id:
+                                labels[j] = -100
+                                in_assistant_response = False
 
             return tokenized
 
@@ -195,6 +217,8 @@ class Trainer:
             print(
                 f"  Effective batch size: {self.args.per_device_train_batch_size * self.world_size * self.args.gradient_accumulation_steps}"
             )
+            if self.args.mask_user_tokens:
+                print(f"  User token masking: ENABLED")
 
     def training_step(self, batch):
         self.model_engine.train()

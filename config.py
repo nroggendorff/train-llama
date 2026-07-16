@@ -26,6 +26,8 @@ class Config:
         Config._initialized = True
 
     def _load_environment_variables(self):
+        self.IS_SPACE = bool(os.environ.get("SPACE_ID"))
+
         self.epochs = float(os.environ.get("EPOCHS", "3"))
         self.lr = float(os.environ.get("LEARNING_RATE", "3e-4"))
 
@@ -33,13 +35,12 @@ class Config:
 
         self.VOCAB_SIZE = int(os.environ.get("VOCAB_SIZE", "52000"))
         self.BATCH_SIZE = int(os.environ.get("BATCH_SIZE", "4"))
-        self.INIT = int(os.environ.get("INIT", "0"))
+        self.RESUME = os.environ.get("RESUME", "false").lower() == "true"
         self.MAX_LENGTH = int(os.environ.get("MAX_LENGTH", "2048"))
         self.WEIGHT_DECAY = float(os.environ.get("WEIGHT_DECAY", "1e-2"))
         self.GRADIENT_ACCUMULATION_STEPS = int(
             os.environ.get("GRADIENT_ACCUMULATION_STEPS", "2")
         )
-        self.SHARD_SIZE = int(os.environ.get("SHARD_SIZE", "131072"))
         self.TIMEOUT_BUFFER = int(os.environ.get("TIMEOUT_BUFFER", "20"))
 
         self.FP16 = True
@@ -137,35 +138,9 @@ class Config:
         self.TOTAL_MODEL_PARAMS = best_config[3]
 
     def _calculate_training_parameters(self):
-        if self.INSTRUCT_FINETUNE_BOOL:
-            self.SHARD_INDEX = self.INIT
-            self.SKIP_SAMPLES = self.INIT * self.SHARD_SIZE
-            self.EPOCHS = self.epochs
-        elif self.INIT == 0:
-            self.SHARD_INDEX = 0
-            self.SKIP_SAMPLES = 0
-            self.EPOCHS = self.epochs / 2
-            self.SHARD_SIZE = self.SHARD_SIZE // 2
-        elif self.INIT == 1:
-            self.SHARD_INDEX = 0
-            self.SKIP_SAMPLES = self.SHARD_SIZE // 2
-            self.EPOCHS = self.epochs / 2
-            self.SHARD_SIZE = self.SHARD_SIZE // 2
-        else:
-            self.SHARD_INDEX = self.INIT - 1
-            self.SKIP_SAMPLES = self.SHARD_SIZE + (self.INIT - 2) * self.SHARD_SIZE
-            self.EPOCHS = self.epochs
-
-        if self.INIT > 1:
-            decay_factor = 1.0 / (1.0 + 0.1 * (self.INIT - 1))
-            self.LEARNING_RATE = max(self.lr * decay_factor, self.lr * 0.1)
-        else:
-            self.LEARNING_RATE = self.lr
-
-        self.TOTAL_STEPS = (self.SHARD_SIZE * self.EPOCHS) // (
-            self.BATCH_SIZE * self.GRADIENT_ACCUMULATION_STEPS
-        )
-        self.WARMUP_STEPS = 0 if self.INIT > 0 else int(self.TOTAL_STEPS * 0.1)
+        self.EPOCHS = self.epochs
+        self.LEARNING_RATE = self.lr
+        self.WARMUP_STEPS = int(os.environ.get("WARMUP_STEPS", "0"))
 
     def _setup_repositories(self):
         model_size_suffix = self._calculate_model_size_suffix()

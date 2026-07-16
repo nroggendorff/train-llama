@@ -30,31 +30,36 @@ def train_model(args, model, tokenizer, dataset):
     if hasattr(model, "gradient_checkpointing_enable"):
         model.gradient_checkpointing_enable()
 
+    timer_callback = get_timer_callback()
+
     trainer = Trainer(
         model=model,
         processing_class=tokenizer,
         args=args,
         train_dataset=dataset,
-        callbacks=[get_timer_callback()],
+        callbacks=[timer_callback] if timer_callback else [],
     )
 
     train = trainer.train()
 
     if trainer.is_world_process_zero():
-        repo_id = (
-            config.OUTPUT_REPO + f"-{config.INST_SUFFIX}"
-            if config.INSTRUCT_FINETUNE_BOOL
-            else config.OUTPUT_REPO
-        )
-        msg = f"Training loss: {train.training_loss:.4f}"
+        if config.IS_SPACE:
+            repo_id = (
+                config.OUTPUT_REPO + f"-{config.INST_SUFFIX}"
+                if config.INSTRUCT_FINETUNE_BOOL
+                else config.OUTPUT_REPO
+            )
+            msg = f"Training loss: {train.training_loss:.4f}"
 
-        print("Pushing model to hub...")
-        try:
-            upload_model(trainer, repo_id, msg)
-            print("Model and tokenizer uploaded successfully")
-        except Exception as e:
-            print(f"Failed to push model to hub: {e}")
-            raise
+            print("Pushing model to hub...")
+            try:
+                upload_model(trainer, repo_id, msg)
+                print("Model and tokenizer uploaded successfully")
+            except Exception as e:
+                print(f"Failed to push model to hub: {e}")
+                raise
+        else:
+            save_model_to_disk(trainer)
 
         print("Trained Model.")
     else:
@@ -111,7 +116,7 @@ def main():
         model_kwargs = {"use_cache": False}
 
         if config.FP16:
-            model_kwargs["torch_dtype"] = torch.float16
+            model_kwargs["dtype"] = torch.float16
 
         try:
             model = AutoModelForCausalLM.from_pretrained(
@@ -157,10 +162,11 @@ if __name__ == "__main__":
         import traceback
 
         traceback.print_exc()
-        try:
-            from util import Space
+        if config.IS_SPACE:
+            try:
+                from util import Space
 
-            Space().stop(e)
-        except Exception:
-            pass
+                Space().stop(e)
+            except Exception:
+                pass
         raise

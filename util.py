@@ -1,7 +1,6 @@
 import os
 import tempfile
 import time
-import json
 import signal
 import sys
 from huggingface_hub import HfApi
@@ -28,13 +27,17 @@ def retry_on_failure(func, *args, **kwargs):
                 raise
 
 
-def get_dataset_size():
-    with open(os.path.join("prepared_dataset", "dataset_info.json"), "r") as f:
-        info = json.load(f)
-    total = 0
-    for split in info.get("splits", {}).values():
-        total += split.get("num_examples", 0)
-    return total
+def save_model_to_disk(trainer, output_dir="output"):
+    print(f"Saving model and tokenizer to {output_dir}...")
+    os.makedirs(output_dir, exist_ok=True)
+
+    if hasattr(trainer, "model_engine") and trainer.model_engine is not None:
+        trainer.model_engine.module.save_pretrained(output_dir)
+    else:
+        trainer.model.save_pretrained(output_dir)
+
+    trainer.processing_class.save_pretrained(output_dir)
+    print(f"Model and tokenizer saved to {output_dir}")
 
 
 def upload_model(trainer, repo_id, commit_message):
@@ -122,7 +125,7 @@ class Conclusion(Exception):
 
         err_str = str(e).lower()
 
-        if any(word in err_str for word in self.recoverable_errors):
+        if config.IS_SPACE and any(word in err_str for word in self.recoverable_errors):
             try:
                 Space().resume()
             except Exception as resume_err:
@@ -149,34 +152,15 @@ class Space:
     def resume(self):
         retry_on_failure(self.api.restart_space, self.repo_id)
 
-    def reset(
-        self,
-        init=config.INIT,
-        inst=config.INSTRUCT_FINETUNE_BOOL,
-        shard_size=config.SHARD_SIZE,
-    ):
-        dataset_size = get_dataset_size()
-
-        if dataset_size > shard_size * (init + 2):
-            if not inst:
-                new_init = 0
-                new_instruct = True
-            else:
-                return self.pause()
-        else:
-            new_init = init + 1
-            new_instruct = inst
+    def reset(self, inst=config.INSTRUCT_FINETUNE_BOOL):
+        if inst:
+            return self.pause()
 
         def update_variables():
             self.api.add_space_variable(
                 repo_id=self.repo_id,
-                key="INIT",
-                value=str(new_init),
-            )
-            self.api.add_space_variable(
-                repo_id=self.repo_id,
                 key="INST",
-                value="true" if new_instruct else "false",
+                value="true",
             )
 
         retry_on_failure(update_variables)
@@ -238,5 +222,7 @@ def setup_timer_signals():
 
 
 def get_timer_callback():
+    if not config.IS_SPACE:
+        return None
     setup_timer_signals()
     return TimerCallback()

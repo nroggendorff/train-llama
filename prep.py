@@ -35,7 +35,7 @@ def load_model(tokenizer):
     try:
         model_path = (
             config.INPUT_REPO + f"-{config.INST_SUFFIX}"
-            if config.INSTRUCT_FINETUNE_BOOL and config.INIT > 0
+            if config.INSTRUCT_FINETUNE_BOOL and config.RESUME
             else config.INPUT_REPO
         )
 
@@ -99,7 +99,7 @@ def create_model(tokenizer):
 
 
 def load_data():
-    dataset = load_dataset(
+    return load_dataset(
         (
             config.INSTRUCT_DATASET
             if config.INSTRUCT_FINETUNE_BOOL
@@ -109,8 +109,6 @@ def load_data():
         streaming=True,
         download_config=download_config,
     )
-    dataset = dataset.skip(config.SKIP_SAMPLES).take(config.SHARD_SIZE)
-    return dataset
 
 
 def load_full_dataset():
@@ -160,11 +158,11 @@ def create_tokenizer(training_corpus):
 
 def load_tokenizer():
     def do_load():
-        if config.INPUT_TOKENIZER != config.INPUT_REPO and config.INIT == 0:
+        if config.INPUT_TOKENIZER != config.INPUT_REPO and not config.RESUME:
             return AutoTokenizer.from_pretrained(config.INPUT_TOKENIZER)
         return AutoTokenizer.from_pretrained(
             config.INPUT_REPO + f"-{config.INST_SUFFIX}"
-            if config.INSTRUCT_FINETUNE_BOOL and config.INIT > 0
+            if config.INSTRUCT_FINETUNE_BOOL and config.RESUME
             else config.INPUT_REPO
         )
 
@@ -215,7 +213,7 @@ def main(is_inst=config.INSTRUCT_FINETUNE_BOOL):
     print("Getting Tokenizer..")
     if (
         config.INSTRUCT_FINETUNE_BOOL
-        or config.INIT > 0
+        or config.RESUME
         or config.INPUT_TOKENIZER != config.INPUT_REPO
     ):
         tokenizer = load_tokenizer()
@@ -276,11 +274,7 @@ def main(is_inst=config.INSTRUCT_FINETUNE_BOOL):
         futures = deque()
         total_processed = 0
 
-        if config.INIT == 0 and not config.INSTRUCT_FINETUNE_BOOL:
-            total_samples = None
-        else:
-            total_samples = config.SHARD_SIZE
-        with tqdm(desc="Processing examples", total=total_samples) as pbar:
+        with tqdm(desc="Processing examples", total=None) as pbar:
             for batch in batch_gen:
                 if len(futures) >= max_queued_batches:
                     future = futures.popleft()
@@ -305,7 +299,7 @@ def main(is_inst=config.INSTRUCT_FINETUNE_BOOL):
     try:
         model = (
             load_model(tokenizer)
-            if is_inst or config.INIT > 0
+            if is_inst or config.RESUME
             else create_model(tokenizer)
         )
         print("Got Model.")
@@ -331,10 +325,11 @@ if __name__ == "__main__":
         import traceback
 
         traceback.print_exc()
-        try:
-            from util import Space
+        if config.IS_SPACE:
+            try:
+                from util import Space
 
-            Space().stop(e)
-        except Exception:
-            pass
+                Space().stop(e)
+            except Exception:
+                pass
         raise

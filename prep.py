@@ -58,21 +58,15 @@ def create_model(tokenizer):
     torch.manual_seed(config.SEED)
     torch.cuda.manual_seed_all(config.SEED)
 
-    hidden_size = int(config.FACTOR)
-
-    preferred_head_dim = 128
-    num_attention_heads = max(1, hidden_size // preferred_head_dim)
-
-    while num_attention_heads > 1 and (hidden_size % num_attention_heads) != 0:
-        num_attention_heads -= 1
+    hidden_size = config.HIDDEN_SIZE
+    num_hidden_layers = config.NUM_HIDDEN_LAYERS
+    num_attention_heads = config.NUM_ATTENTION_HEADS
+    intermediate_size = config.INTERMEDIATE_SIZE
 
     actual_head_dim = hidden_size // num_attention_heads
 
-    num_hidden_layers = max(1, hidden_size // 128)
-
-    intermediate_size = hidden_size * 4
     print(
-        f"Creating model with hidden_size={hidden_size}, num_hidden_layers={num_hidden_layers}, num_attention_heads={num_attention_heads}, head_dim={actual_head_dim}, intermediate_size={intermediate_size}"
+        f"Creating model targeting ~{config.TARGET_PARAMETERS} params, hidden_size={hidden_size}, num_hidden_layers={num_hidden_layers}, num_attention_heads={num_attention_heads}, head_dim={actual_head_dim}, intermediate_size={intermediate_size}"
     )
     model_config = LlamaConfig(
         vocab_size=tokenizer.vocab_size,

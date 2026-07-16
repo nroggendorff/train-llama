@@ -18,6 +18,7 @@ class Config:
             return
 
         self._load_environment_variables()
+        self._determine_model_topology()
         self._calculate_training_parameters()
         self._setup_repositories()
         self._calculate_timing()
@@ -28,7 +29,8 @@ class Config:
         self.epochs = float(os.environ.get("EPOCHS", "3"))
         self.lr = float(os.environ.get("LEARNING_RATE", "3e-4"))
 
-        self.FACTOR = int(os.environ.get("FACTOR", "12288"))
+        self.TARGET_PARAMETERS = int(float(os.environ.get("TARGET_PARAMETERS", "2e8")))
+
         self.VOCAB_SIZE = int(os.environ.get("VOCAB_SIZE", "52000"))
         self.BATCH_SIZE = int(os.environ.get("BATCH_SIZE", "4"))
         self.INIT = int(os.environ.get("INIT", "0"))
@@ -89,6 +91,51 @@ class Config:
             "{{ bos_token }}{% for message in messages %}{% if (message['role'] == 'user') != (loop.index0 % 2 == 0) %}{{ raise_exception('Conversation roles must alternate user/assistant/user/assistant/...') }}{% endif %}{% if message['role'] == 'user' %}{{ '<|user|>\n' + message['content'] + '<|end|>\n' }}{% elif message['role'] == 'assistant' %}{{ '<|bot|>\n' + message['content'] + '<|end|>\n' + eos_token}}{% else %}{{ raise_exception('Only user and assistant roles are supported!') }}{% endif %}{% endfor %}",
         )
 
+    def _determine_model_topology(self):
+        best_diff = float("inf")
+        best_config = None
+
+        for hidden_size in range(128, 16384 + 1, 128):
+            intermediate_size = ((int(8 * hidden_size / 3) + 255) // 256) * 256
+
+            min_layers = max(4, hidden_size // 128)
+            max_layers = max(8, hidden_size // 32)
+
+            for num_layers in range(min_layers, max_layers + 1):
+                embeddings_params = 2 * self.VOCAB_SIZE * hidden_size
+
+                attention_params = 4 * (hidden_size**2)
+
+                mlp_params = 3 * hidden_size * intermediate_size
+
+                layernorm_params = 2 * hidden_size
+
+                layer_params = num_layers * (
+                    attention_params + mlp_params + layernorm_params
+                )
+
+                final_norm_params = hidden_size
+
+                total_params = embeddings_params + layer_params + final_norm_params
+                diff = abs(total_params - self.TARGET_PARAMETERS)
+
+                if diff < best_diff:
+                    best_diff = diff
+                    best_config = (
+                        hidden_size,
+                        num_layers,
+                        intermediate_size,
+                        total_params,
+                    )
+                elif total_params > self.TARGET_PARAMETERS and diff > best_diff:
+                    break
+
+        self.HIDDEN_SIZE = best_config[0]
+        self.NUM_HIDDEN_LAYERS = best_config[1]
+        self.INTERMEDIATE_SIZE = best_config[2]
+        self.NUM_ATTENTION_HEADS = self.HIDDEN_SIZE // 128
+        self.TOTAL_MODEL_PARAMS = best_config[3]
+
     def _calculate_training_parameters(self):
         if self.INSTRUCT_FINETUNE_BOOL:
             self.SHARD_INDEX = self.INIT
@@ -144,21 +191,15 @@ class Config:
         self.TIMEOUT = self.SPACE_TIMEOUT - self.TIMEOUT_BUFFER
 
     def _calculate_model_size_suffix(self):
-        hidden_size = self.FACTOR
-        num_layers = max(1, hidden_size // 128)
-        intermediate_size = hidden_size * 4
-
-        total_params = self.VOCAB_SIZE * hidden_size * 2 + num_layers * (
-            4 * hidden_size * hidden_size
-            + 2 * hidden_size * intermediate_size
-            + 6 * hidden_size
-            + intermediate_size
-        )
+        total_params = self.TOTAL_MODEL_PARAMS
 
         if total_params < 1e9:
             return f"{int(total_params / 1e6)}m"
         else:
-            return f"{int(total_params / 1e9)}b"
+            val = round(total_params / 1e9, 1)
+            if val == int(val):
+                return f"{int(val)}b"
+            return f"{val}b"
 
     def get_custom_processor(self):
         try:

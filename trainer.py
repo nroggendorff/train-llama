@@ -36,6 +36,8 @@ class TrainingConfig:
     dataloader_persistent_workers: bool
     mask_user_tokens: bool = False
     dataloader_prefetch_factor: Optional[int] = 2
+    bf16: bool = False
+    max_consecutive_nan_steps: int = 50
 
     def to_dict(self):
         return {k: v for k, v in self.__dict__.items()}
@@ -49,6 +51,7 @@ class Trainer:
         args: TrainingConfig,
         train_dataset,
         callbacks=None,
+        resume_step: int = 0,
     ):
         self.model = model
         self.processing_class = processing_class
@@ -59,9 +62,10 @@ class Trainer:
         self.local_rank = int(os.environ.get("LOCAL_RANK", -1))
         self.world_size = int(os.environ.get("WORLD_SIZE", 1))
 
-        self.global_step = 0
+        self.global_step = resume_step
         self.current_epoch = 0
         self.total_loss = 0.0
+        self.consecutive_nan_steps = 0
 
         self.model_engine = None
         self.optimizer = None
@@ -91,6 +95,11 @@ class Trainer:
                 pad_to_multiple_of=8,
                 return_tensors="pt",
             )
+
+            tokenized = {
+                "input_ids": tokenized["input_ids"],
+                "attention_mask": tokenized["attention_mask"],
+            }
 
             tokenized["labels"] = tokenized["input_ids"].clone()
 
@@ -161,15 +170,24 @@ class Trainer:
             },
         ]
 
-        return AdamW(
-            optimizer_grouped_parameters,
-            lr=self.args.learning_rate,
-            betas=(self.args.adam_beta1, self.args.adam_beta2),
-            fused=True,
-        )
+        try:
+            return AdamW(
+                optimizer_grouped_parameters,
+                lr=self.args.learning_rate,
+                betas=(self.args.adam_beta1, self.args.adam_beta2),
+                fused=True,
+            )
+        except (RuntimeError, ValueError) as e:
+            if self.is_world_process_zero():
+                print(f"Fused AdamW unavailable ({e}), falling back to standard AdamW")
+            return AdamW(
+                optimizer_grouped_parameters,
+                lr=self.args.learning_rate,
+                betas=(self.args.adam_beta1, self.args.adam_beta2),
+            )
 
     def _get_cosine_schedule_with_warmup(
-        self, optimizer, num_warmup_steps, num_training_steps
+        self, optimizer, num_warmup_steps, num_training_steps, last_epoch=-1
     ):
         def lr_lambda(current_step):
             if current_step < num_warmup_steps:
@@ -179,20 +197,27 @@ class Trainer:
             )
             return max(0.0, 0.5 * (1.0 + math.cos(math.pi * progress)))
 
-        return LambdaLR(optimizer, lr_lambda)
+        return LambdaLR(optimizer, lr_lambda, last_epoch=last_epoch)
 
     def _create_scheduler(self, num_training_steps):
+        for group in self.optimizer.param_groups:
+            group.setdefault("initial_lr", group["lr"])
+
+        last_epoch = self.global_step - 1 if self.global_step > 0 else -1
         return self._get_cosine_schedule_with_warmup(
             self.optimizer,
             self.args.warmup_steps,
             num_training_steps,
+            last_epoch=last_epoch,
         )
 
     def _initialize_deepspeed(self, num_training_steps):
         if self.args.gradient_checkpointing and hasattr(
             self.model, "gradient_checkpointing_enable"
         ):
-            self.model.gradient_checkpointing_enable()
+            self.model.gradient_checkpointing_enable(
+                gradient_checkpointing_kwargs={"use_reentrant": False}
+            )
 
         self.optimizer = self._create_optimizer()
         self.scheduler = self._create_scheduler(num_training_steps)
@@ -209,7 +234,9 @@ class Trainer:
             print(f"\nDeepSpeed Configuration:")
             print(f"  World size: {self.world_size}")
             print(f"  Local rank: {self.local_rank}")
-            print(f"  FP16 enabled: {self.args.fp16}")
+            print(
+                f"  Precision: {'bf16' if self.args.bf16 else ('fp16' if self.args.fp16 else 'fp32')}"
+            )
             print(
                 f"  Zero stage: {self.args.deepspeed.get('zero_optimization', {}).get('stage', 'N/A')}"
             )
@@ -217,6 +244,8 @@ class Trainer:
             print(
                 f"  Effective batch size: {self.args.per_device_train_batch_size * self.world_size * self.args.gradient_accumulation_steps}"
             )
+            if self.global_step > 0:
+                print(f"  Resuming from global step: {self.global_step}")
             if self.args.mask_user_tokens:
                 print(f"  User token masking: ENABLED")
 
@@ -227,10 +256,24 @@ class Trainer:
 
         outputs = self.model_engine(**inputs)
         loss = outputs.loss
-
-        self.model_engine.backward(loss)
-
         loss_value = loss.item()
+
+        if not math.isfinite(loss_value):
+            self.consecutive_nan_steps += 1
+            if self.is_world_process_zero():
+                print(
+                    f"Warning: non-finite loss ({loss_value}) at step {self.global_step}, "
+                    f"skipping batch ({self.consecutive_nan_steps}/{self.args.max_consecutive_nan_steps})"
+                )
+            if self.consecutive_nan_steps >= self.args.max_consecutive_nan_steps:
+                raise RuntimeError(
+                    f"Loss was non-finite for {self.consecutive_nan_steps} consecutive steps. "
+                    "Training is unstable; consider lowering the learning rate or switching precision."
+                )
+            return None
+
+        self.consecutive_nan_steps = 0
+        self.model_engine.backward(loss)
         self.total_loss += loss_value
 
         return loss_value
@@ -255,11 +298,17 @@ class Trainer:
 
         train_dataloader = self._create_dataloader()
 
-        num_update_steps_per_epoch = (
-            len(train_dataloader) // self.args.gradient_accumulation_steps
+        if len(train_dataloader) == 0:
+            raise ValueError(
+                "Training dataloader produced no batches; check dataset size, "
+                "batch size, and gradient_accumulation_steps."
+            )
+
+        num_update_steps_per_epoch = max(
+            1, len(train_dataloader) // self.args.gradient_accumulation_steps
         )
-        num_training_steps = int(
-            self.args.num_train_epochs * num_update_steps_per_epoch
+        num_training_steps = max(
+            1, int(self.args.num_train_epochs * num_update_steps_per_epoch)
         )
 
         self._initialize_deepspeed(num_training_steps)
@@ -284,22 +333,23 @@ class Trainer:
             )
             print("=" * 70 + "\n")
 
-        self.global_step = 0
         log_loss = 0.0
         log_steps = 0
         start_time = time.time()
-        epoch_start_time = start_time
         last_log_time = start_time
+        stopped_early = False
 
-        for epoch in range(int(self.args.num_train_epochs)):
-            self.current_epoch = epoch
+        current_epoch = self.global_step // num_update_steps_per_epoch
 
-            train_dataloader.sampler.set_epoch(epoch)
+        while self.global_step < num_training_steps:
+            self.current_epoch = current_epoch
+            train_dataloader.sampler.set_epoch(current_epoch)
+            epoch_start_time = time.time()
 
             if self.is_world_process_zero():
                 epoch_pbar = tqdm(
-                    total=len(train_dataloader),
-                    desc=f"Epoch {epoch + 1}/{int(self.args.num_train_epochs)}",
+                    total=num_update_steps_per_epoch,
+                    desc=f"Epoch {current_epoch + 1}",
                     position=0,
                     leave=True,
                     mininterval=1.0,
@@ -307,8 +357,9 @@ class Trainer:
 
             for step, batch in enumerate(train_dataloader):
                 loss = self.training_step(batch)
-                log_loss += loss
-                log_steps += 1
+                if loss is not None:
+                    log_loss += loss
+                    log_steps += 1
 
                 if (step + 1) % self.args.gradient_accumulation_steps == 0:
                     self.model_engine.step()
@@ -339,7 +390,7 @@ class Trainer:
                             metrics = {
                                 "loss": avg_loss,
                                 "learning_rate": current_lr,
-                                "epoch": epoch + (step / len(train_dataloader)),
+                                "step": self.global_step,
                             }
 
                             epoch_pbar.set_postfix_str(self._format_metrics(metrics))
@@ -364,7 +415,7 @@ class Trainer:
                                 (),
                                 {
                                     "global_step": self.global_step,
-                                    "epoch": epoch,
+                                    "epoch": current_epoch,
                                 },
                             )()
                             control = type(
@@ -379,42 +430,50 @@ class Trainer:
                             )
 
                             if control.should_training_stop:
-                                if self.is_world_process_zero():
-                                    print("\n" + "=" * 70)
-                                    print("Training stopped by callback")
-                                    print("=" * 70)
-                                    epoch_pbar.close()
-                                training_loss = self.total_loss / max(
-                                    1, self.global_step
-                                )
-                                return type(
-                                    "TrainOutput", (), {"training_loss": training_loss}
-                                )()
+                                stopped_early = True
 
-                if self.is_world_process_zero():
-                    epoch_pbar.update(1)
+                    if self.is_world_process_zero():
+                        epoch_pbar.update(1)
+
+                    if stopped_early or self.global_step >= num_training_steps:
+                        break
 
             if self.is_world_process_zero():
                 epoch_pbar.close()
                 epoch_time = time.time() - epoch_start_time
                 print(f"\n{'='*70}")
-                print(f"Epoch {epoch + 1} completed in {epoch_time/60:.2f} minutes")
+                print(
+                    f"Epoch {current_epoch + 1} completed in {epoch_time/60:.2f} minutes"
+                )
                 print(f"{'='*70}\n")
-                epoch_start_time = time.time()
+
+            if stopped_early:
+                if self.is_world_process_zero():
+                    print("\n" + "=" * 70)
+                    print("Training stopped early")
+                    print("=" * 70)
+                break
+
+            current_epoch += 1
 
         training_loss = self.total_loss / max(1, self.global_step)
         total_time = time.time() - start_time
+        completed = not stopped_early and self.global_step >= num_training_steps
 
         if self.is_world_process_zero():
             print("\n" + "=" * 70)
-            print("Training completed")
+            print("Training completed" if completed else "Training paused")
             print("=" * 70)
             print(f"Total training time: {total_time/60:.2f} minutes")
             print(f"Average loss: {training_loss:.4f}")
             print(f"Final learning rate: {self.scheduler.get_last_lr()[0]:.2e}")
             print("=" * 70 + "\n")
 
-        return type("TrainOutput", (), {"training_loss": training_loss})()
+        return type(
+            "TrainOutput",
+            (),
+            {"training_loss": training_loss, "completed": completed},
+        )()
 
     def save_pretrained(self, output_dir):
         if self.is_world_process_zero():

@@ -1,4 +1,5 @@
 import os
+import json
 import torch
 import warnings
 from datetime import timedelta
@@ -28,9 +29,32 @@ def print_gpu_info():
 
 def train_model(args, model, tokenizer, dataset):
     if hasattr(model, "gradient_checkpointing_enable"):
-        model.gradient_checkpointing_enable()
+        model.gradient_checkpointing_enable(
+            gradient_checkpointing_kwargs={"use_reentrant": False}
+        )
 
     timer_callback = get_timer_callback()
+
+    state_repo_id, state_repo_is_custom = get_state_repo_id()
+
+    resume_step = 0
+    if config.IS_SPACE:
+        try:
+            ensure_state_repo(state_repo_id, state_repo_is_custom)
+        except Exception as e:
+            print(f"Training state repo check failed: {e}")
+            raise
+        if config.RESUME:
+            prior_state = download_training_state(state_repo_id, repo_type="dataset")
+            if prior_state:
+                resume_step = prior_state.get("global_step", 0)
+                print(
+                    f"Resuming from global step {resume_step} (state repo: {state_repo_id})"
+                )
+    elif os.path.exists("training_state.json"):
+        resume_step = json.loads(open("training_state.json").read()).get(
+            "global_step", 0
+        )
 
     trainer = Trainer(
         model=model,
@@ -38,9 +62,11 @@ def train_model(args, model, tokenizer, dataset):
         args=args,
         train_dataset=dataset,
         callbacks=[timer_callback] if timer_callback else [],
+        resume_step=resume_step,
     )
 
-    train = trainer.train()
+    train_output = trainer.train()
+    state = {"global_step": trainer.global_step, "completed": train_output.completed}
 
     if trainer.is_world_process_zero():
         if config.IS_SPACE:
@@ -49,7 +75,7 @@ def train_model(args, model, tokenizer, dataset):
                 if config.INSTRUCT_FINETUNE_BOOL
                 else config.OUTPUT_REPO
             )
-            msg = f"Training loss: {train.training_loss:.4f}"
+            msg = f"Training loss: {train_output.training_loss:.4f} (step {trainer.global_step})"
 
             print("Pushing model to hub...")
             try:
@@ -58,8 +84,40 @@ def train_model(args, model, tokenizer, dataset):
             except Exception as e:
                 print(f"Failed to push model to hub: {e}")
                 raise
+
+            print(f"Pushing training state to {state_repo_id}...")
+            try:
+                ensure_state_repo(state_repo_id, state_repo_is_custom)
+                push_training_state(state_repo_id, state)
+            except Exception as e:
+                print(f"Failed to push training state: {e}")
+                raise
+
+            if train_output.completed:
+                print("Training fully completed, advancing pipeline..")
+                try:
+                    Space().reset(inst=config.INSTRUCT_FINETUNE_BOOL)
+                except Exception as e:
+                    print(f"Failed to advance pipeline: {e}")
+
+                if config.INSTRUCT_FINETUNE_BOOL and not state_repo_is_custom:
+                    print(
+                        f"Entire training pipeline complete, deleting training state repo {state_repo_id}.."
+                    )
+                    try:
+                        delete_state_repo(state_repo_id)
+                    except Exception as e:
+                        print(f"Failed to delete training state repo: {e}")
+            elif not config.RESUME:
+                print("Training paused before completion, marking for resume..")
+                try:
+                    Space().mark_resume()
+                except Exception as e:
+                    print(f"Failed to mark space for resume: {e}")
+            else:
+                print("Training paused before completion; will continue on next run.")
         else:
-            save_model_to_disk(trainer)
+            save_model_to_disk(trainer, state=state)
 
         print("Trained Model.")
     else:
@@ -115,7 +173,9 @@ def main():
 
         model_kwargs = {"use_cache": False}
 
-        if config.FP16:
+        if config.BF16:
+            model_kwargs["dtype"] = torch.bfloat16
+        elif config.FP16:
             model_kwargs["dtype"] = torch.float16
 
         try:

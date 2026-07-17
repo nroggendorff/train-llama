@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import torch
 from trainer import TrainingConfig
 
 
@@ -18,6 +19,7 @@ class Config:
             return
 
         self._load_environment_variables()
+        self._determine_precision()
         self._determine_model_topology()
         self._calculate_training_parameters()
         self._setup_repositories()
@@ -43,8 +45,15 @@ class Config:
         )
         self.TIMEOUT_BUFFER = int(os.environ.get("TIMEOUT_BUFFER", "20"))
 
-        self.FP16 = True
+        self.PRECISION = os.environ.get("PRECISION", "auto").lower()
+        self.TIE_WORD_EMBEDDINGS = (
+            os.environ.get("TIE_WORD_EMBEDDINGS", "true").lower() == "true"
+        )
+
         self.MAX_RETRIES = 5
+        self.MAX_CONSECUTIVE_NAN_STEPS = int(
+            os.environ.get("MAX_CONSECUTIVE_NAN_STEPS", "50")
+        )
         self.SEED = 42
 
         self.INSTRUCT_FINETUNE_BOOL = os.environ.get("INST", "false").lower() == "true"
@@ -92,20 +101,47 @@ class Config:
             "{{ bos_token }}{% for message in messages %}{% if (message['role'] == 'user') != (loop.index0 % 2 == 0) %}{{ raise_exception('Conversation roles must alternate user/assistant/user/assistant/...') }}{% endif %}{% if message['role'] == 'user' %}{{ '<|user|>\n' + message['content'] + '<|end|>\n' }}{% elif message['role'] == 'assistant' %}{{ '<|bot|>\n' + message['content'] + '<|end|>\n' + eos_token}}{% else %}{{ raise_exception('Only user and assistant roles are supported!') }}{% endif %}{% endfor %}",
         )
 
+    def _determine_precision(self):
+        if self.PRECISION == "bf16":
+            self.BF16, self.FP16 = True, False
+        elif self.PRECISION == "fp16":
+            self.BF16, self.FP16 = False, True
+        elif self.PRECISION == "fp32":
+            self.BF16, self.FP16 = False, False
+        else:
+            self.BF16 = torch.cuda.is_available() and torch.cuda.is_bf16_supported()
+            self.FP16 = torch.cuda.is_available() and not self.BF16
+
+    @staticmethod
+    def _kv_heads_for(num_attention_heads):
+        candidate = max(1, round(num_attention_heads / 4))
+        while num_attention_heads % candidate != 0:
+            candidate -= 1
+        return candidate
+
     def _determine_model_topology(self):
         best_diff = float("inf")
         best_config = None
 
         for hidden_size in range(128, 16384 + 1, 128):
             intermediate_size = ((int(8 * hidden_size / 3) + 255) // 256) * 256
+            num_attention_heads = hidden_size // 128
+            num_key_value_heads = self._kv_heads_for(num_attention_heads)
+            head_dim = hidden_size // num_attention_heads
 
             min_layers = max(4, hidden_size // 128)
             max_layers = max(8, hidden_size // 32)
 
             for num_layers in range(min_layers, max_layers + 1):
-                embeddings_params = 2 * self.VOCAB_SIZE * hidden_size
+                embeddings_params = (
+                    self.VOCAB_SIZE * hidden_size
+                    if self.TIE_WORD_EMBEDDINGS
+                    else 2 * self.VOCAB_SIZE * hidden_size
+                )
 
-                attention_params = 4 * (hidden_size**2)
+                attention_params = 2 * (hidden_size**2) + 2 * hidden_size * (
+                    num_key_value_heads * head_dim
+                )
 
                 mlp_params = 3 * hidden_size * intermediate_size
 
@@ -127,6 +163,7 @@ class Config:
                         num_layers,
                         intermediate_size,
                         total_params,
+                        num_key_value_heads,
                     )
                 elif total_params > self.TARGET_PARAMETERS and diff > best_diff:
                     break
@@ -135,7 +172,20 @@ class Config:
         self.NUM_HIDDEN_LAYERS = best_config[1]
         self.INTERMEDIATE_SIZE = best_config[2]
         self.NUM_ATTENTION_HEADS = self.HIDDEN_SIZE // 128
+        self.NUM_KEY_VALUE_HEADS = best_config[4]
         self.TOTAL_MODEL_PARAMS = best_config[3]
+
+        override = os.environ.get("NUM_KEY_VALUE_HEADS")
+        if override:
+            override = int(override)
+            if self.NUM_ATTENTION_HEADS % override == 0:
+                self.NUM_KEY_VALUE_HEADS = override
+            else:
+                print(
+                    f"NUM_KEY_VALUE_HEADS={override} does not evenly divide "
+                    f"NUM_ATTENTION_HEADS={self.NUM_ATTENTION_HEADS}, "
+                    f"using computed default {self.NUM_KEY_VALUE_HEADS}"
+                )
 
     def _calculate_training_parameters(self):
         self.EPOCHS = self.epochs
@@ -193,6 +243,23 @@ class Config:
             * int(os.environ.get("WORLD_SIZE", 1))
         )
 
+        precision_config = (
+            {"bf16": {"enabled": True}}
+            if self.BF16
+            else {
+                "fp16": {
+                    "enabled": self.FP16,
+                    "auto_cast": False,
+                    "loss_scale": 0,
+                    "loss_scale_window": 1000,
+                    "initial_scale_power": 16,
+                    "hysteresis": 2,
+                    "min_loss_scale": 1,
+                },
+                "communication_data_type": "fp16",
+            }
+        )
+
         return {
             "zero_optimization": {
                 "stage": 2,
@@ -207,21 +274,12 @@ class Config:
                 "reduce_scatter": True,
                 "round_robin_gradients": True,
             },
-            "fp16": {
-                "enabled": self.FP16,
-                "auto_cast": False,
-                "loss_scale": 0,
-                "loss_scale_window": 1000,
-                "initial_scale_power": 16,
-                "hysteresis": 2,
-                "min_loss_scale": 1,
-            },
+            **precision_config,
             "gradient_clipping": 1.0,
             "train_batch_size": total_batch_size,
             "train_micro_batch_size_per_gpu": self.BATCH_SIZE,
             "gradient_accumulation_steps": self.GRADIENT_ACCUMULATION_STEPS,
             "wall_clock_breakdown": False,
-            "communication_data_type": "fp16",
             "steps_per_print": 2000000000,
         }
 
@@ -235,6 +293,7 @@ class Config:
             weight_decay=self.WEIGHT_DECAY,
             gradient_accumulation_steps=self.GRADIENT_ACCUMULATION_STEPS,
             fp16=self.FP16,
+            bf16=self.BF16,
             logging_steps=(
                 max(self.BATCH_SIZE, int(self.WARMUP_STEPS))
                 if self.WARMUP_STEPS > 0
@@ -254,4 +313,5 @@ class Config:
             dataloader_persistent_workers=True,
             dataloader_prefetch_factor=2,
             mask_user_tokens=self.INSTRUCT_FINETUNE_BOOL,
+            max_consecutive_nan_steps=self.MAX_CONSECUTIVE_NAN_STEPS,
         )

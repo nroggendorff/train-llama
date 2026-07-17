@@ -49,6 +49,18 @@ fi
 if [ "$IS_SPACE" = true ]; then
     python3 -c "import time; open('.timer_start', 'w').write(str(time.time()))"
     echo "Timer started"
+
+    echo "Checking training state repo..."
+    python3 -c "
+from util import get_state_repo_id, ensure_state_repo
+repo_id, is_custom = get_state_repo_id()
+try:
+    ensure_state_repo(repo_id, is_custom)
+    print(f'Training state repo ready: {repo_id}' + (' (custom)' if is_custom else ''))
+except Exception as e:
+    print(f'ERROR: {e}')
+    exit(1)
+"
 fi
 
 echo "Preprocessing data..."
@@ -62,7 +74,4 @@ echo "Done preprocessing, training on $DEVICE_COUNT devices.."
 
 deepspeed --num_gpus=$DEVICE_COUNT train.py
 
-echo "Training complete. Exiting..."
-if [ "$IS_SPACE" = true ]; then
-    python3 -c "from util import Space; space = Space(); space.reset()"
-fi
+echo "Training run finished. Exiting.."

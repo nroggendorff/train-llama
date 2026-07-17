@@ -1,12 +1,25 @@
 import os
+import json
+import hashlib
 import tempfile
 import time
 import signal
 import sys
-from huggingface_hub import HfApi
+from huggingface_hub import HfApi, hf_hub_download
 from transformers import TrainerCallback
 
 from config import Config
+
+
+def _repo_exists(api, repo_id, repo_type):
+    try:
+        return api.repo_exists(repo_id=repo_id, repo_type=repo_type)
+    except AttributeError:
+        try:
+            api.repo_info(repo_id=repo_id, repo_type=repo_type)
+            return True
+        except Exception:
+            return False
 
 
 def retry_on_failure(func, *args, **kwargs):
@@ -27,7 +40,86 @@ def retry_on_failure(func, *args, **kwargs):
                 raise
 
 
-def save_model_to_disk(trainer, output_dir="output"):
+def download_training_state(repo_id, repo_type="dataset"):
+    try:
+        return json.loads(
+            open(
+                hf_hub_download(
+                    repo_id=repo_id, filename="training_state.json", repo_type=repo_type
+                )
+            ).read()
+        )
+    except Exception as e:
+        print(f"No resumable training state found for {repo_id}: {e}")
+        return None
+
+
+STATE_OWNER_KEY = "_owner_repo"
+
+
+def get_state_repo_id():
+    custom = os.environ.get("TEMP_DATA_REPO")
+    if custom:
+        return custom, True
+
+    namespace = config.base_output_repo.split("/")[0]
+    digest = hashlib.sha256(config.base_output_repo.encode()).hexdigest()
+    return f"{namespace}/{digest}", False
+
+
+def ensure_state_repo(repo_id, is_custom):
+    api = HfApi()
+
+    if is_custom:
+        retry_on_failure(
+            api.create_repo,
+            repo_id=repo_id,
+            repo_type="dataset",
+            private=True,
+            exist_ok=True,
+        )
+        return
+
+    if not _repo_exists(api, repo_id, "dataset"):
+        retry_on_failure(
+            api.create_repo, repo_id=repo_id, repo_type="dataset", private=True
+        )
+        return
+
+    existing = download_training_state(repo_id, repo_type="dataset")
+    if not existing or existing.get(STATE_OWNER_KEY) != config.base_output_repo:
+        raise RuntimeError(
+            f"The dataset repo '{repo_id}' already exists and does not appear to belong to "
+            f"this training run (expected owner '{config.base_output_repo}'). This should be "
+            "essentially impossible given the hash-based naming, but to be safe: please move "
+            f"whatever is currently at https://huggingface.co/datasets/{repo_id} elsewhere, or "
+            "set the TEMP_DATA_REPO environment variable to use a different repo for training "
+            "state (a custom TEMP_DATA_REPO is never auto-deleted)."
+        )
+
+
+def push_training_state(repo_id, state):
+    api = HfApi()
+    state = {**state, STATE_OWNER_KEY: config.base_output_repo}
+
+    def do_upload():
+        api.upload_file(
+            path_or_fileobj=json.dumps(state).encode(),
+            path_in_repo="training_state.json",
+            repo_id=repo_id,
+            repo_type="dataset",
+            commit_message=f"Update training state (step {state.get('global_step', 0)})",
+        )
+
+    retry_on_failure(do_upload)
+
+
+def delete_state_repo(repo_id):
+    api = HfApi()
+    retry_on_failure(api.delete_repo, repo_id=repo_id, repo_type="dataset")
+
+
+def save_model_to_disk(trainer, output_dir="output", state=None):
     print(f"Saving model and tokenizer to {output_dir}...")
     os.makedirs(output_dir, exist_ok=True)
 
@@ -37,10 +129,16 @@ def save_model_to_disk(trainer, output_dir="output"):
         trainer.model.save_pretrained(output_dir)
 
     trainer.processing_class.save_pretrained(output_dir)
+
+    if state is not None:
+        open(os.path.join(output_dir, "training_state.json"), "w").write(
+            json.dumps(state)
+        )
+
     print(f"Model and tokenizer saved to {output_dir}")
 
 
-def upload_model(trainer, repo_id, commit_message):
+def upload_model(trainer, repo_id, commit_message, extra_files=None):
     api = HfApi()
 
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -52,6 +150,9 @@ def upload_model(trainer, repo_id, commit_message):
             trainer.model.save_pretrained(temp_dir)
 
         trainer.processing_class.save_pretrained(temp_dir)
+
+        for filename, content in (extra_files or {}).items():
+            open(os.path.join(temp_dir, filename), "w").write(content)
 
         total_files = sum(len(files) for _, _, files in os.walk(temp_dir))
         print(f"Uploading {total_files} files...")
@@ -157,13 +258,20 @@ class Space:
             return self.pause()
 
         def update_variables():
+            self.api.add_space_variable(repo_id=self.repo_id, key="INST", value="true")
             self.api.add_space_variable(
-                repo_id=self.repo_id,
-                key="INST",
-                value="true",
+                repo_id=self.repo_id, key="RESUME", value="false"
             )
 
         retry_on_failure(update_variables)
+
+    def mark_resume(self):
+        def update_variable():
+            self.api.add_space_variable(
+                repo_id=self.repo_id, key="RESUME", value="true"
+            )
+
+        retry_on_failure(update_variable)
 
 
 class TrainingTimer:
@@ -190,23 +298,6 @@ class TimerCallback(TrainerCallback):
     def on_step_end(self, args, state, control, **kwargs):
         if state.global_step % 10 == 0 and self.timer.is_expired():
             print(f"Timer expired at step {state.global_step}, stopping training")
-
-            trainer = kwargs.get("trainer")
-            if trainer and trainer.is_world_process_zero():
-                repo_id = (
-                    config.OUTPUT_REPO + f"-{config.INST_SUFFIX}"
-                    if config.INSTRUCT_FINETUNE_BOOL
-                    else config.OUTPUT_REPO
-                )
-
-                try:
-                    upload_model(
-                        trainer, repo_id, f"Timer stop at step {state.global_step}"
-                    )
-                    print("Model saved successfully")
-                except Exception as e:
-                    print(f"Failed to save model: {e}")
-
             control.should_training_stop = True
         return control
 

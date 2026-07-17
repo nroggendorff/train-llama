@@ -27,6 +27,10 @@ Key parameters include:
 - `INPUT_TOKENIZER`: Pre-trained tokenizer to use (skips tokenizer creation)
 - `OUTPUT_REPO`: Target repository for saving models
 - `CUSTOM_PROCESSOR`: Custom dataset processing function (see below)
+- `PRECISION`: `auto` (default), `bf16`, `fp16`, or `fp32`. `auto` uses bf16 on GPUs that support it (Ampere and newer) and falls back to fp16 otherwise, since bf16 avoids fp16's loss-scaling instability.
+- `TIE_WORD_EMBEDDINGS`: `true` (default) or `false`. Tying the input/output embeddings meaningfully reduces parameter count for small models (the embedding table alone can be ~40% of total parameters at the default 200M/52k-vocab settings), leaving more of the parameter budget for the transformer body.
+- `NUM_KEY_VALUE_HEADS`: Overrides the auto-computed number of key/value heads used for grouped-query attention (GQA). By default this is derived from `NUM_ATTENTION_HEADS` (roughly a 4:1 ratio, adjusted to the nearest valid divisor).
+- `MAX_CONSECUTIVE_NAN_STEPS`: Number of consecutive non-finite loss values tolerated before training aborts with an error (default 50). Individual non-finite steps are skipped (not backpropagated) rather than corrupting the model.
 
 ### Custom Dataset Processing
 
@@ -66,7 +70,7 @@ Dependencies are managed through the [requirements script](./installer.sh).
 Duplicate [nroggendorff/train-llama](https://huggingface.co/spaces/nroggendorff/train-llama) and configure variables and secrets.
 
 [Duplicate Space Hotlink](https://huggingface.co/spaces/nroggendorff/train-llama?duplicate=true)
-The first run must use `INIT=0` and `INST=false`.
+The first run must use `RESUME=false` and `INST=false`.
 
 ## License
 
@@ -79,6 +83,7 @@ Contributions are welcome! Please adhere to [CONTRIBUTING](./CONTRIBUTING.md).
 ## Notes
 
 - The pipeline uses Git LFS for handling large files.
-- Models are automatically pushed to Hugging Face Hub when `PUSH_TO_HUB` is enabled.
-- Training can be resumed from checkpoints by adjusting the `INIT` and `INST` environment variables.
+- Models are automatically pushed to Hugging Face Hub when running as a Space.
 - When `INPUT_TOKENIZER` is set, tokenizer creation is skipped on the first run, and only the required data is loaded.
+- Each run saves a small `training_state.json` alongside the model (recording the global step and whether training fully finished). On the next `RESUME=true` run, this lets the learning-rate schedule continue smoothly instead of re-warming-up from scratch every time the Space restarts.
+- The Space variables `RESUME` and `INST` are managed automatically once a run pushes a checkpoint: if a run is stopped early by the timeout, `RESUME` is flipped to `true` so the next restart continues the same phase; once a phase (pretraining or instruction fine-tuning) genuinely finishes all its steps, the pipeline advances on its own (pretraining hands off to instruction fine-tuning with `RESUME` reset to `false`; instruction fine-tuning pauses the Space when done).

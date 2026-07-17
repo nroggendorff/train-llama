@@ -1,5 +1,4 @@
 from tqdm import tqdm
-from concurrent.futures import ThreadPoolExecutor
 import torch
 import warnings
 
@@ -13,8 +12,6 @@ from transformers import (
     LlamaForCausalLM,
 )
 import torch.distributed as dist
-import threading
-from collections import deque
 
 from config import Config
 from util import *
@@ -39,10 +36,9 @@ def load_model(tokenizer):
             else config.INPUT_REPO
         )
 
-        def load_model_from_pretrained():
-            return AutoModelForCausalLM.from_pretrained(model_path, use_cache=False)
-
-        model = retry_on_failure(load_model_from_pretrained)
+        model = retry_on_failure(
+            lambda: AutoModelForCausalLM.from_pretrained(model_path, use_cache=False)
+        )
         model.resize_token_embeddings(len(tokenizer))
     except Exception as e:
         print(f"Failed to load model from {model_path}: {e}")
@@ -61,12 +57,16 @@ def create_model(tokenizer):
     hidden_size = config.HIDDEN_SIZE
     num_hidden_layers = config.NUM_HIDDEN_LAYERS
     num_attention_heads = config.NUM_ATTENTION_HEADS
+    num_key_value_heads = config.NUM_KEY_VALUE_HEADS
     intermediate_size = config.INTERMEDIATE_SIZE
 
     actual_head_dim = hidden_size // num_attention_heads
 
     print(
-        f"Creating model targeting ~{config.TARGET_PARAMETERS} params, hidden_size={hidden_size}, num_hidden_layers={num_hidden_layers}, num_attention_heads={num_attention_heads}, head_dim={actual_head_dim}, intermediate_size={intermediate_size}"
+        f"Creating model targeting ~{config.TARGET_PARAMETERS} params, hidden_size={hidden_size}, "
+        f"num_hidden_layers={num_hidden_layers}, num_attention_heads={num_attention_heads}, "
+        f"num_key_value_heads={num_key_value_heads}, head_dim={actual_head_dim}, "
+        f"intermediate_size={intermediate_size}, tie_word_embeddings={config.TIE_WORD_EMBEDDINGS}"
     )
     model_config = LlamaConfig(
         vocab_size=tokenizer.vocab_size,
@@ -74,6 +74,7 @@ def create_model(tokenizer):
         intermediate_size=intermediate_size,
         num_hidden_layers=num_hidden_layers,
         num_attention_heads=num_attention_heads,
+        num_key_value_heads=num_key_value_heads,
         max_position_embeddings=config.MAX_LENGTH,
         rms_norm_eps=1e-5,
         initializer_range=0.02,
@@ -81,7 +82,7 @@ def create_model(tokenizer):
         pad_token_id=getattr(tokenizer, "pad_token_id", 0),
         bos_token_id=getattr(tokenizer, "bos_token_id", 1),
         eos_token_id=getattr(tokenizer, "eos_token_id", 2),
-        tie_word_embeddings=False,
+        tie_word_embeddings=config.TIE_WORD_EMBEDDINGS,
     )
 
     try:
@@ -132,10 +133,9 @@ def format_prompts(examples, tokenizer, isinst):
             print(f"Custom processor error: {e}")
             return None
 
-    with ThreadPoolExecutor(max_workers=4) as executor:
-        texts = list(executor.map(process_text, examples["text"]))
-
-    texts = [t for t in texts if t is not None]
+    texts = [
+        t for t in (process_text(text) for text in examples["text"]) if t is not None
+    ]
 
     if len(texts) == 0:
         raise ValueError("No valid texts found in examples for formatting.")
@@ -209,6 +209,17 @@ def configure_tokenizer(tokenizer):
         tokenizer.chat_template = config.CHAT_TEMPLATE
 
 
+def batch_generator(dataset, batch_size):
+    current_batch = []
+    for example in dataset:
+        current_batch.append(example)
+        if len(current_batch) >= batch_size:
+            yield current_batch
+            current_batch = []
+    if current_batch:
+        yield current_batch
+
+
 def main(is_inst=config.INSTRUCT_FINETUNE_BOOL):
     print("Getting Tokenizer..")
     if (
@@ -241,59 +252,19 @@ def main(is_inst=config.INSTRUCT_FINETUNE_BOOL):
 
     print("Processing and saving data in streaming mode..")
 
-    def process_batch(batch, tokenizer, instruct_finetune_bool):
-        batch_dict = {"text": [item["text"] for item in batch]}
-        formatted_batch = format_prompts(batch_dict, tokenizer, instruct_finetune_bool)
-        return [{"text": text} for text in formatted_batch["text"]]
+    def generate_examples():
+        with tqdm(desc="Processing examples", unit=" examples") as pbar:
+            for batch in batch_generator(dataset, 100):
+                texts = format_prompts(
+                    {"text": [item["text"] for item in batch]},
+                    tokenizer,
+                    config.INSTRUCT_FINETUNE_BOOL,
+                )["text"]
+                for text in texts:
+                    pbar.update(1)
+                    yield {"text": text}
 
-    def batch_generator(dataset, batch_size):
-        current_batch = []
-        for example in dataset:
-            current_batch.append(example)
-            if len(current_batch) >= batch_size:
-                yield current_batch
-                current_batch = []
-        if current_batch:
-            yield current_batch
-
-    processed_data = []
-    batch_size = 100
-    max_workers = 4
-    max_queued_batches = max_workers * 2
-
-    batch_gen = batch_generator(dataset, batch_size)
-    result_lock = threading.Lock()
-
-    def process_and_store(batch):
-        result = process_batch(batch, tokenizer, config.INSTRUCT_FINETUNE_BOOL)
-        with result_lock:
-            processed_data.extend(result)
-        return len(result)
-
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = deque()
-        total_processed = 0
-
-        with tqdm(desc="Processing examples", total=None) as pbar:
-            for batch in batch_gen:
-                if len(futures) >= max_queued_batches:
-                    future = futures.popleft()
-                    count = future.result()
-                    total_processed += count
-                    pbar.update(count)
-
-                future = executor.submit(process_and_store, batch)
-                futures.append(future)
-
-            while futures:
-                future = futures.popleft()
-                count = future.result()
-                total_processed += count
-                pbar.update(count)
-
-    print(f"Creating dataset from {len(processed_data)} processed examples...")
-    final_dataset = Dataset.from_list(processed_data)
-    processed_data = None
+    final_dataset = Dataset.from_generator(generate_examples)
 
     print("Getting Model..")
     try:
@@ -307,7 +278,9 @@ def main(is_inst=config.INSTRUCT_FINETUNE_BOOL):
         print(f"Failed to initialize model: {e}")
         raise
 
-    if config.FP16:
+    if config.BF16:
+        model = model.to(torch.bfloat16)
+    elif config.FP16:
         model = model.half()
 
     print("Saving Prepared Data..")
